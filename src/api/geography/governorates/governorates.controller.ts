@@ -22,10 +22,10 @@ export class GovernoratesController {
       'Returns governorate records from the released geography dataset. The endpoint is available before the first data release and returns an empty list until a verified data-geography release is published.',
     responseName: 'GovernorateListResponse',
   })
-  listGovernorates(@I18n() i18n: I18nContext): ApiResponse<GovernorateList> {
+  async listGovernorates(@I18n() i18n: I18nContext): Promise<ApiResponse<GovernorateList>> {
     return buildResponse({
       i18n,
-      data: this.governoratesService.listGovernorates(),
+      data: await this.governoratesService.listGovernorates(),
       message: 'api.responses.geography.governoratesFetched',
       fallbackMessage: 'Governorates fetched successfully',
     });

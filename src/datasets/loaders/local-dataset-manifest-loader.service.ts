@@ -8,9 +8,8 @@ import {
   type DatasetReleaseManifest,
   datasetReleaseManifestSchema,
 } from '../contracts/dataset-release-manifest.schema';
+import { RELEASE_MANIFEST_FILE } from '../dataset-release-path.utils';
 import type { DatasetManifestLoader } from './dataset-manifest-loader.interface';
-
-const RELEASE_MANIFEST_FILE = 'release-manifest.json';
 
 function getNodeErrorCode(error: unknown): string | undefined {
   if (typeof error !== 'object' || error === null || !('code' in error)) {

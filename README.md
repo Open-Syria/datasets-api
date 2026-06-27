@@ -40,7 +40,9 @@ Response messages can be localized with `?lang=`, `x-lang`, or `Accept-Language`
 
 Datasets live in separate repositories. This API should consume versioned release artifacts and manifests from those repositories, not live `main` branches. See [docs/dataset-loading.md](docs/dataset-loading.md).
 
-Local release manifests are read from `DATASETS_RELEASES_DIR`, which defaults to `data/releases`.
+Local release manifests and artifacts are read from `DATASETS_RELEASES_DIR`, which defaults to `data/releases`.
+
+The first wired artifact is the geography governorates JSON file. When a synced `opensyria-geography` release includes an artifact named `governorates`, `GET /api/v1/geography/governorates` reads the local file after checksum and size verification.
 
 To sync pinned GitHub Release artifacts into the local release directory:
 

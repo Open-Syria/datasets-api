@@ -85,6 +85,17 @@ data/releases
 
 The local loader recursively searches for files named `release-manifest.json`.
 
+JSON artifacts are resolved relative to the release directory that contains the manifest. The first supported endpoint artifact is:
+
+```text
+opensyria-geography
+  artifact name: governorates
+  artifact format: json
+  artifact path: artifacts/governorates.json
+```
+
+The governorates JSON artifact may be either an array of records or an object with an `items` array. Each record should match the public governorate summary schema exposed by `/api/v1/geography/governorates`.
+
 ## Sync Command
 
 `datasets-api` includes a GitHub Release sync command:
