@@ -4,6 +4,14 @@ Read-only NestJS API for OpenSyria datasets.
 
 This repository is intentionally a standalone app. It is not a monorepo.
 
+## Contribution Model
+
+This API repository is public but maintainer-led. Unsolicited feature pull requests are not currently accepted here.
+
+Public community contribution will happen primarily in the dataset repositories, where contributors can fix data, add missing records, improve sources, and suggest schema improvements through a controlled maintainer review process.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/dataset-contribution-policy.md](docs/dataset-contribution-policy.md).
+
 ## Setup
 
 ```bash

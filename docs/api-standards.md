@@ -7,6 +7,7 @@ The goal is that every endpoint looks and behaves like it belongs to the same AP
 ## Core Rules
 
 - The API is public and read-only.
+- The API codebase is maintainer-led; public dataset contributions happen in dataset repositories.
 - Do not add auth-specific decorators, guards, or response docs to dataset endpoints.
 - Use Fastify.
 - Use Zod schemas and `nestjs-zod` DTOs for request validation, response serialization, and OpenAPI generation.
