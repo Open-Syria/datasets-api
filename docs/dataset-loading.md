@@ -31,6 +31,33 @@ DATASETS_RELEASES_DIR=data/releases
 
 It recursively searches for files named `release-manifest.json`, validates them with the Zod manifest contract, and registers them in memory for API services to consume.
 
+## Syncing GitHub Releases
+
+Pinned GitHub Releases can be synced into the local release directory with:
+
+```bash
+DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.0" pnpm run datasets:sync
+```
+
+Use a comma-separated list for multiple sources:
+
+```text
+Open-Syria/data-geography@v0.1.0,Open-Syria/data-universities@v0.1.0
+```
+
+The sync command:
+
+- fetches each pinned GitHub Release,
+- downloads `release-manifest.json`,
+- validates the manifest schema,
+- downloads artifacts listed by the manifest,
+- verifies artifact SHA-256 checksums and file sizes,
+- writes the verified files under `DATASETS_RELEASES_DIR`.
+
+Set `DATASETS_SYNC_DOWNLOAD_ARTIFACTS=false` to sync manifests only.
+
+Set `GITHUB_TOKEN` when syncing private releases or when higher GitHub API limits are needed.
+
 ## Initial Implementation
 
 For the first public API foundation, endpoint data can be static placeholders while dataset repositories are being prepared.

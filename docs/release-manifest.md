@@ -85,4 +85,14 @@ data/releases
 
 The local loader recursively searches for files named `release-manifest.json`.
 
-Later, a GitHub Release loader can download pinned manifests and artifacts into the same local read model. Runtime HTTP requests should still read local verified data, not GitHub directly.
+## Sync Command
+
+`datasets-api` includes a GitHub Release sync command:
+
+```bash
+DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.0" pnpm run datasets:sync
+```
+
+The command expects every pinned release to include `release-manifest.json` as a release asset. Artifact files listed in the manifest are matched by the basename of `artifacts[].path`.
+
+Runtime HTTP requests should still read local verified data, not GitHub directly.

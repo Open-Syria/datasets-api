@@ -60,11 +60,11 @@ The foundation pass is implemented:
 - `/api/v1/geography/governorates` placeholder endpoint pending the first `data-geography` release.
 - Dataset loading model documented in [`dataset-loading.md`](./dataset-loading.md).
 - Release manifest contract, local manifest loader, and in-memory dataset release registry.
+- GitHub Release sync command for pinned manifests and artifacts.
 
 Next implementation phase:
 
 - Add richer error and validation examples in OpenAPI.
-- Add a GitHub Release download/sync adapter for pinned manifests and artifacts.
 - Add the first real artifact reader for `data-geography`.
 - Add source attribution DTOs that can be reused by geography and universities endpoints.
 
