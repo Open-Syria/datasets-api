@@ -14,7 +14,9 @@
       "governoratesFetched": "Governorates fetched successfully"
     },
     "health": {
-      "ok": "API health returned successfully"
+      "live": "API liveness returned successfully",
+      "ok": "API health returned successfully",
+      "ready": "API readiness returned successfully"
     },
     "releases": {
       "listFetched": "Releases fetched successfully"

@@ -6,6 +6,7 @@ import { LocalDatasetArtifactReaderService } from '../../../datasets/loaders/loc
 import {
   type GovernorateDetail,
   type GovernorateList,
+  type GovernorateListQuery,
   type GovernorateSummary,
   governoratesArtifactSchema,
 } from './governorates.dto';
@@ -27,12 +28,16 @@ export class GovernoratesService {
     private readonly localDatasetArtifactReaderService: LocalDatasetArtifactReaderService,
   ) {}
 
-  async listGovernorates(): Promise<GovernorateList> {
+  async listGovernorates(query: GovernorateListQuery): Promise<GovernorateList> {
     const readModel = await this.readGovernorates();
+    const filteredItems = this.filterGovernorates(readModel.items, query);
+    const sortedItems = this.sortGovernorates(filteredItems, query.order);
+    const items = this.paginateGovernorates(sortedItems, query);
 
     return {
-      items: readModel.items,
-      count: readModel.items.length,
+      items,
+      count: items.length,
+      pagination: this.buildPagination(sortedItems.length, query),
       dataset: this.buildDatasetContext(readModel.manifest),
       release: this.buildReleaseContext(readModel.manifest),
     };
@@ -96,5 +101,52 @@ export class GovernoratesService {
         fields: source.fields ?? [],
       })) ?? []
     );
+  }
+
+  private filterGovernorates(items: GovernorateSummary[], query: GovernorateListQuery) {
+    const search = query.q?.toLowerCase();
+
+    return items.filter((item) => {
+      if (query.sourceStatus && item.sourceStatus !== query.sourceStatus) {
+        return false;
+      }
+
+      if (!search) {
+        return true;
+      }
+
+      return [item.id, item.name.en, item.name.ar, item.iso31662, item.sourceStatus].some((value) =>
+        value?.toLowerCase().includes(search),
+      );
+    });
+  }
+
+  private sortGovernorates(items: GovernorateSummary[], order: GovernorateListQuery['order']) {
+    return [...items].sort((first, second) => {
+      const comparison = first.name.en.localeCompare(second.name.en);
+
+      return order === 'asc' ? comparison : -comparison;
+    });
+  }
+
+  private paginateGovernorates(items: GovernorateSummary[], query: GovernorateListQuery) {
+    const start = (query.page - 1) * query.limit;
+
+    return items.slice(start, start + query.limit);
+  }
+
+  private buildPagination(totalRecords: number, query: GovernorateListQuery) {
+    const totalPages = totalRecords === 0 ? 0 : Math.ceil(totalRecords / query.limit);
+    const hasNextPage = totalPages > 0 && query.page < totalPages;
+    const hasPreviousPage = query.page > 1 && query.page <= totalPages;
+
+    return {
+      limit: query.limit,
+      currentPage: query.page,
+      totalRecords,
+      totalPages,
+      nextPage: hasNextPage ? query.page + 1 : null,
+      previousPage: hasPreviousPage ? query.page - 1 : null,
+    };
   }
 }

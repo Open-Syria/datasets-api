@@ -1,6 +1,10 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import { sourceAttributionSchema } from '../../../common/dto/source-attribution.dto';
+import {
+  offsetPaginationQuerySchema,
+  offsetPaginationSchema,
+} from '../../../common/schemas/pagination.schema';
 
 export const geographicPointSchema = z.object({
   latitude: z.number().min(-90).max(90),
@@ -27,6 +31,10 @@ export const governoratesArtifactSchema = z
   ])
   .transform((value) => (Array.isArray(value) ? value : value.items));
 
+export const governorateListQuerySchema = offsetPaginationQuerySchema.extend({
+  sourceStatus: z.enum(['pending_release', 'seed', 'released', 'deprecated']).optional(),
+});
+
 export const governorateDatasetContextSchema = z.object({
   id: z.literal('opensyria-geography'),
   repository: z.literal('data-geography'),
@@ -43,6 +51,7 @@ export const governorateReleaseContextSchema = z
 export const governorateListSchema = z.object({
   items: z.array(governorateSummarySchema),
   count: z.number().int().nonnegative(),
+  pagination: offsetPaginationSchema,
   dataset: governorateDatasetContextSchema,
   release: governorateReleaseContextSchema,
 });
@@ -55,9 +64,11 @@ export const governorateDetailSchema = z.object({
 });
 
 export class GovernorateSummaryDto extends createZodDto(governorateSummarySchema) {}
+export class GovernorateListQueryDto extends createZodDto(governorateListQuerySchema) {}
 export class GovernorateListDto extends createZodDto(governorateListSchema) {}
 export class GovernorateDetailDto extends createZodDto(governorateDetailSchema) {}
 
 export type GovernorateSummary = z.infer<typeof governorateSummarySchema>;
+export type GovernorateListQuery = z.infer<typeof governorateListQuerySchema>;
 export type GovernorateList = z.infer<typeof governorateListSchema>;
 export type GovernorateDetail = z.infer<typeof governorateDetailSchema>;

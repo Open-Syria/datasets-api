@@ -1,0 +1,16 @@
+node_modules
+dist
+coverage
+data
+.git
+.github
+.husky
+.env
+.env.*
+!.env.example
+npm-debug.log*
+pnpm-debug.log*
+Dockerfile
+README.md
+docs
+

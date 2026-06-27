@@ -133,7 +133,11 @@ export async function setupApp(
   setupCors(app, appConfig);
 
   app.setGlobalPrefix(appConfig.apiPrefix, {
-    exclude: [{ path: 'health', method: RequestMethod.GET }],
+    exclude: [
+      { path: 'health', method: RequestMethod.GET },
+      { path: 'health/live', method: RequestMethod.GET },
+      { path: 'health/ready', method: RequestMethod.GET },
+    ],
   });
 
   app.enableVersioning({

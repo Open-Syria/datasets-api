@@ -85,6 +85,38 @@ describe('AppController (e2e)', () => {
       status: 200,
       data: {
         status: 'ok',
+        datasetReleases: {
+          status: 'not_required',
+        },
+      },
+    });
+  });
+
+  it('returns liveness and readiness health outside the global prefix', async () => {
+    const liveResponse = await app.inject({
+      method: 'GET',
+      url: '/health/live',
+    });
+    const readyResponse = await app.inject({
+      method: 'GET',
+      url: '/health/ready',
+    });
+
+    expect(liveResponse.statusCode).toBe(200);
+    expect(liveResponse.json()).toMatchObject({
+      success: true,
+      data: {
+        status: 'ok',
+      },
+    });
+    expect(readyResponse.statusCode).toBe(200);
+    expect(readyResponse.json()).toMatchObject({
+      success: true,
+      data: {
+        status: 'ok',
+        datasetReleases: {
+          status: 'not_required',
+        },
       },
     });
   });
@@ -158,6 +190,10 @@ describe('AppController (e2e)', () => {
     expect(response.statusCode).toBe(200);
     expect(body.data).toMatchObject({
       count: 0,
+      pagination: {
+        currentPage: 1,
+        totalRecords: 0,
+      },
       dataset: {
         repository: 'data-geography',
         status: 'pending_release',
@@ -165,6 +201,21 @@ describe('AppController (e2e)', () => {
       release: null,
     });
     expect(body.data.items).toEqual([]);
+  });
+
+  it('validates governorate list query parameters', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/geography/governorates?limit=abc',
+    });
+    const body = response.json<ErrorResponseBody>();
+
+    expect(response.statusCode).toBe(400);
+    expect(body).toMatchObject({
+      success: false,
+      status: 400,
+      error: 'ValidationError',
+    });
   });
 
   it('returns not found for missing governorate details', async () => {
@@ -209,6 +260,8 @@ describe('AppController (e2e)', () => {
     expect(defaultResponse.json<OpenApiResponseBody>().paths).toHaveProperty('/api/v1/datasets');
     expect(coreDocument.paths).toHaveProperty('/api/v1/datasets');
     expect(coreDocument.paths).toHaveProperty('/api/v1/releases');
+    expect(coreDocument.paths).toHaveProperty('/health/live');
+    expect(coreDocument.paths).toHaveProperty('/health/ready');
     expect(geographyResponse.statusCode).toBe(200);
     expect(geographyDocument.paths).toHaveProperty('/api/v1/geography/governorates');
     expect(geographyDocument.paths).toHaveProperty(

@@ -112,6 +112,27 @@ getUniversity()
 
 Use `list*` for collection endpoints, `get*` for single-record endpoints, and `search*` only when the endpoint is primarily search-focused rather than a filtered list.
 
+## Query Parameters
+
+List endpoints should use a Zod query DTO. Start with the shared offset pagination shape when a list can grow:
+
+```text
+page
+limit
+q
+order
+```
+
+Rules:
+
+- `page` is 1-based.
+- `limit` must respect the shared maximum limit.
+- `q` is a broad text search parameter.
+- `order` is `asc` or `desc`.
+- Resource-specific filters should use explicit names such as `sourceStatus`, `governorateId`, or `datasetId`.
+- Avoid ambiguous filter names such as `id`, `type`, or `status` when more specific terms exist.
+- Document query parameters with `@ApiQuery` when Swagger cannot infer them from Zod DTOs.
+
 ## OpenAPI Tags
 
 Tags should be Title Case and stable. Use one primary tag per controller.
