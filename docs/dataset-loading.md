@@ -4,6 +4,8 @@
 
 Each dataset repository owns its source files, contribution workflow, validation, attribution, and generated release artifacts. The API consumes those artifacts through pinned release manifests.
 
+The manifest contract is documented in [`release-manifest.md`](./release-manifest.md).
+
 ## Recommended Flow
 
 1. A dataset repository stores canonical source data and source attribution.
@@ -18,6 +20,16 @@ Each dataset repository owns its source files, contribution workflow, validation
 5. `datasets-api` is configured to consume specific release versions.
 6. During build, deploy, or a controlled sync step, the API downloads the manifests and artifacts, verifies checksums and schema versions, then stores a local read model.
 7. Runtime requests read from local memory, local files, SQLite, object storage, or a database-backed read model. They should not call GitHub for every request.
+
+## Current Loader
+
+The first loader reads local manifests from:
+
+```text
+DATASETS_RELEASES_DIR=data/releases
+```
+
+It recursively searches for files named `release-manifest.json`, validates them with the Zod manifest contract, and registers them in memory for API services to consume.
 
 ## Initial Implementation
 

@@ -17,6 +17,7 @@ import { ApiModule } from './api/api.module';
 import appConfig from './config/app/app.config';
 import cacheConfig from './config/cache/cache.config';
 import useCacheFactory from './config/cache/cache.factory';
+import datasetsConfig from './config/datasets/datasets.config';
 import i18nConfig from './config/i18n/i18n.config';
 import redisConfig from './config/redis/redis.config';
 import throttlerConfig from './config/throttler/throttler.config';
@@ -33,7 +34,7 @@ import useLoggerFactory from './tools/logger/logger-factory';
     ConfigModule.forRoot({
       isGlobal: true,
       ignoreEnvFile: true,
-      load: [appConfig, redisConfig, cacheConfig, throttlerConfig, i18nConfig],
+      load: [appConfig, redisConfig, cacheConfig, throttlerConfig, i18nConfig, datasetsConfig],
     }),
     ...(process.env.NODE_ENV === Environment.Test ? [] : [GracefulShutdownModule.forRoot()]),
     I18nModule.forRootAsync({

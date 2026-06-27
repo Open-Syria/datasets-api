@@ -40,6 +40,8 @@ Response messages can be localized with `?lang=`, `x-lang`, or `Accept-Language`
 
 Datasets live in separate repositories. This API should consume versioned release artifacts and manifests from those repositories, not live `main` branches. See [docs/dataset-loading.md](docs/dataset-loading.md).
 
+Local release manifests are read from `DATASETS_RELEASES_DIR`, which defaults to `data/releases`.
+
 ## Scripts
 
 ```bash

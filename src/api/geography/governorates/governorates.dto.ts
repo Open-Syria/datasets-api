@@ -14,7 +14,7 @@ export const governorateSummarySchema = z.object({
   }),
   iso31662: z.string().nullable(),
   centroid: geographicPointSchema.nullable(),
-  sourceStatus: z.enum(['pending_release', 'seed', 'released']),
+  sourceStatus: z.enum(['pending_release', 'seed', 'released', 'deprecated']),
 });
 
 export const governorateListSchema = z.object({
@@ -23,7 +23,7 @@ export const governorateListSchema = z.object({
   dataset: z.object({
     id: z.literal('opensyria-geography'),
     repository: z.literal('data-geography'),
-    status: z.enum(['pending_release', 'seed', 'released']),
+    status: z.enum(['pending_release', 'planned', 'seed', 'released', 'deprecated']),
   }),
   release: z
     .object({
