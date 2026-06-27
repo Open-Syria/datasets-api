@@ -28,6 +28,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "datasets:sync": "pnpm run build && node dist/cli/sync-dataset-releases.js",
     "audit:prod": "pnpm audit --prod",
     "validate": "pnpm run check && pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run test:e2e && pnpm run build && pnpm run audit:prod",
     "prepare": "husky"

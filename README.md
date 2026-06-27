@@ -42,6 +42,14 @@ Datasets live in separate repositories. This API should consume versioned releas
 
 Local release manifests are read from `DATASETS_RELEASES_DIR`, which defaults to `data/releases`.
 
+To sync pinned GitHub Release artifacts into the local release directory:
+
+```bash
+DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.0" pnpm run datasets:sync
+```
+
+Use a comma-separated list for multiple repositories. Set `GITHUB_TOKEN` when syncing private releases or when higher GitHub API limits are needed.
+
 ## Scripts
 
 ```bash
@@ -55,6 +63,7 @@ pnpm run lint:fix
 pnpm run typecheck
 pnpm run test
 pnpm run test:e2e
+pnpm run datasets:sync
 pnpm run audit:prod
 pnpm run validate
 ```

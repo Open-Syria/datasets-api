@@ -1,5 +1,6 @@
 import { registerAs } from '@nestjs/config';
 import { z } from 'zod';
+import { parseDatasetReleaseSources } from '../../datasets/sync/dataset-release-source.utils';
 import type { DatasetsConfig } from './datasets-config.type';
 
 const booleanEnvSchema = z
@@ -9,6 +10,9 @@ const booleanEnvSchema = z
 const envSchema = z.object({
   DATASETS_RELEASES_DIR: z.string().min(1).optional().default('data/releases'),
   DATASETS_REQUIRE_RELEASES: booleanEnvSchema.optional().default(false),
+  DATASETS_RELEASE_SOURCES: z.string().optional(),
+  DATASETS_SYNC_DOWNLOAD_ARTIFACTS: booleanEnvSchema.optional().default(true),
+  GITHUB_TOKEN: z.string().min(1).optional(),
 });
 
 function parseEnv() {
@@ -29,6 +33,9 @@ export function getConfig(): DatasetsConfig {
   return {
     releasesDirectory: env.DATASETS_RELEASES_DIR,
     requireReleases: env.DATASETS_REQUIRE_RELEASES,
+    releaseSources: parseDatasetReleaseSources(env.DATASETS_RELEASE_SOURCES),
+    syncDownloadArtifacts: env.DATASETS_SYNC_DOWNLOAD_ARTIFACTS,
+    githubToken: env.GITHUB_TOKEN,
   };
 }
 
