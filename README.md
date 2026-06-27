@@ -17,7 +17,28 @@ pnpm install
 pnpm run start:dev
 ```
 
-The app uses `PORT` when set, otherwise it listens on `3000`.
+The app uses `APP_PORT`, then `PORT`, otherwise it listens on `3000`.
+
+## Current Routes
+
+```text
+GET /health
+GET /api/v1/datasets
+GET /api/v1/releases
+GET /api/v1/geography/governorates
+GET /docs
+GET /swagger-ui
+GET /openapi.json
+GET /openapi/core.json
+GET /openapi/geography.json
+GET /openapi/education.json
+```
+
+Response messages can be localized with `?lang=`, `x-lang`, or `Accept-Language`.
+
+## Dataset Loading
+
+Datasets live in separate repositories. This API should consume versioned release artifacts and manifests from those repositories, not live `main` branches. See [docs/dataset-loading.md](docs/dataset-loading.md).
 
 ## Scripts
 

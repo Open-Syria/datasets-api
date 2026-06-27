@@ -1,0 +1,22 @@
+{
+  "errors": {
+    "internalServerError": "Internal server error",
+    "responseValidationFailed": "Response validation failed",
+    "validationFailed": "Validation failed"
+  },
+  "responses": {
+    "dataFetched": "Data fetched successfully",
+    "datasets": {
+      "listFetched": "Datasets fetched successfully"
+    },
+    "geography": {
+      "governoratesFetched": "Governorates fetched successfully"
+    },
+    "health": {
+      "ok": "API health returned successfully"
+    },
+    "releases": {
+      "listFetched": "Releases fetched successfully"
+    }
+  }
+}
