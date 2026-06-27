@@ -57,16 +57,17 @@ The foundation pass is implemented:
 - Initial `/health` and `/api/v1/datasets` modules.
 - E2E coverage for health, dataset discovery, i18n response messages, OpenAPI documents, Scalar docs, and Swagger UI.
 - `/api/v1/releases` with initial release planning metadata.
-- `/api/v1/geography/governorates` placeholder endpoint pending the first `data-geography` release.
+- `/api/v1/geography/governorates` endpoint backed by the local release artifact reader when a verified `data-geography` release is present.
 - Dataset loading model documented in [`dataset-loading.md`](./dataset-loading.md).
 - Release manifest contract, local manifest loader, and in-memory dataset release registry.
 - GitHub Release sync command for pinned manifests and artifacts.
+- Local JSON artifact reader with SHA-256 and file-size verification.
 
 Next implementation phase:
 
 - Add richer error and validation examples in OpenAPI.
-- Add the first real artifact reader for `data-geography`.
 - Add source attribution DTOs that can be reused by geography and universities endpoints.
+- Add the first detail endpoint pattern, starting with `GET /api/v1/geography/governorates/:governorateId`.
 
 ## Target Dependencies
 

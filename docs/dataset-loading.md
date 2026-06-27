@@ -23,13 +23,28 @@ The manifest contract is documented in [`release-manifest.md`](./release-manifes
 
 ## Current Loader
 
-The first loader reads local manifests from:
+The local loader reads release manifests and JSON artifacts from:
 
 ```text
 DATASETS_RELEASES_DIR=data/releases
 ```
 
 It recursively searches for files named `release-manifest.json`, validates them with the Zod manifest contract, and registers them in memory for API services to consume.
+
+Runtime dataset endpoints then resolve artifacts from the synced release layout:
+
+```text
+data/releases/<dataset-slug>/<release-version>/<artifact-path>
+```
+
+For example, `GET /api/v1/geography/governorates` reads `artifacts/governorates.json` when the active `opensyria-geography` manifest includes a JSON artifact named `governorates`.
+
+Before parsing an artifact, the API verifies:
+
+- the artifact stays inside the release directory,
+- the SHA-256 checksum matches the manifest,
+- the file size matches the manifest,
+- the JSON payload matches the endpoint schema.
 
 ## Syncing GitHub Releases
 
@@ -60,7 +75,7 @@ Set `GITHUB_TOKEN` when syncing private releases or when higher GitHub API limit
 
 ## Initial Implementation
 
-For the first public API foundation, endpoint data can be static placeholders while dataset repositories are being prepared.
+For the first public API foundation, endpoints can return empty lists while dataset repositories are being prepared. Once release artifacts are synced locally, endpoints should read from those verified local files.
 
 The first real loading implementation should use pinned GitHub Release artifacts:
 

@@ -8,11 +8,14 @@ import {
   datasetReleaseManifestSchema,
 } from '../contracts/dataset-release-manifest.schema';
 import {
+  RELEASE_MANIFEST_FILE,
+  resolveDatasetReleaseDirectory,
+  safeResolveDatasetReleasePath,
+} from '../dataset-release-path.utils';
+import {
   type DatasetReleaseSource,
   formatDatasetReleaseSource,
 } from './dataset-release-source.utils';
-
-const RELEASE_MANIFEST_FILE = 'release-manifest.json';
 
 const githubReleaseAssetSchema = z.object({
   name: z.string(),
@@ -40,21 +43,6 @@ export type GitHubReleaseSyncResult = {
   artifactsDownloaded: number;
   artifactsSkipped: number;
 };
-
-function sanitizePathSegment(value: string) {
-  return value.replace(/[^a-zA-Z0-9._-]/g, '-');
-}
-
-function safeResolve(baseDirectory: string, relativePath: string) {
-  const targetPath = path.resolve(baseDirectory, relativePath);
-  const normalizedBase = path.resolve(baseDirectory);
-
-  if (targetPath !== normalizedBase && !targetPath.startsWith(`${normalizedBase}${path.sep}`)) {
-    throw new Error(`Refusing to write outside release directory: ${relativePath}`);
-  }
-
-  return targetPath;
-}
 
 function getArtifactAssetName(artifact: DatasetReleaseArtifact) {
   return path.posix.basename(artifact.path);
@@ -84,12 +72,11 @@ export class GitHubReleaseSyncService {
     const manifest = datasetReleaseManifestSchema.parse(
       JSON.parse(manifestBuffer.toString('utf8')),
     );
-    const releaseDirectory = path.resolve(
+    const releaseDirectory = resolveDatasetReleaseDirectory(
       this.options.releasesDirectory,
-      sanitizePathSegment(manifest.dataset.slug),
-      sanitizePathSegment(manifest.release.version),
+      manifest,
     );
-    const manifestPath = safeResolve(releaseDirectory, RELEASE_MANIFEST_FILE);
+    const manifestPath = safeResolveDatasetReleasePath(releaseDirectory, RELEASE_MANIFEST_FILE);
 
     await mkdir(path.dirname(manifestPath), { recursive: true });
     await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
@@ -142,7 +129,7 @@ export class GitHubReleaseSyncService {
         );
       }
 
-      const artifactPath = safeResolve(releaseDirectory, artifact.path);
+      const artifactPath = safeResolveDatasetReleasePath(releaseDirectory, artifact.path);
 
       await mkdir(path.dirname(artifactPath), { recursive: true });
       await writeFile(artifactPath, artifactBuffer);

@@ -1,0 +1,101 @@
+import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { z } from 'zod';
+import type { GlobalConfig } from '../../config/config.type';
+import type {
+  DatasetReleaseArtifact,
+  DatasetReleaseManifest,
+} from '../contracts/dataset-release-manifest.schema';
+import {
+  resolveDatasetReleaseDirectory,
+  safeResolveDatasetReleasePath,
+} from '../dataset-release-path.utils';
+import { DatasetReleaseRegistryService } from '../dataset-release-registry.service';
+
+type ReadJsonArtifactOptions<TData> = {
+  datasetId: string;
+  artifactName: string;
+  schema: z.ZodType<TData>;
+};
+
+type ReadJsonArtifactResult<TData> = {
+  manifest: DatasetReleaseManifest;
+  artifact: DatasetReleaseArtifact;
+  data: TData;
+};
+
+function sha256(buffer: Buffer) {
+  return createHash('sha256').update(buffer).digest('hex');
+}
+
+@Injectable()
+export class LocalDatasetArtifactReaderService {
+  constructor(
+    @Inject(ConfigService)
+    private readonly configService: ConfigService<GlobalConfig>,
+    @Inject(DatasetReleaseRegistryService)
+    private readonly datasetReleaseRegistryService: DatasetReleaseRegistryService,
+  ) {}
+
+  async readJsonArtifact<TData>({
+    datasetId,
+    artifactName,
+    schema,
+  }: ReadJsonArtifactOptions<TData>): Promise<ReadJsonArtifactResult<TData> | null> {
+    const manifest = this.datasetReleaseRegistryService.getManifestByDatasetId(datasetId);
+
+    if (!manifest) {
+      return null;
+    }
+
+    const artifact = manifest.artifacts.find((item) => item.name === artifactName);
+
+    if (!artifact) {
+      throw new InternalServerErrorException(
+        `Dataset release ${manifest.dataset.slug}@${manifest.release.version} does not include ${artifactName}.`,
+      );
+    }
+
+    if (artifact.format !== 'json') {
+      throw new InternalServerErrorException(
+        `Dataset artifact ${artifactName} must be published as JSON.`,
+      );
+    }
+
+    const datasetsConfig = this.configService.getOrThrow('datasets', { infer: true });
+    const releaseDirectory = resolveDatasetReleaseDirectory(
+      datasetsConfig.releasesDirectory,
+      manifest,
+    );
+    const artifactPath = safeResolveDatasetReleasePath(releaseDirectory, artifact.path);
+    const artifactBuffer = await readFile(artifactPath);
+
+    this.verifyArtifact(artifact, artifactBuffer);
+
+    const parsedJson: unknown = JSON.parse(artifactBuffer.toString('utf8'));
+
+    return {
+      manifest,
+      artifact,
+      data: schema.parse(parsedJson),
+    };
+  }
+
+  private verifyArtifact(artifact: DatasetReleaseArtifact, artifactBuffer: Buffer) {
+    const checksum = sha256(artifactBuffer);
+
+    if (checksum !== artifact.sha256) {
+      throw new InternalServerErrorException(
+        `Dataset artifact ${artifact.name} failed checksum verification.`,
+      );
+    }
+
+    if (artifact.sizeBytes !== artifactBuffer.byteLength) {
+      throw new InternalServerErrorException(
+        `Dataset artifact ${artifact.name} failed size verification.`,
+      );
+    }
+  }
+}

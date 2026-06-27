@@ -17,6 +17,15 @@ export const governorateSummarySchema = z.object({
   sourceStatus: z.enum(['pending_release', 'seed', 'released', 'deprecated']),
 });
 
+export const governoratesArtifactSchema = z
+  .union([
+    z.array(governorateSummarySchema),
+    z.object({
+      items: z.array(governorateSummarySchema),
+    }),
+  ])
+  .transform((value) => (Array.isArray(value) ? value : value.items));
+
 export const governorateListSchema = z.object({
   items: z.array(governorateSummarySchema),
   count: z.number().int().nonnegative(),
@@ -36,4 +45,5 @@ export const governorateListSchema = z.object({
 export class GovernorateSummaryDto extends createZodDto(governorateSummarySchema) {}
 export class GovernorateListDto extends createZodDto(governorateListSchema) {}
 
+export type GovernorateSummary = z.infer<typeof governorateSummarySchema>;
 export type GovernorateList = z.infer<typeof governorateListSchema>;
