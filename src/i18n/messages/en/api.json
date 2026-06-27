@@ -10,6 +10,7 @@
       "listFetched": "Datasets fetched successfully"
     },
     "geography": {
+      "governorateFetched": "Governorate fetched successfully",
       "governoratesFetched": "Governorates fetched successfully"
     },
     "health": {

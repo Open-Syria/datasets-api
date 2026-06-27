@@ -42,6 +42,13 @@ type GovernorateListResponseBody = {
   };
 };
 
+type ErrorResponseBody = {
+  success: false;
+  status: number;
+  error: string;
+  message: string;
+};
+
 type OpenApiResponseBody = {
   paths: Record<string, unknown>;
 };
@@ -160,6 +167,21 @@ describe('AppController (e2e)', () => {
     expect(body.data.items).toEqual([]);
   });
 
+  it('returns not found for missing governorate details', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/geography/governorates/sy-missing',
+    });
+    const body = response.json<ErrorResponseBody>();
+
+    expect(response.statusCode).toBe(404);
+    expect(body).toMatchObject({
+      success: false,
+      status: 404,
+      message: 'Governorate not found',
+    });
+  });
+
   it('serves generated OpenAPI documents', async () => {
     const defaultResponse = await app.inject({
       method: 'GET',
@@ -189,6 +211,9 @@ describe('AppController (e2e)', () => {
     expect(coreDocument.paths).toHaveProperty('/api/v1/releases');
     expect(geographyResponse.statusCode).toBe(200);
     expect(geographyDocument.paths).toHaveProperty('/api/v1/geography/governorates');
+    expect(geographyDocument.paths).toHaveProperty(
+      '/api/v1/geography/governorates/{governorateId}',
+    );
     expect(geographyDocument.paths).not.toHaveProperty('/api/v1/datasets');
     expect(educationResponse.statusCode).toBe(200);
     expect(educationDocument.paths).toHaveProperty('/health');

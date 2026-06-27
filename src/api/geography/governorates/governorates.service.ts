@@ -1,7 +1,10 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import type { SourceAttribution } from '../../../common/dto/source-attribution.dto';
+import type { DatasetReleaseManifest } from '../../../datasets/contracts/dataset-release-manifest.schema';
 import { DatasetReleaseRegistryService } from '../../../datasets/dataset-release-registry.service';
 import { LocalDatasetArtifactReaderService } from '../../../datasets/loaders/local-dataset-artifact-reader.service';
 import {
+  type GovernorateDetail,
   type GovernorateList,
   type GovernorateSummary,
   governoratesArtifactSchema,
@@ -9,6 +12,11 @@ import {
 
 const GEOGRAPHY_DATASET_ID = 'opensyria-geography';
 const GOVERNORATES_ARTIFACT_NAME = 'governorates';
+
+type GovernorateReadModel = {
+  items: GovernorateSummary[];
+  manifest?: DatasetReleaseManifest;
+};
 
 @Injectable()
 export class GovernoratesService {
@@ -20,6 +28,33 @@ export class GovernoratesService {
   ) {}
 
   async listGovernorates(): Promise<GovernorateList> {
+    const readModel = await this.readGovernorates();
+
+    return {
+      items: readModel.items,
+      count: readModel.items.length,
+      dataset: this.buildDatasetContext(readModel.manifest),
+      release: this.buildReleaseContext(readModel.manifest),
+    };
+  }
+
+  async getGovernorate(governorateId: string): Promise<GovernorateDetail> {
+    const readModel = await this.readGovernorates();
+    const governorate = readModel.items.find((item) => item.id === governorateId);
+
+    if (!governorate) {
+      throw new NotFoundException('Governorate not found');
+    }
+
+    return {
+      item: governorate,
+      dataset: this.buildDatasetContext(readModel.manifest),
+      release: this.buildReleaseContext(readModel.manifest),
+      sources: this.mapSources(readModel.manifest),
+    };
+  }
+
+  private async readGovernorates(): Promise<GovernorateReadModel> {
     const artifact = await this.localDatasetArtifactReaderService.readJsonArtifact({
       datasetId: GEOGRAPHY_DATASET_ID,
       artifactName: GOVERNORATES_ARTIFACT_NAME,
@@ -28,19 +63,38 @@ export class GovernoratesService {
     const manifest =
       artifact?.manifest ??
       this.datasetReleaseRegistryService.getManifestByDatasetId(GEOGRAPHY_DATASET_ID);
-    const releaseVersion = manifest?.release.version;
-    const releasedAt = manifest?.release.publishedAt;
-    const items: GovernorateSummary[] = artifact?.data ?? [];
 
     return {
-      items,
-      count: items.length,
-      dataset: {
-        id: GEOGRAPHY_DATASET_ID,
-        repository: 'data-geography',
-        status: manifest?.release.status ?? 'pending_release',
-      },
-      release: releaseVersion && releasedAt ? { version: releaseVersion, releasedAt } : null,
+      items: artifact?.data ?? [],
+      manifest,
     };
+  }
+
+  private buildDatasetContext(manifest?: DatasetReleaseManifest): GovernorateList['dataset'] {
+    return {
+      id: GEOGRAPHY_DATASET_ID,
+      repository: 'data-geography',
+      status: manifest?.release.status ?? 'pending_release',
+    };
+  }
+
+  private buildReleaseContext(manifest?: DatasetReleaseManifest): GovernorateList['release'] {
+    const releaseVersion = manifest?.release.version;
+    const releasedAt = manifest?.release.publishedAt;
+
+    return releaseVersion && releasedAt ? { version: releaseVersion, releasedAt } : null;
+  }
+
+  private mapSources(manifest?: DatasetReleaseManifest): SourceAttribution[] {
+    return (
+      manifest?.sources.map((source) => ({
+        id: source.id,
+        title: source.title,
+        url: source.url ?? null,
+        license: source.license,
+        accessedAt: source.accessedAt ?? null,
+        fields: source.fields ?? [],
+      })) ?? []
+    );
   }
 }
