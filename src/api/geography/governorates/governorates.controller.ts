@@ -1,9 +1,15 @@
-import { Controller, Get, Inject } from '@nestjs/common';
+import { Controller, Get, Inject, Param } from '@nestjs/common';
+import { ApiParam } from '@nestjs/swagger';
 import { I18n, type I18nContext } from 'nestjs-i18n';
 import type { ApiResponse } from '../../../common/dto/api-response.dto';
 import { buildResponse } from '../../../common/helpers/build-response';
 import { ApiPublic } from '../../../decorators/http-decorators';
-import { type GovernorateList, GovernorateListDto } from './governorates.dto';
+import {
+  type GovernorateDetail,
+  GovernorateDetailDto,
+  type GovernorateList,
+  GovernorateListDto,
+} from './governorates.dto';
 import { GovernoratesService } from './governorates.service';
 
 @Controller('geography/governorates')
@@ -28,6 +34,32 @@ export class GovernoratesController {
       data: await this.governoratesService.listGovernorates(),
       message: 'api.responses.geography.governoratesFetched',
       fallbackMessage: 'Governorates fetched successfully',
+    });
+  }
+
+  @Get(':governorateId')
+  @ApiParam({
+    name: 'governorateId',
+    description: 'Stable OpenSyria governorate ID.',
+    example: 'sy-damascus',
+  })
+  @ApiPublic({
+    type: GovernorateDetailDto,
+    tags: ['Geography'],
+    summary: 'Get governorate details',
+    description:
+      'Returns one released governorate record with its dataset release context and source attribution.',
+    responseName: 'GovernorateDetailResponse',
+  })
+  async getGovernorate(
+    @Param('governorateId') governorateId: string,
+    @I18n() i18n: I18nContext,
+  ): Promise<ApiResponse<GovernorateDetail>> {
+    return buildResponse({
+      i18n,
+      data: await this.governoratesService.getGovernorate(governorateId),
+      message: 'api.responses.geography.governorateFetched',
+      fallbackMessage: 'Governorate fetched successfully',
     });
   }
 }

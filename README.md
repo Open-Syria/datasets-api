@@ -26,6 +26,7 @@ GET /health
 GET /api/v1/datasets
 GET /api/v1/releases
 GET /api/v1/geography/governorates
+GET /api/v1/geography/governorates/:governorateId
 GET /docs
 GET /swagger-ui
 GET /openapi.json

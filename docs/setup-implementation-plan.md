@@ -62,12 +62,13 @@ The foundation pass is implemented:
 - Release manifest contract, local manifest loader, and in-memory dataset release registry.
 - GitHub Release sync command for pinned manifests and artifacts.
 - Local JSON artifact reader with SHA-256 and file-size verification.
+- Reusable source attribution DTOs for public response payloads.
+- First single-record detail endpoint pattern: `/api/v1/geography/governorates/:governorateId`.
 
 Next implementation phase:
 
 - Add richer error and validation examples in OpenAPI.
-- Add source attribution DTOs that can be reused by geography and universities endpoints.
-- Add the first detail endpoint pattern, starting with `GET /api/v1/geography/governorates/:governorateId`.
+- Add query DTOs and filtering conventions for geography lists.
 
 ## Target Dependencies
 
