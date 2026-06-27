@@ -7,6 +7,10 @@ describe('AppModule', () => {
       imports: [AppModule],
     }).compile();
 
-    expect(moduleRef).toBeDefined();
+    try {
+      expect(moduleRef).toBeDefined();
+    } finally {
+      await moduleRef.close();
+    }
   });
 });

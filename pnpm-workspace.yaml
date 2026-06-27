@@ -2,6 +2,7 @@ packages:
   - .
 
 overrides:
+  js-yaml: 4.2.0
   multer: 2.2.0
 
 minimumReleaseAge: 1440
@@ -14,4 +15,5 @@ verifyDepsBeforeRun: install
 trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 525600
 allowBuilds:
+  '@scarf/scarf': false
   unrs-resolver: true
