@@ -91,7 +91,7 @@
     "*.{js,cjs,mjs,ts,json,jsonc}": [
       "biome check --write --no-errors-on-unmatched"
     ],
-    "*.ts": [
+    "{src,test}/**/*.ts": [
       "eslint --fix"
     ]
   },
