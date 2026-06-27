@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { ConfigService } from '@nestjs/config';
+import type { Cache } from 'cache-manager';
 import { z } from 'zod';
 import type { GlobalConfig } from '../../config/config.type';
 import type { DatasetReleaseManifest } from '../contracts/dataset-release-manifest.schema';
@@ -25,6 +26,13 @@ function createRegistryService(manifest?: DatasetReleaseManifest) {
   return {
     getManifestByDatasetId: jest.fn().mockReturnValue(manifest),
   } as unknown as DatasetReleaseRegistryService;
+}
+
+function createCacheManager() {
+  return {
+    get: jest.fn().mockResolvedValue(undefined),
+    set: jest.fn().mockResolvedValue(undefined),
+  } as unknown as Cache;
 }
 
 function createManifest(overrides: { sha256: string; sizeBytes: number }): DatasetReleaseManifest {
@@ -82,6 +90,7 @@ describe('LocalDatasetArtifactReaderService', () => {
     const service = new LocalDatasetArtifactReaderService(
       createConfigService(tempDirectory),
       createRegistryService(),
+      createCacheManager(),
     );
 
     await expect(
@@ -107,6 +116,7 @@ describe('LocalDatasetArtifactReaderService', () => {
     const service = new LocalDatasetArtifactReaderService(
       createConfigService(tempDirectory),
       createRegistryService(manifest),
+      createCacheManager(),
     );
     const result = await service.readJsonArtifact({
       datasetId: 'opensyria-geography',
@@ -133,6 +143,7 @@ describe('LocalDatasetArtifactReaderService', () => {
     const service = new LocalDatasetArtifactReaderService(
       createConfigService(tempDirectory),
       createRegistryService(manifest),
+      createCacheManager(),
     );
 
     await expect(

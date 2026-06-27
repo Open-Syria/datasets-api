@@ -1,8 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { GlobalConfig } from '../../config/config.type';
+import { DatasetReleaseRegistryService } from '../../datasets/dataset-release-registry.service';
 import { RedisConnectionsService } from '../../shared/redis/redis-connections.service';
-import type { HealthResponseData } from './health.dto';
+import type { HealthResponseData, LivenessResponseData } from './health.dto';
 
 @Injectable()
 export class HealthService {
@@ -11,20 +12,38 @@ export class HealthService {
     private readonly configService: ConfigService<GlobalConfig>,
     @Inject(RedisConnectionsService)
     private readonly redisConnectionsService: RedisConnectionsService,
+    @Inject(DatasetReleaseRegistryService)
+    private readonly datasetReleaseRegistryService: DatasetReleaseRegistryService,
   ) {}
 
-  async getHealth(): Promise<HealthResponseData> {
+  getLiveness(): LivenessResponseData {
     const appConfig = this.configService.getOrThrow('app', { infer: true });
-    const redis = await this.redisConnectionsService.checkHealth();
 
     return {
-      status: redis.status === 'down' ? 'degraded' : 'ok',
+      status: 'ok',
       app: {
         name: appConfig.name,
         environment: appConfig.nodeEnv,
       },
       uptimeSeconds: Math.round(process.uptime()),
+    };
+  }
+
+  async getHealth(): Promise<HealthResponseData> {
+    return this.getReadiness();
+  }
+
+  async getReadiness(): Promise<HealthResponseData> {
+    const liveness = this.getLiveness();
+    const redis = await this.redisConnectionsService.checkHealth();
+    const datasetReleases = this.datasetReleaseRegistryService.getHealth();
+    const isDegraded = redis.status === 'down' || datasetReleases.status === 'missing';
+
+    return {
+      ...liveness,
+      status: isDegraded ? 'degraded' : 'ok',
       redis,
+      datasetReleases,
     };
   }
 }

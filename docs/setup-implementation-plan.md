@@ -64,11 +64,18 @@ The foundation pass is implemented:
 - Local JSON artifact reader with SHA-256 and file-size verification.
 - Reusable source attribution DTOs for public response payloads.
 - First single-record detail endpoint pattern: `/api/v1/geography/governorates/:governorateId`.
+- Query DTOs and filtering conventions for governorate lists.
+- Health split into `/health/live`, `/health/ready`, and aggregate `/health`.
+- Redis-backed cache use for verified local JSON artifacts.
+- Standardized Swagger error examples.
+- GitHub Actions CI, CodeQL, dependency review, Dependabot config, PR template, and issue templates.
+- `CONTRIBUTING.md`.
+- Dockerfile, `.dockerignore`, and deployment notes.
 
 Next implementation phase:
 
-- Add richer error and validation examples in OpenAPI.
-- Add query DTOs and filtering conventions for geography lists.
+- Add generated dataset artifact schema packages after the first data repository is created.
+- Add more geography endpoints once `data-geography` publishes its first release shape.
 
 ## Target Dependencies
 

@@ -14,7 +14,7 @@ type OpenApiSource = {
   matchesPath: (path: string) => boolean;
 };
 
-const COMMON_PATHS = ['/health'];
+const COMMON_PATHS = ['/health', '/health/live', '/health/ready'];
 
 const OPENAPI_SOURCES: OpenApiSource[] = [
   {

@@ -1,0 +1,46 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '04:00'
+      timezone: Europe/Istanbul
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      nestjs:
+        patterns:
+          - '@nestjs/*'
+      tooling:
+        patterns:
+          - '@biomejs/*'
+          - '@commitlint/*'
+          - eslint
+          - typescript
+          - typescript-eslint
+          - jest
+          - ts-jest
+      openapi:
+        patterns:
+          - '@nestjs/swagger'
+          - '@scalar/*'
+          - nestjs-zod
+          - zod
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '04:30'
+      timezone: Europe/Istanbul
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      include: scope
+

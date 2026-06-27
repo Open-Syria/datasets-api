@@ -5,6 +5,12 @@ import type { LocalDatasetArtifactReaderService } from '../../../datasets/loader
 import type { GovernorateSummary } from './governorates.dto';
 import { GovernoratesService } from './governorates.service';
 
+const defaultListQuery = {
+  page: 1,
+  limit: 20,
+  order: 'asc' as const,
+};
+
 const governorate: GovernorateSummary = {
   id: 'sy-damascus',
   name: {
@@ -76,9 +82,13 @@ describe('GovernoratesService', () => {
   it('lists governorates from the local artifact reader', async () => {
     const service = createService([governorate]);
 
-    await expect(service.listGovernorates()).resolves.toMatchObject({
+    await expect(service.listGovernorates(defaultListQuery)).resolves.toMatchObject({
       count: 1,
       items: [governorate],
+      pagination: {
+        currentPage: 1,
+        totalRecords: 1,
+      },
       dataset: {
         id: 'opensyria-geography',
         repository: 'data-geography',

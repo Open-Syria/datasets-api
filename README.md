@@ -23,6 +23,8 @@ The app uses `APP_PORT`, then `PORT`, otherwise it listens on `3000`.
 
 ```text
 GET /health
+GET /health/live
+GET /health/ready
 GET /api/v1/datasets
 GET /api/v1/releases
 GET /api/v1/geography/governorates
@@ -36,6 +38,16 @@ GET /openapi/education.json
 ```
 
 Response messages can be localized with `?lang=`, `x-lang`, or `Accept-Language`.
+
+Governorate list query parameters:
+
+```text
+page=1
+limit=20
+q=damascus
+order=asc|desc
+sourceStatus=pending_release|seed|released|deprecated
+```
 
 ## Dataset Loading
 
@@ -71,6 +83,14 @@ pnpm run audit:prod
 pnpm run validate
 ```
 
+## Health Checks
+
+- `GET /health/live` checks that the API process is alive.
+- `GET /health/ready` checks runtime dependencies and dataset release readiness.
+- `GET /health` returns the aggregate public health payload.
+
+Readiness includes Redis status and dataset release manifest status. Redis and dataset releases can be optional or required through environment variables.
+
 ## Tooling
 
 - Biome handles formatting, import organization, and fast checks.
@@ -79,6 +99,23 @@ pnpm run validate
 - Husky installs the Git hooks.
 - commitlint enforces Conventional Commits.
 - pnpm 11 is used for dependency installation and lockfile management.
+
+## CI and Security
+
+GitHub Actions are configured for:
+
+- CI validation on pull requests and `main` pushes.
+- CodeQL analysis for JavaScript and TypeScript.
+- dependency review on pull requests.
+- Dependabot updates for npm dependencies and GitHub Actions.
+
+GitHub reported one moderate Dependabot alert during an earlier push, but the local production audit currently reports zero known production vulnerabilities:
+
+```bash
+pnpm audit --prod
+```
+
+Open the repository security tab to inspect GitHub-only alert details when repository permissions are available.
 
 ## Supply Chain Policy
 
@@ -99,6 +136,22 @@ feat: add dataset endpoint
 fix: correct import path
 docs: update setup guide
 chore: update tooling
+```
+
+## Deployment
+
+Deployment notes live in [docs/deployment.md](docs/deployment.md).
+
+Docker build:
+
+```bash
+docker build -t opensyria/datasets-api .
+```
+
+Run:
+
+```bash
+docker run --rm -p 3000:3000 --env-file .env opensyria/datasets-api
 ```
 
 ## License

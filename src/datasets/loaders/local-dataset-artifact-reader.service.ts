@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { Cache } from 'cache-manager';
 import type { z } from 'zod';
 import type { GlobalConfig } from '../../config/config.type';
 import type {
@@ -37,6 +39,8 @@ export class LocalDatasetArtifactReaderService {
     private readonly configService: ConfigService<GlobalConfig>,
     @Inject(DatasetReleaseRegistryService)
     private readonly datasetReleaseRegistryService: DatasetReleaseRegistryService,
+    @Inject(CACHE_MANAGER)
+    private readonly cacheManager: Cache,
   ) {}
 
   async readJsonArtifact<TData>({
@@ -64,6 +68,17 @@ export class LocalDatasetArtifactReaderService {
       );
     }
 
+    const cacheKey = this.buildArtifactCacheKey(manifest, artifact);
+    const cachedData = await this.cacheManager.get<TData>(cacheKey);
+
+    if (cachedData) {
+      return {
+        manifest,
+        artifact,
+        data: cachedData,
+      };
+    }
+
     const datasetsConfig = this.configService.getOrThrow('datasets', { infer: true });
     const releaseDirectory = resolveDatasetReleaseDirectory(
       datasetsConfig.releasesDirectory,
@@ -76,10 +91,14 @@ export class LocalDatasetArtifactReaderService {
 
     const parsedJson: unknown = JSON.parse(artifactBuffer.toString('utf8'));
 
+    const data = schema.parse(parsedJson);
+
+    await this.cacheManager.set(cacheKey, data);
+
     return {
       manifest,
       artifact,
-      data: schema.parse(parsedJson),
+      data,
     };
   }
 
@@ -97,5 +116,19 @@ export class LocalDatasetArtifactReaderService {
         `Dataset artifact ${artifact.name} failed size verification.`,
       );
     }
+  }
+
+  private buildArtifactCacheKey(
+    manifest: DatasetReleaseManifest,
+    artifact: DatasetReleaseArtifact,
+  ) {
+    return [
+      'datasets',
+      'artifacts',
+      manifest.dataset.id,
+      manifest.release.version,
+      artifact.name,
+      artifact.sha256,
+    ].join(':');
   }
 }
