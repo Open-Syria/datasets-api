@@ -14,6 +14,8 @@ The plan is based on patterns observed in a mature sibling NestJS backend:
 
 The OpenSyria API should borrow the useful foundation while avoiding unrelated complexity such as auth, queues, uploads, billing, admin dashboards, or worker concerns. Redis and i18n are part of the foundation because the public API will need caching, lightweight rate limiting, localized response messages, and language-aware dataset behavior.
 
+The API repository is public but maintainer-led. Community contribution should be directed mainly to dataset repositories, where contributors can fix data, add missing records, improve sources, and propose schema changes through a controlled review process.
+
 ## Goals
 
 - Move the API from Express to Fastify.
@@ -70,6 +72,7 @@ The foundation pass is implemented:
 - Standardized Swagger error examples.
 - GitHub Actions CI, CodeQL, dependency review, Dependabot config, PR template, and issue templates.
 - `CONTRIBUTING.md`.
+- Dataset contribution policy for future data repositories.
 - Dockerfile, `.dockerignore`, and deployment notes.
 
 Next implementation phase:

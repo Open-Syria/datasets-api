@@ -1,9 +1,12 @@
-name: Feature Request
-description: Suggest an API, tooling, or documentation improvement.
-title: 'feat: '
+name: Maintainer Proposal
+description: Discuss a possible API, tooling, or documentation change before maintainer implementation.
+title: 'proposal: '
 labels:
-  - enhancement
+  - maintainer-review
 body:
+  - type: markdown
+    attributes:
+      value: This API repository is maintainer-led. Dataset corrections and missing data should go to the relevant dataset repository.
   - type: textarea
     id: use-case
     attributes:
@@ -23,4 +26,3 @@ body:
     attributes:
       label: Alternatives
       description: What alternatives have you considered?
-
