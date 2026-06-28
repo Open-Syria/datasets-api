@@ -1,8 +1,9 @@
 import { createZodDto } from 'nestjs-zod';
 import {
   DEFAULT_CURRENT_PAGE,
-  DEFAULT_PAGE_LIMIT,
+  DEFAULT_PAGE_LIMIT_OPTION,
   DEFAULT_SORT_ORDER,
+  PAGE_LIMIT_OPTIONS,
   SORT_ORDERS,
 } from '../../../constants/app.constants';
 import type { ApiQueryParameter } from '../../../decorators/api-request-dto';
@@ -18,8 +19,9 @@ export const offsetPaginationQueryParameters = [
   {
     name: 'limit',
     required: false,
-    description: 'Maximum number of records to return.',
-    example: DEFAULT_PAGE_LIMIT,
+    enum: PAGE_LIMIT_OPTIONS,
+    description: 'Maximum number of records to return. TEN=10, THIRTY_FIVE=35, FIFTY=50.',
+    example: DEFAULT_PAGE_LIMIT_OPTION,
   },
   {
     name: 'q',

@@ -7,9 +7,9 @@ import { LocalitiesService } from './localities.service';
 
 const defaultListQuery = {
   page: 1,
-  limit: 20,
-  order: 'asc' as const,
-};
+  limit: 10,
+  order: 'asc',
+} as const;
 
 const locality: LocalityRecord = {
   id: 'sy-damascus-damascus-damascus-damascus',

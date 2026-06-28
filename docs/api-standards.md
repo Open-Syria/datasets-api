@@ -127,7 +127,9 @@ order
 Rules:
 
 - `page` is 1-based.
-- `limit` must respect the shared maximum limit.
+- `limit` is a named enum, not a free integer.
+- Allowed limit values are `TEN`, `THIRTY_FIVE`, and `FIFTY`.
+- The API transforms limit names into numeric pagination sizes: `TEN=10`, `THIRTY_FIVE=35`, and `FIFTY=50`.
 - `q` is a broad text search parameter.
 - `order` is `asc` or `desc`.
 - Resource-specific filters should use explicit names such as `sourceStatus`, `governorateId`, or `datasetId`.
@@ -328,12 +330,15 @@ export const datasetSummarySchema = z.object({
 export class DatasetSummaryDto extends createZodDto(datasetSummarySchema) {}
 ```
 
-Use `z.coerce` for query parameters that arrive as strings:
+Use Zod transforms for query parameters that should expose stable public options while remaining ergonomic internally:
 
 ```ts
 export const listQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(20),
+  limit: z
+    .enum(['TEN', 'THIRTY_FIVE', 'FIFTY'])
+    .default('TEN')
+    .transform((limit) => ({ TEN: 10, THIRTY_FIVE: 35, FIFTY: 50 })[limit]),
   q: z.string().trim().min(1).optional(),
 });
 ```
@@ -369,7 +374,7 @@ or a paginated response:
   data: {
     items: [],
     pagination: {
-      limit: 20,
+      limit: 10,
       currentPage: 1,
       totalRecords: 100,
       totalPages: 5,
@@ -563,7 +568,7 @@ Default query parameters:
 
 ```text
 page=1
-limit=20
+limit=TEN
 q=
 order=asc|desc
 ```
@@ -572,8 +577,9 @@ Defaults:
 
 ```text
 DEFAULT_CURRENT_PAGE=1
-DEFAULT_PAGE_LIMIT=20
-MAX_PAGE_LIMIT=100
+DEFAULT_PAGE_LIMIT_OPTION=TEN
+DEFAULT_PAGE_LIMIT=10
+MAX_PAGE_LIMIT=50
 DEFAULT_SORT_ORDER=asc
 ```
 

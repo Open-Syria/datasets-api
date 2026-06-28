@@ -22,8 +22,16 @@ export const APP_LOG_LEVELS = [
 export type AppLogLevel = (typeof APP_LOG_LEVELS)[number];
 
 export const DEFAULT_CURRENT_PAGE = 1;
-export const DEFAULT_PAGE_LIMIT = 20;
-export const MAX_PAGE_LIMIT = 100;
+export const PAGE_LIMIT_OPTIONS = ['TEN', 'THIRTY_FIVE', 'FIFTY'] as const;
+export type PageLimitOption = (typeof PAGE_LIMIT_OPTIONS)[number];
+export const PAGE_LIMIT_VALUES = {
+  TEN: 10,
+  THIRTY_FIVE: 35,
+  FIFTY: 50,
+} as const satisfies Record<PageLimitOption, number>;
+export const DEFAULT_PAGE_LIMIT_OPTION = 'TEN' satisfies PageLimitOption;
+export const DEFAULT_PAGE_LIMIT = PAGE_LIMIT_VALUES[DEFAULT_PAGE_LIMIT_OPTION];
+export const MAX_PAGE_LIMIT = PAGE_LIMIT_VALUES.FIFTY;
 
 export const SORT_ORDERS = ['asc', 'desc'] as const;
 export type SortOrder = (typeof SORT_ORDERS)[number];

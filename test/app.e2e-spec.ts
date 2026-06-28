@@ -313,6 +313,22 @@ describe('AppController (e2e)', () => {
     expect(body.data.items).toEqual([]);
   });
 
+  it('maps named page limit options to numeric pagination limits', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/geography/governorates?limit=THIRTY_FIVE',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      data: {
+        pagination: {
+          limit: 35,
+        },
+      },
+    });
+  });
+
   it('validates governorate list query parameters', async () => {
     const response = await app.inject({
       method: 'GET',
@@ -510,11 +526,17 @@ describe('AppController (e2e)', () => {
         (parameter) => parameter.name,
       ),
     ).toEqual(['localityId']);
+    const governorateQueryParameters = getQueryParameters(
+      geographyDocument.paths['/api/v1/geography/governorates'],
+    );
+    expect(governorateQueryParameters.map((parameter) => parameter.name)).toEqual(
+      expect.arrayContaining(['page', 'limit', 'q', 'order', 'sourceStatus']),
+    );
     expect(
-      getQueryParameters(geographyDocument.paths['/api/v1/geography/governorates']).map(
-        (parameter) => parameter.name,
-      ),
-    ).toEqual(expect.arrayContaining(['page', 'limit', 'q', 'order', 'sourceStatus']));
+      governorateQueryParameters.find((parameter) => parameter.name === 'limit')?.schema,
+    ).toMatchObject({
+      enum: ['TEN', 'THIRTY_FIVE', 'FIFTY'],
+    });
     expect(
       getQueryParameters(geographyDocument.paths['/api/v1/geography/districts']).map(
         (parameter) => parameter.name,
