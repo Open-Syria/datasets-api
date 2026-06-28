@@ -1,0 +1,62 @@
+name: Deployment or Operations Issue
+description: Report a deployment, Docker, CI, database, Redis, or dataset-sync issue.
+title: 'ops: '
+labels:
+  - operations
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Docker
+        - GitHub Actions
+        - Database or Prisma
+        - Redis
+        - Dataset sync
+        - Read-model import
+        - Health checks
+        - Environment configuration
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What failed?
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include Node, pnpm, OS, container image, database, Redis, and relevant environment variables. Do not include secrets.
+      placeholder: |
+        Node:
+        pnpm:
+        OS/container:
+        DATABASE_ENABLED:
+        REDIS_ENABLED:
+        DATASETS_RELEASE_SOURCES:
+    validations:
+      required: true
+  - type: textarea
+    id: commands
+    attributes:
+      label: Commands Run
+      description: Paste the command or CI step that failed.
+      render: shell
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Paste only non-sensitive logs.
+      render: shell
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: I removed secrets, tokens, private URLs, and private data from this report.
+          required: true

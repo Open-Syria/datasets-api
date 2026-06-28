@@ -6,6 +6,15 @@ The manifest is the contract between a dataset repository and `datasets-api`. It
 
 Dataset repositories may publish several generated formats in the same release. JSON artifacts are the primary API ingestion format. Other formats such as NDJSON, CSV, SQL, YAML, XML, GeoJSON, and SQLite are distribution artifacts that the API can expose as release metadata or download links.
 
+## Table of Contents
+
+- [File Name](#file-name)
+- [Schema Version](#schema-version)
+- [Example](#example)
+- [Required Rules](#required-rules)
+- [API Consumption](#api-consumption)
+- [Sync Command](#sync-command)
+
 ## File Name
 
 ```text

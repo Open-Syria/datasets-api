@@ -1,41 +1,74 @@
 # OpenSyria Datasets API
 
-Read-only NestJS API for OpenSyria datasets.
+[![CI](https://github.com/Open-Syria/datasets-api/actions/workflows/ci.yml/badge.svg)](https://github.com/Open-Syria/datasets-api/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/Open-Syria/datasets-api/actions/workflows/codeql.yml/badge.svg)](https://github.com/Open-Syria/datasets-api/actions/workflows/codeql.yml)
+[![Release](https://img.shields.io/github/v/release/Open-Syria/datasets-api?include_prereleases&label=release)](https://github.com/Open-Syria/datasets-api/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node.js 24+](https://img.shields.io/badge/node-%3E%3D24-339933?logo=node.js&logoColor=white)](package.json)
+[![pnpm 11](https://img.shields.io/badge/pnpm-11-F69220?logo=pnpm&logoColor=white)](package.json)
+[![Stars](https://img.shields.io/github/stars/Open-Syria/datasets-api?style=flat&logo=github&label=stars)](https://github.com/Open-Syria/datasets-api/stargazers)
+[![Forks](https://img.shields.io/github/forks/Open-Syria/datasets-api?style=flat&logo=github&label=forks)](https://github.com/Open-Syria/datasets-api/forks)
+[![Issues](https://img.shields.io/github/issues/Open-Syria/datasets-api?style=flat&logo=github&label=issues)](https://github.com/Open-Syria/datasets-api/issues)
+[![Pull Requests](https://img.shields.io/github/issues-pr/Open-Syria/datasets-api?style=flat&logo=github&label=PRs)](https://github.com/Open-Syria/datasets-api/pulls)
+[![Contributors](https://img.shields.io/github/contributors/Open-Syria/datasets-api?style=flat&logo=github&label=contributors)](https://github.com/Open-Syria/datasets-api/graphs/contributors)
+[![Last Commit](https://img.shields.io/github/last-commit/Open-Syria/datasets-api?style=flat&logo=github&label=last%20commit)](https://github.com/Open-Syria/datasets-api/commits/main)
+[![Sponsor](https://img.shields.io/badge/sponsor-OpenSyria-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/Open-Syria)
 
-This repository is intentionally a standalone app. It is not a monorepo.
+Public read-only API for released OpenSyria datasets.
 
-## Contribution Model
+`datasets-api` serves stable, versioned reference data for Syria through documented HTTP endpoints. The service is built with NestJS, Fastify, PostgreSQL/PostGIS, Redis, Prisma, Zod, and OpenAPI.
 
-This API repository is public but maintainer-led. Unsolicited feature pull requests are not currently accepted here.
+This repository is intentionally a standalone application. It is not a monorepo, and the package is marked private only to prevent accidental npm publication.
 
-Public community contribution will happen primarily in the dataset repositories, where contributors can fix data, add missing records, improve sources, and suggest schema improvements through a controlled maintainer review process.
+## Table of Contents
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/dataset-contribution-policy.md](docs/dataset-contribution-policy.md).
+- [What This API Provides](#what-this-api-provides)
+- [Data Flow](#data-flow)
+- [Public Routes](#public-routes)
+- [Query Conventions](#query-conventions)
+- [Local Development](#local-development)
+- [Local Read Model](#local-read-model)
+- [Validation](#validation)
+- [Deployment](#deployment)
+- [Public Documentation](#public-documentation)
+- [Contribution Model](#contribution-model)
+- [License](#license)
 
-## Setup
+## What This API Provides
 
-```bash
-corepack enable pnpm
-pnpm install
-pnpm run db:generate
+- Dataset discovery and release metadata
+- Geography endpoints for governorates, districts, subdistricts, and localities
+- Stable record IDs and source attribution fields
+- Offset pagination, filtering, search, and parent-child geography relationships
+- Localized API response messages through `lang`, `x-lang`, or `Accept-Language`
+- Scalar API reference and OpenAPI JSON documents
+- A production read model backed by PostgreSQL/PostGIS
+- Redis-backed caching and throttling infrastructure
+
+## Data Flow
+
+OpenSyria datasets live in separate repositories. This API does not read live `main` branches at runtime.
+
+The production flow is:
+
+```text
+dataset repositories -> versioned release artifacts -> verified JSON imports -> PostgreSQL/PostGIS read model -> public API responses
 ```
 
-## Development
+Dataset repositories own canonical JSON data, source attribution, validation rules, generated export files, and release manifests. `datasets-api` consumes pinned releases, verifies checksums and schemas, imports the data into read tables, then serves the public endpoints.
 
-```bash
-pnpm run start:dev
-```
+See [docs/dataset-loading.md](docs/dataset-loading.md), [docs/release-manifest.md](docs/release-manifest.md), and [docs/read-model-architecture.md](docs/read-model-architecture.md).
 
-The app uses `APP_PORT`, then `PORT`, otherwise it listens on `3000`.
-
-## Current Routes
+## Public Routes
 
 ```text
 GET /health
 GET /health/live
 GET /health/ready
+
 GET /api/v1/datasets
 GET /api/v1/releases
+
 GET /api/v1/geography/governorates
 GET /api/v1/geography/governorates/:governorateId
 GET /api/v1/geography/districts
@@ -44,6 +77,7 @@ GET /api/v1/geography/subdistricts
 GET /api/v1/geography/subdistricts/:subdistrictId
 GET /api/v1/geography/localities
 GET /api/v1/geography/localities/:localityId
+
 GET /docs
 GET /swagger-ui
 GET /openapi.json
@@ -52,219 +86,155 @@ GET /openapi/geography.json
 GET /openapi/education.json
 ```
 
-Response messages can be localized with `?lang=`, `x-lang`, or `Accept-Language`.
+## Query Conventions
 
-Governorate list query parameters:
+List endpoints use Zod-validated DTOs for query parameters, path parameters, and future request bodies.
 
-```text
-page=1
-limit=20
-q=damascus
-order=asc|desc
-sourceStatus=pending_release|seed|released|deprecated
-```
+Common list parameters:
 
-District list query parameters:
+| Parameter | Values |
+| --- | --- |
+| `page` | Positive page number, default `1` |
+| `limit` | `TEN`, `THIRTY_FIVE`, or `FIFTY` |
+| `order` | `ASC` or `DESC` |
+| `q` | Search term |
+| `sourceStatus` | `pending_release`, `seed`, `released`, or `deprecated` |
 
-```text
-page=1
-limit=20
-q=damascus
-order=asc|desc
-governorateId=sy-damascus
-sourceStatus=pending_release|seed|released|deprecated
-```
+Geography filters:
 
-Subdistrict list query parameters:
+| Endpoint | Extra filters |
+| --- | --- |
+| `/geography/districts` | `governorateId` |
+| `/geography/subdistricts` | `governorateId`, `districtId` |
+| `/geography/localities` | `governorateId`, `districtId`, `subdistrictId`, `kind` |
 
-```text
-page=1
-limit=20
-q=hasakeh
-order=asc|desc
-governorateId=sy-al-hasakah
-districtId=sy-al-hasakah-al-hasakah
-sourceStatus=pending_release|seed|released|deprecated
-```
-
-Locality list query parameters:
+Example:
 
 ```text
-page=1
-limit=20
-q=hasakeh
-order=asc|desc
-governorateId=sy-al-hasakah
-districtId=sy-al-hasakah-al-hasakah
-subdistrictId=sy-al-hasakah-al-hasakah-al-hasakeh
-kind=city|town|locality
-sourceStatus=pending_release|seed|released|deprecated
+GET /api/v1/geography/localities?q=damascus&limit=THIRTY_FIVE&order=ASC
 ```
 
-## Dataset Loading
+## Local Development
 
-Datasets live in separate repositories. This API should consume versioned release artifacts and manifests from those repositories, not live `main` branches. See [docs/dataset-loading.md](docs/dataset-loading.md).
+Requirements:
 
-Local release manifests and artifacts are read from `DATASETS_RELEASES_DIR`, which defaults to `data/releases`.
+- Node.js 24+
+- pnpm 11+
+- Docker, when running PostgreSQL and Redis locally
 
-Dataset repositories can publish multiple generated formats, such as JSON, NDJSON, CSV, SQL, YAML, XML, and later GeoJSON or SQLite. JSON remains the primary API ingestion format. The other formats are public distribution artifacts for downloads, spreadsheets, database imports, review, and external tooling.
-
-The first wired artifacts are the geography governorates, districts, subdistricts, and localities JSON files. When a synced `opensyria-geography` release includes matching artifacts, the API verifies those files by checksum, size, and schema before using them.
-
-To sync pinned GitHub Release artifacts into the local release directory:
+Install dependencies:
 
 ```bash
-DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.0" pnpm run datasets:sync
+corepack enable pnpm
+pnpm install
+pnpm run db:generate
 ```
 
-Use a comma-separated list for multiple repositories. Set `GITHUB_TOKEN` when syncing private releases or when higher GitHub API limits are needed.
-
-For local development against the sibling `data-geography` repository, first build the geography release there, then point the API at the generated release directory:
+Start the API without required external services:
 
 ```bash
-DATASETS_RELEASES_DIR=../data-geography/dist/release DATASETS_REQUIRE_RELEASES=true pnpm run start:dev
+pnpm run start:dev
 ```
 
-To smoke test the API against that local geography release without starting an HTTP server:
+The app uses `APP_PORT`, then `PORT`, and otherwise listens on `3000`.
+
+API documentation is available at:
+
+```text
+http://localhost:3000/docs
+```
+
+## Local Read Model
+
+Start local dependencies:
+
+```bash
+docker compose up -d postgres redis
+pnpm run db:migrate
+```
+
+Build a release in the sibling `data-geography` repository, then import it:
+
+```bash
+DATASETS_RELEASES_DIR=../data-geography/dist/release DATABASE_ENABLED=true pnpm run read-model:import:geography
+```
+
+Run a local geography smoke test:
 
 ```bash
 pnpm run smoke:geography
 ```
 
-The smoke command expects `../data-geography/dist/release` by default. Override it with `GEOGRAPHY_RELEASE_DIR` when needed.
-
-## Read Model
-
-Release artifacts are the public data contract. The API database is the internal serving layer for production filters, relationships, pagination, search, and future PostGIS queries.
-
-The intended production flow is:
-
-```text
-dataset repo canonical JSON -> generated release artifacts -> verified JSON artifacts -> PostgreSQL/PostGIS read model -> public API responses
-```
-
-Geography endpoints prefer the database read model when `DATABASE_ENABLED=true` and an imported geography release exists. During early seeding, endpoints can still fall back to verified JSON artifacts directly. Production should enable the database read model and require dataset releases:
-
-```text
-DATABASE_ENABLED=true
-DATABASE_REQUIRED=true
-DATASETS_REQUIRE_RELEASES=true
-REDIS_REQUIRED=true
-```
-
-Local database dependencies:
+## Validation
 
 ```bash
-docker compose up -d postgres redis
-pnpm run db:generate
-pnpm run db:migrate
-DATASETS_RELEASES_DIR=../data-geography/dist/release DATABASE_ENABLED=true pnpm run read-model:import:geography
+pnpm run validate
 ```
 
-See [docs/read-model-architecture.md](docs/read-model-architecture.md).
+This runs Prisma generation, Biome checks, ESLint, TypeScript type checking, unit tests, e2e tests, build verification, and a production dependency audit.
 
-## Scripts
+Useful focused commands:
 
 ```bash
 pnpm run check
-pnpm run check:fix
-pnpm run format
-pnpm run format:check
-pnpm run build
-pnpm run db:generate
-pnpm run db:migrate
-pnpm run db:migrate:deploy
-pnpm run db:push
-pnpm run db:studio
 pnpm run lint
-pnpm run lint:fix
 pnpm run typecheck
 pnpm run test
 pnpm run test:e2e
 pnpm run test:integration:db
-pnpm run datasets:sync
-pnpm run datasets:sync:prod
-pnpm run read-model:import:geography
-pnpm run read-model:import:geography:prod
-pnpm run read-model:refresh:geography
-pnpm run read-model:refresh:geography:prod
-pnpm run smoke:geography
+pnpm run build
 pnpm run audit:prod
-pnpm run validate
-```
-
-## Health Checks
-
-- `GET /health/live` checks that the API process is alive.
-- `GET /health/ready` checks runtime dependencies and dataset release readiness.
-- `GET /health` returns the aggregate public health payload.
-
-Readiness includes Redis status, database read-model status, and dataset release manifest status. Redis, database, and dataset releases can be optional or required through environment variables. `/health/ready` returns HTTP 503 when a required dependency is unavailable.
-
-## Tooling
-
-- Biome handles formatting, import organization, and fast checks.
-- ESLint handles stricter type-aware TypeScript linting.
-- lint-staged runs checks on staged files before commit.
-- Husky installs the Git hooks.
-- commitlint enforces Conventional Commits.
-- pnpm 11 is used for dependency installation and lockfile management.
-
-## CI and Security
-
-GitHub Actions are configured for:
-
-- CI validation on pull requests and `main` pushes.
-- PostgreSQL read-model integration testing on pull requests and `main` pushes.
-- Docker image build verification.
-- CodeQL analysis for JavaScript and TypeScript.
-- dependency review on pull requests.
-- Dependabot updates for npm dependencies and GitHub Actions.
-
-GitHub reported one moderate Dependabot alert during an earlier push, but the local production audit currently reports zero known production vulnerabilities:
-
-```bash
-pnpm audit --prod
-```
-
-Open the repository security tab to inspect GitHub-only alert details when repository permissions are available.
-
-## Supply Chain Policy
-
-Dependency policy lives in `pnpm-workspace.yaml`.
-
-- The lockfile must be committed.
-- New package versions must satisfy the configured minimum release age.
-- Transitive dependencies from exotic sources are blocked.
-- Dependency build scripts are blocked unless explicitly reviewed in `allowBuilds`.
-- Production dependency advisories are checked with `pnpm run audit:prod`.
-
-If pnpm reports a blocked dependency build script, review why the package needs it before adding it to `allowBuilds`.
-
-Commit messages should use Conventional Commits:
-
-```text
-feat: add dataset endpoint
-fix: correct import path
-docs: update setup guide
-chore: update tooling
 ```
 
 ## Deployment
 
 Deployment notes live in [docs/deployment.md](docs/deployment.md).
 
-Docker build:
+Production deployments should normally set:
+
+```text
+NODE_ENV=production
+IS_HTTPS=true
+DATABASE_ENABLED=true
+DATABASE_REQUIRED=true
+REDIS_ENABLED=true
+REDIS_REQUIRED=true
+DATASETS_REQUIRE_RELEASES=true
+```
+
+Set `APP_TRUST_PROXY=true` only when the service is behind a trusted reverse proxy or load balancer.
+
+Build the Docker image:
 
 ```bash
 docker build -t opensyria/datasets-api .
 ```
 
-Run:
+Run the built app:
 
 ```bash
 docker run --rm -p 3000:3000 --env-file .env opensyria/datasets-api
 ```
+
+## Public Documentation
+
+- [API standards](docs/api-standards.md)
+- [Dataset loading model](docs/dataset-loading.md)
+- [Release manifest contract](docs/release-manifest.md)
+- [Read model architecture](docs/read-model-architecture.md)
+- [Deployment](docs/deployment.md)
+- [Dataset contribution policy](docs/dataset-contribution-policy.md)
+- [Pull request workflow](docs/pull-request-workflow.md)
+- [Contributing](CONTRIBUTING.md)
+- [Support](SUPPORT.md)
+- [Security policy](SECURITY.md)
+- [Code of conduct](CODE_OF_CONDUCT.md)
+
+## Contribution Model
+
+This API repository is public for transparency, auditability, and reuse, but it is maintainer-led. Unsolicited feature pull requests are not currently accepted here.
+
+Community contribution is intended primarily for the dataset repositories, where contributors can fix data, add missing records, improve sources, and propose schema improvements through a controlled review process.
 
 ## License
 

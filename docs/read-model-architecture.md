@@ -13,6 +13,14 @@ The long-term flow is:
 
 Release artifacts remain the public distribution contract. The database is an internal serving layer.
 
+## Table of Contents
+
+- [Exports And Runtime Serving](#exports-and-runtime-serving)
+- [Why Use A Database](#why-use-a-database)
+- [Schema Changes](#schema-changes)
+- [Initial Serving Strategy](#initial-serving-strategy)
+- [Local Commands](#local-commands)
+
 ## Exports And Runtime Serving
 
 Dataset repositories can generate many export formats from the same canonical JSON source: JSON, NDJSON, CSV, SQL, YAML, XML, and later GeoJSON or SQLite.

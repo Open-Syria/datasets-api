@@ -4,6 +4,32 @@ This document defines the conventions for `datasets-api` controllers, DTOs, resp
 
 The goal is that every endpoint looks and behaves like it belongs to the same API, even when datasets are implemented at different times.
 
+## Table of Contents
+
+- [Core Rules](#core-rules)
+- [File Naming](#file-naming)
+- [Route Naming](#route-naming)
+- [Controller Method Naming](#controller-method-naming)
+- [Query Parameters](#query-parameters)
+- [Request DTOs](#request-dtos)
+- [OpenAPI Tags](#openapi-tags)
+- [Operation Summaries](#operation-summaries)
+- [Operation Descriptions](#operation-descriptions)
+- [DTO and Schema Naming](#dto-and-schema-naming)
+- [Zod DTO Pattern](#zod-dto-pattern)
+- [Response Envelope](#response-envelope)
+- [Response Helpers](#response-helpers)
+- [Response DTO Factories](#response-dto-factories)
+- [Swagger Decorators](#swagger-decorators)
+- [Standard Error Responses](#standard-error-responses)
+- [Pagination](#pagination)
+- [i18n Message Keys](#i18n-message-keys)
+- [OpenAPI Documents](#openapi-documents)
+- [Security Headers and CORS](#security-headers-and-cors)
+- [Documentation Descriptions](#documentation-descriptions)
+- [Controller Example](#controller-example)
+- [Review Checklist](#review-checklist)
+
 ## Core Rules
 
 - The API is public and read-only.
