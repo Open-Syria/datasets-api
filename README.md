@@ -37,6 +37,12 @@ GET /api/v1/datasets
 GET /api/v1/releases
 GET /api/v1/geography/governorates
 GET /api/v1/geography/governorates/:governorateId
+GET /api/v1/geography/districts
+GET /api/v1/geography/districts/:districtId
+GET /api/v1/geography/subdistricts
+GET /api/v1/geography/subdistricts/:subdistrictId
+GET /api/v1/geography/localities
+GET /api/v1/geography/localities/:localityId
 GET /docs
 GET /swagger-ui
 GET /openapi.json
@@ -57,13 +63,50 @@ order=asc|desc
 sourceStatus=pending_release|seed|released|deprecated
 ```
 
+District list query parameters:
+
+```text
+page=1
+limit=20
+q=damascus
+order=asc|desc
+governorateId=sy-damascus
+sourceStatus=pending_release|seed|released|deprecated
+```
+
+Subdistrict list query parameters:
+
+```text
+page=1
+limit=20
+q=hasakeh
+order=asc|desc
+governorateId=sy-al-hasakah
+districtId=sy-al-hasakah-al-hasakah
+sourceStatus=pending_release|seed|released|deprecated
+```
+
+Locality list query parameters:
+
+```text
+page=1
+limit=20
+q=hasakeh
+order=asc|desc
+governorateId=sy-al-hasakah
+districtId=sy-al-hasakah-al-hasakah
+subdistrictId=sy-al-hasakah-al-hasakah-al-hasakeh
+kind=city|town|locality
+sourceStatus=pending_release|seed|released|deprecated
+```
+
 ## Dataset Loading
 
 Datasets live in separate repositories. This API should consume versioned release artifacts and manifests from those repositories, not live `main` branches. See [docs/dataset-loading.md](docs/dataset-loading.md).
 
 Local release manifests and artifacts are read from `DATASETS_RELEASES_DIR`, which defaults to `data/releases`.
 
-The first wired artifact is the geography governorates JSON file. When a synced `opensyria-geography` release includes an artifact named `governorates`, `GET /api/v1/geography/governorates` reads the local file after checksum and size verification.
+The first wired artifacts are the geography governorates, districts, subdistricts, and localities JSON files. When a synced `opensyria-geography` release includes matching artifacts, the matching geography endpoints read the local files after checksum and size verification.
 
 To sync pinned GitHub Release artifacts into the local release directory:
 
@@ -72,6 +115,20 @@ DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.0" pnpm run datasets:sy
 ```
 
 Use a comma-separated list for multiple repositories. Set `GITHUB_TOKEN` when syncing private releases or when higher GitHub API limits are needed.
+
+For local development against the sibling `data-geography` repository, first build the geography release there, then point the API at the generated release directory:
+
+```bash
+DATASETS_RELEASES_DIR=../data-geography/dist/release DATASETS_REQUIRE_RELEASES=true pnpm run start:dev
+```
+
+To smoke test the API against that local geography release without starting an HTTP server:
+
+```bash
+pnpm run smoke:geography
+```
+
+The smoke command expects `../data-geography/dist/release` by default. Override it with `GEOGRAPHY_RELEASE_DIR` when needed.
 
 ## Scripts
 
@@ -87,6 +144,7 @@ pnpm run typecheck
 pnpm run test
 pnpm run test:e2e
 pnpm run datasets:sync
+pnpm run smoke:geography
 pnpm run audit:prod
 pnpm run validate
 ```

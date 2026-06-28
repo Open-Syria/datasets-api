@@ -2,10 +2,8 @@ import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import type { ConfigService } from '@nestjs/config';
 import type { Cache } from 'cache-manager';
 import { z } from 'zod';
-import type { GlobalConfig } from '../../config/config.type';
 import type { DatasetReleaseManifest } from '../contracts/dataset-release-manifest.schema';
 import type { DatasetReleaseRegistryService } from '../dataset-release-registry.service';
 import { LocalDatasetArtifactReaderService } from './local-dataset-artifact-reader.service';
@@ -14,17 +12,18 @@ function sha256(buffer: Buffer) {
   return createHash('sha256').update(buffer).digest('hex');
 }
 
-function createConfigService(releasesDirectory: string) {
-  return {
-    getOrThrow: jest.fn().mockReturnValue({
-      releasesDirectory,
-    }),
-  } as unknown as ConfigService<GlobalConfig>;
-}
-
-function createRegistryService(manifest?: DatasetReleaseManifest) {
+function createRegistryService(manifest?: DatasetReleaseManifest, releaseDirectory?: string) {
   return {
     getManifestByDatasetId: jest.fn().mockReturnValue(manifest),
+    getManifestRegistrationByDatasetId: jest.fn().mockReturnValue(
+      manifest && releaseDirectory
+        ? {
+            manifest,
+            manifestPath: path.join(releaseDirectory, 'release-manifest.json'),
+            releaseDirectory,
+          }
+        : undefined,
+    ),
   } as unknown as DatasetReleaseRegistryService;
 }
 
@@ -88,7 +87,6 @@ describe('LocalDatasetArtifactReaderService', () => {
 
   it('returns null when the dataset has no registered manifest', async () => {
     const service = new LocalDatasetArtifactReaderService(
-      createConfigService(tempDirectory),
       createRegistryService(),
       createCacheManager(),
     );
@@ -114,8 +112,7 @@ describe('LocalDatasetArtifactReaderService', () => {
     await writeFile(path.join(artifactDirectory, 'governorates.json'), artifactBuffer);
 
     const service = new LocalDatasetArtifactReaderService(
-      createConfigService(tempDirectory),
-      createRegistryService(manifest),
+      createRegistryService(manifest, path.join(tempDirectory, 'geography', 'v0.1.0')),
       createCacheManager(),
     );
     const result = await service.readJsonArtifact({
@@ -126,6 +123,30 @@ describe('LocalDatasetArtifactReaderService', () => {
 
     expect(result?.manifest).toBe(manifest);
     expect(result?.artifact.name).toBe('governorates');
+    expect(result?.data).toEqual([{ id: 'sy-hl' }]);
+  });
+
+  it('reads artifacts relative to the discovered manifest directory', async () => {
+    const artifactBuffer = Buffer.from(JSON.stringify([{ id: 'sy-hl' }]));
+    const manifest = createManifest({
+      sha256: sha256(artifactBuffer),
+      sizeBytes: artifactBuffer.byteLength,
+    });
+    const artifactDirectory = path.join(tempDirectory, 'artifacts');
+
+    await mkdir(artifactDirectory, { recursive: true });
+    await writeFile(path.join(artifactDirectory, 'governorates.json'), artifactBuffer);
+
+    const service = new LocalDatasetArtifactReaderService(
+      createRegistryService(manifest, tempDirectory),
+      createCacheManager(),
+    );
+    const result = await service.readJsonArtifact({
+      datasetId: 'opensyria-geography',
+      artifactName: 'governorates',
+      schema: z.array(z.object({ id: z.string() })),
+    });
+
     expect(result?.data).toEqual([{ id: 'sy-hl' }]);
   });
 
@@ -141,8 +162,7 @@ describe('LocalDatasetArtifactReaderService', () => {
     await writeFile(path.join(artifactDirectory, 'governorates.json'), artifactBuffer);
 
     const service = new LocalDatasetArtifactReaderService(
-      createConfigService(tempDirectory),
-      createRegistryService(manifest),
+      createRegistryService(manifest, path.join(tempDirectory, 'geography', 'v0.1.0')),
       createCacheManager(),
     );
 

@@ -6,6 +6,10 @@ import type { ApiResponse } from '../../../common/dto/api-response.dto';
 import { buildResponse } from '../../../common/helpers/build-response';
 import { ApiPublic } from '../../../decorators/http-decorators';
 import {
+  governorateDetailResponseExample,
+  governorateListResponseExample,
+} from '../geography.examples';
+import {
   type GovernorateDetail,
   GovernorateDetailDto,
   type GovernorateList,
@@ -62,6 +66,7 @@ export class GovernoratesController {
     description:
       'Returns governorate records from the released geography dataset. The endpoint is available before the first data release and returns an empty list until a verified data-geography release is published.',
     responseName: 'GovernorateListResponse',
+    example: governorateListResponseExample,
   })
   async listGovernorates(
     @Query(new ZodValidationPipe(GovernorateListQueryDto)) query: GovernorateListQuery,
@@ -88,6 +93,7 @@ export class GovernoratesController {
     description:
       'Returns one released governorate record with its dataset release context and source attribution.',
     responseName: 'GovernorateDetailResponse',
+    example: governorateDetailResponseExample,
   })
   async getGovernorate(
     @Param('governorateId') governorateId: string,
