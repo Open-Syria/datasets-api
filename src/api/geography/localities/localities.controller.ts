@@ -2,6 +2,8 @@ import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
 import { I18n, type I18nContext } from 'nestjs-i18n';
 import { ZodValidationPipe } from 'nestjs-zod';
 import type { ApiResponse } from '../../../common/dto/api-response.dto';
+import type { ApiOffsetPaginatedResponse } from '../../../common/dto/offset-pagination/offset-paginated-response.dto';
+import { buildOffsetPaginatedResponse } from '../../../common/helpers/build-offset-paginated-response';
 import { buildResponse } from '../../../common/helpers/build-response';
 import { ApiParamDto, ApiQueryDto } from '../../../decorators/api-request-dto';
 import { ApiPublic } from '../../../decorators/http-decorators';
@@ -15,8 +17,14 @@ import {
   LocalityListQueryDto,
   type LocalityParams,
   LocalityParamsDto,
+  type LocalitySummary,
 } from './localities.dto';
 import { LocalitiesService } from './localities.service';
+
+type LocalityListResponse = ApiOffsetPaginatedResponse<
+  LocalitySummary,
+  Omit<LocalityList, 'items' | 'pagination'>
+>;
 
 @Controller('geography/localities')
 export class LocalitiesController {
@@ -39,10 +47,19 @@ export class LocalitiesController {
   async listLocalities(
     @Query(new ZodValidationPipe(LocalityListQueryDto)) query: LocalityListQuery,
     @I18n() i18n: I18nContext,
-  ): Promise<ApiResponse<LocalityList>> {
-    return buildResponse({
+  ): Promise<LocalityListResponse> {
+    const result = await this.localitiesService.listLocalities(query);
+
+    return buildOffsetPaginatedResponse({
       i18n,
-      data: await this.localitiesService.listLocalities(query),
+      items: result.items,
+      totalRecords: result.pagination.totalRecords,
+      options: query,
+      extraData: {
+        count: result.count,
+        dataset: result.dataset,
+        release: result.release,
+      },
       message: 'api.responses.geography.localitiesFetched',
       fallbackMessage: 'Localities fetched successfully',
     });
