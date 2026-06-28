@@ -6,7 +6,7 @@ import {
   offsetPaginationQuerySchema,
   offsetPaginationSchema,
 } from '../../../common/schemas/pagination.schema';
-import type { ApiQueryParameter } from '../../../decorators/api-query-dto';
+import type { ApiParamParameter, ApiQueryParameter } from '../../../decorators/api-request-dto';
 
 export const geographicPointSchema = z.object({
   latitude: z.number().min(-90).max(90),
@@ -35,6 +35,10 @@ export const governoratesArtifactSchema = z
 
 export const governorateListQuerySchema = offsetPaginationQuerySchema.extend({
   sourceStatus: z.enum(['pending_release', 'seed', 'released', 'deprecated']).optional(),
+});
+
+export const governorateParamsSchema = z.object({
+  governorateId: z.string().trim().min(1),
 });
 
 export const governorateDatasetContextSchema = z.object({
@@ -66,6 +70,15 @@ export const governorateDetailSchema = z.object({
 });
 
 export class GovernorateSummaryDto extends createZodDto(governorateSummarySchema) {}
+export class GovernorateParamsDto extends createZodDto(governorateParamsSchema) {
+  static readonly openApiParamParameters = [
+    {
+      name: 'governorateId',
+      description: 'Stable OpenSyria governorate ID.',
+      example: 'sy-damascus',
+    },
+  ] satisfies readonly ApiParamParameter[];
+}
 export class GovernorateListQueryDto extends createZodDto(governorateListQuerySchema) {
   static readonly openApiQueryParameters = [
     ...buildOffsetPaginationQueryParameters({
@@ -85,6 +98,7 @@ export class GovernorateListDto extends createZodDto(governorateListSchema) {}
 export class GovernorateDetailDto extends createZodDto(governorateDetailSchema) {}
 
 export type GovernorateSummary = z.infer<typeof governorateSummarySchema>;
+export type GovernorateParams = z.infer<typeof governorateParamsSchema>;
 export type GovernorateListQuery = z.infer<typeof governorateListQuerySchema>;
 export type GovernorateList = z.infer<typeof governorateListSchema>;
 export type GovernorateDetail = z.infer<typeof governorateDetailSchema>;

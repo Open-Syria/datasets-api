@@ -1,10 +1,9 @@
 import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
-import { ApiParam } from '@nestjs/swagger';
 import { I18n, type I18nContext } from 'nestjs-i18n';
 import { ZodValidationPipe } from 'nestjs-zod';
 import type { ApiResponse } from '../../../common/dto/api-response.dto';
 import { buildResponse } from '../../../common/helpers/build-response';
-import { ApiQueryDto } from '../../../decorators/api-query-dto';
+import { ApiParamDto, ApiQueryDto } from '../../../decorators/api-request-dto';
 import { ApiPublic } from '../../../decorators/http-decorators';
 import { districtDetailResponseExample, districtListResponseExample } from '../geography.examples';
 import {
@@ -14,6 +13,8 @@ import {
   DistrictListDto,
   type DistrictListQuery,
   DistrictListQueryDto,
+  type DistrictParams,
+  DistrictParamsDto,
 } from './districts.dto';
 import { DistrictsService } from './districts.service';
 
@@ -48,11 +49,7 @@ export class DistrictsController {
   }
 
   @Get(':districtId')
-  @ApiParam({
-    name: 'districtId',
-    description: 'Stable OpenSyria district ID.',
-    example: 'sy-damascus-damascus',
-  })
+  @ApiParamDto(DistrictParamsDto)
   @ApiPublic({
     type: DistrictDetailDto,
     tags: ['Geography'],
@@ -62,12 +59,12 @@ export class DistrictsController {
     example: districtDetailResponseExample,
   })
   async getDistrict(
-    @Param('districtId') districtId: string,
+    @Param(new ZodValidationPipe(DistrictParamsDto)) params: DistrictParams,
     @I18n() i18n: I18nContext,
   ): Promise<ApiResponse<DistrictDetail>> {
     return buildResponse({
       i18n,
-      data: await this.districtsService.getDistrict(districtId),
+      data: await this.districtsService.getDistrict(params.districtId),
       message: 'api.responses.geography.districtFetched',
       fallbackMessage: 'District fetched successfully',
     });

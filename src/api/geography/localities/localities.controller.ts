@@ -1,10 +1,9 @@
 import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
-import { ApiParam } from '@nestjs/swagger';
 import { I18n, type I18nContext } from 'nestjs-i18n';
 import { ZodValidationPipe } from 'nestjs-zod';
 import type { ApiResponse } from '../../../common/dto/api-response.dto';
 import { buildResponse } from '../../../common/helpers/build-response';
-import { ApiQueryDto } from '../../../decorators/api-query-dto';
+import { ApiParamDto, ApiQueryDto } from '../../../decorators/api-request-dto';
 import { ApiPublic } from '../../../decorators/http-decorators';
 import { localityDetailResponseExample, localityListResponseExample } from '../geography.examples';
 import {
@@ -14,6 +13,8 @@ import {
   LocalityListDto,
   type LocalityListQuery,
   LocalityListQueryDto,
+  type LocalityParams,
+  LocalityParamsDto,
 } from './localities.dto';
 import { LocalitiesService } from './localities.service';
 
@@ -48,11 +49,7 @@ export class LocalitiesController {
   }
 
   @Get(':localityId')
-  @ApiParam({
-    name: 'localityId',
-    description: 'Stable OpenSyria locality ID.',
-    example: 'sy-al-hasakah-al-hasakah-al-hasakeh-abiad',
-  })
+  @ApiParamDto(LocalityParamsDto)
   @ApiPublic({
     type: LocalityDetailDto,
     tags: ['Geography'],
@@ -63,12 +60,12 @@ export class LocalitiesController {
     example: localityDetailResponseExample,
   })
   async getLocality(
-    @Param('localityId') localityId: string,
+    @Param(new ZodValidationPipe(LocalityParamsDto)) params: LocalityParams,
     @I18n() i18n: I18nContext,
   ): Promise<ApiResponse<LocalityDetail>> {
     return buildResponse({
       i18n,
-      data: await this.localitiesService.getLocality(localityId),
+      data: await this.localitiesService.getLocality(params.localityId),
       message: 'api.responses.geography.localityFetched',
       fallbackMessage: 'Locality fetched successfully',
     });

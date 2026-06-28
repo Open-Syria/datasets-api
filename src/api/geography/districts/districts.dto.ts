@@ -6,7 +6,7 @@ import {
   offsetPaginationQuerySchema,
   offsetPaginationSchema,
 } from '../../../common/schemas/pagination.schema';
-import type { ApiQueryParameter } from '../../../decorators/api-query-dto';
+import type { ApiParamParameter, ApiQueryParameter } from '../../../decorators/api-request-dto';
 
 export const districtGeographicPointSchema = z.object({
   latitude: z.number().min(-90).max(90),
@@ -38,6 +38,10 @@ export const districtListQuerySchema = offsetPaginationQuerySchema.extend({
   sourceStatus: z.enum(['pending_release', 'seed', 'released', 'deprecated']).optional(),
 });
 
+export const districtParamsSchema = z.object({
+  districtId: z.string().trim().min(1),
+});
+
 export const districtDatasetContextSchema = z.object({
   id: z.literal('opensyria-geography'),
   repository: z.literal('data-geography'),
@@ -67,6 +71,15 @@ export const districtDetailSchema = z.object({
 });
 
 export class DistrictSummaryDto extends createZodDto(districtSummarySchema) {}
+export class DistrictParamsDto extends createZodDto(districtParamsSchema) {
+  static readonly openApiParamParameters = [
+    {
+      name: 'districtId',
+      description: 'Stable OpenSyria district ID.',
+      example: 'sy-damascus-damascus',
+    },
+  ] satisfies readonly ApiParamParameter[];
+}
 export class DistrictListQueryDto extends createZodDto(districtListQuerySchema) {
   static readonly openApiQueryParameters = [
     ...buildOffsetPaginationQueryParameters({
@@ -93,6 +106,7 @@ export class DistrictListDto extends createZodDto(districtListSchema) {}
 export class DistrictDetailDto extends createZodDto(districtDetailSchema) {}
 
 export type DistrictSummary = z.infer<typeof districtSummarySchema>;
+export type DistrictParams = z.infer<typeof districtParamsSchema>;
 export type DistrictListQuery = z.infer<typeof districtListQuerySchema>;
 export type DistrictList = z.infer<typeof districtListSchema>;
 export type DistrictDetail = z.infer<typeof districtDetailSchema>;

@@ -6,7 +6,7 @@ import {
   offsetPaginationQuerySchema,
   offsetPaginationSchema,
 } from '../../../common/schemas/pagination.schema';
-import type { ApiQueryParameter } from '../../../decorators/api-query-dto';
+import type { ApiParamParameter, ApiQueryParameter } from '../../../decorators/api-request-dto';
 
 export const localityKindSchema = z.enum(['city', 'town', 'locality']);
 
@@ -65,6 +65,10 @@ export const localityListQuerySchema = offsetPaginationQuerySchema.extend({
   sourceStatus: z.enum(['pending_release', 'seed', 'released', 'deprecated']).optional(),
 });
 
+export const localityParamsSchema = z.object({
+  localityId: z.string().trim().min(1),
+});
+
 export const localityDatasetContextSchema = z.object({
   id: z.literal('opensyria-geography'),
   repository: z.literal('data-geography'),
@@ -95,6 +99,15 @@ export const localityDetailSchema = z.object({
 
 export class LocalitySummaryDto extends createZodDto(localitySummarySchema) {}
 export class LocalityRecordDto extends createZodDto(localityRecordSchema) {}
+export class LocalityParamsDto extends createZodDto(localityParamsSchema) {
+  static readonly openApiParamParameters = [
+    {
+      name: 'localityId',
+      description: 'Stable OpenSyria locality ID.',
+      example: 'sy-al-hasakah-al-hasakah-al-hasakeh-abiad',
+    },
+  ] satisfies readonly ApiParamParameter[];
+}
 export class LocalityListQueryDto extends createZodDto(localityListQuerySchema) {
   static readonly openApiQueryParameters = [
     ...buildOffsetPaginationQueryParameters({
@@ -141,6 +154,7 @@ export class LocalityDetailDto extends createZodDto(localityDetailSchema) {}
 
 export type LocalitySummary = z.infer<typeof localitySummarySchema>;
 export type LocalityRecord = z.infer<typeof localityRecordSchema>;
+export type LocalityParams = z.infer<typeof localityParamsSchema>;
 export type LocalityListQuery = z.infer<typeof localityListQuerySchema>;
 export type LocalityList = z.infer<typeof localityListSchema>;
 export type LocalityDetail = z.infer<typeof localityDetailSchema>;

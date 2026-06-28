@@ -88,6 +88,12 @@ function getQueryParameters(pathItem: unknown): OpenApiParameterObject[] {
   );
 }
 
+function getPathParameters(pathItem: unknown): OpenApiParameterObject[] {
+  return ((pathItem as OpenApiPathItem).get?.parameters ?? []).filter(
+    (parameter) => parameter.in === 'path',
+  );
+}
+
 describe('AppController (e2e)', () => {
   let app: NestFastifyApplication;
 
@@ -367,6 +373,21 @@ describe('AppController (e2e)', () => {
     });
   });
 
+  it('validates geography path parameters', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/geography/governorates/%20',
+    });
+    const body = response.json<ErrorResponseBody>();
+
+    expect(response.statusCode).toBe(400);
+    expect(body).toMatchObject({
+      success: false,
+      status: 400,
+      error: 'ValidationError',
+    });
+  });
+
   it('returns not found for missing governorate details', async () => {
     const response = await app.inject({
       method: 'GET',
@@ -469,6 +490,26 @@ describe('AppController (e2e)', () => {
     );
     expect(geographyDocument.paths).toHaveProperty('/api/v1/geography/localities');
     expect(geographyDocument.paths).toHaveProperty('/api/v1/geography/localities/{localityId}');
+    expect(
+      getPathParameters(
+        geographyDocument.paths['/api/v1/geography/governorates/{governorateId}'],
+      ).map((parameter) => parameter.name),
+    ).toEqual(['governorateId']);
+    expect(
+      getPathParameters(geographyDocument.paths['/api/v1/geography/districts/{districtId}']).map(
+        (parameter) => parameter.name,
+      ),
+    ).toEqual(['districtId']);
+    expect(
+      getPathParameters(
+        geographyDocument.paths['/api/v1/geography/subdistricts/{subdistrictId}'],
+      ).map((parameter) => parameter.name),
+    ).toEqual(['subdistrictId']);
+    expect(
+      getPathParameters(geographyDocument.paths['/api/v1/geography/localities/{localityId}']).map(
+        (parameter) => parameter.name,
+      ),
+    ).toEqual(['localityId']);
     expect(
       getQueryParameters(geographyDocument.paths['/api/v1/geography/governorates']).map(
         (parameter) => parameter.name,

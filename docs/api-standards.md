@@ -156,6 +156,55 @@ export class GovernorateListQueryDto extends createZodDto(governorateListQuerySc
 }
 ```
 
+## Request DTOs
+
+Queries, route params, and future request bodies should all use Zod schemas wrapped with `createZodDto`.
+
+Rules:
+
+- Query schemas end with `QuerySchema`; query DTOs end with `QueryDto`.
+- Param schemas end with `ParamsSchema`; param DTOs end with `ParamsDto`.
+- Body schemas end with `BodySchema`; body DTOs end with `BodyDto`.
+- Controllers should receive the complete DTO object, such as `@Param() params`, instead of extracting raw strings with `@Param('id')`.
+- Controllers should validate request DTOs with Zod. The app has a global `ZodValidationPipe`; route handlers may also use explicit `new ZodValidationPipe(Dto)` when that makes the validation boundary clearer.
+- OpenAPI metadata for request DTOs lives beside the DTO class.
+
+Metadata fields:
+
+```text
+openApiQueryParameters
+openApiParamParameters
+openApiBody
+```
+
+Controller decorators:
+
+```text
+@ApiQueryDto(QueryDto)
+@ApiParamDto(ParamsDto)
+@ApiBodyDto(BodyDto)
+```
+
+Example:
+
+```ts
+export const governorateParamsSchema = z.object({
+  governorateId: z.string().trim().min(1),
+});
+
+export class GovernorateParamsDto extends createZodDto(governorateParamsSchema) {
+  static readonly openApiParamParameters = [
+    {
+      name: 'governorateId',
+      description: 'Stable OpenSyria governorate ID.',
+      example: 'sy-damascus',
+    },
+  ] satisfies readonly ApiParamParameter[];
+}
+```
+
+`datasets-api` is read-only, so body DTOs should be rare. If a body endpoint is ever added for an operational need, it should still use a Zod body schema, `BodyDto`, `@Body() body`, and `@ApiBodyDto(BodyDto)`.
+
 ## OpenAPI Tags
 
 Tags should be Title Case and stable. Use one primary tag per controller.
@@ -446,7 +495,7 @@ Required:
 ```text
 decorators/api-response.ts
 decorators/api-paginated-response.ts
-decorators/api-query-dto.ts
+decorators/api-request-dto.ts
 decorators/http-decorators.ts
 ```
 
@@ -645,6 +694,25 @@ export class GovernoratesController {
       options: query,
       message: 'api.responses.geography.governoratesFetched',
       fallbackMessage: 'Governorates fetched successfully',
+    });
+  }
+
+  @Get(':governorateId')
+  @ApiParamDto(GovernorateParamsDto)
+  @ApiPublic({
+    type: GovernorateDetailDto,
+    tags: [GEOGRAPHY_TAG],
+    summary: 'Get governorate details',
+    description:
+      'Returns one released governorate record with stable OpenSyria IDs, localized names, source references, and external identifiers when available.',
+  })
+  async getGovernorate(
+    @Param(new ZodValidationPipe(GovernorateParamsDto)) params: GovernorateParams,
+  ): Promise<ApiResponse<GovernorateDetail>> {
+    return buildResponse({
+      data: await this.governoratesService.getGovernorate(params.governorateId),
+      message: 'api.responses.geography.governorateFetched',
+      fallbackMessage: 'Governorate fetched successfully',
     });
   }
 }
