@@ -89,6 +89,10 @@ docker run --rm --env-file .env -v "$(pwd)/data/releases:/app/data/releases" ope
 
 - Keep `APP_DOCS_ENABLED=true` only if public API documentation should be exposed by that environment.
 - Set `APP_CORS_ORIGIN` to the exact frontend origins that should call the API from browsers.
+- Browser CORS preflight is intentionally limited to `GET`, `HEAD`, and `OPTIONS` with the approved public API headers.
+- Keep `APP_BODY_LIMIT_BYTES` small unless a future endpoint genuinely needs larger request bodies.
+- Set `IS_HTTPS=true` behind an HTTPS-terminating proxy so HSTS is emitted.
+- Set `APP_TRUST_PROXY=true` only when the service is actually behind a trusted reverse proxy.
 - Set `REDIS_REQUIRED=true` when the deployment must fail closed if Redis is unavailable.
 - Set `DATABASE_ENABLED=true` and `DATABASE_REQUIRED=true` when endpoints should serve from the database read model.
 - Keep `DATASETS_REQUIRE_RELEASES=true` for environments that must not boot without synced dataset manifests.
