@@ -2,6 +2,8 @@ import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
 import { I18n, type I18nContext } from 'nestjs-i18n';
 import { ZodValidationPipe } from 'nestjs-zod';
 import type { ApiResponse } from '../../../common/dto/api-response.dto';
+import type { ApiOffsetPaginatedResponse } from '../../../common/dto/offset-pagination/offset-paginated-response.dto';
+import { buildOffsetPaginatedResponse } from '../../../common/helpers/build-offset-paginated-response';
 import { buildResponse } from '../../../common/helpers/build-response';
 import { ApiParamDto, ApiQueryDto } from '../../../decorators/api-request-dto';
 import { ApiPublic } from '../../../decorators/http-decorators';
@@ -18,8 +20,14 @@ import {
   SubdistrictListQueryDto,
   type SubdistrictParams,
   SubdistrictParamsDto,
+  type SubdistrictSummary,
 } from './subdistricts.dto';
 import { SubdistrictsService } from './subdistricts.service';
+
+type SubdistrictListResponse = ApiOffsetPaginatedResponse<
+  SubdistrictSummary,
+  Omit<SubdistrictList, 'items' | 'pagination'>
+>;
 
 @Controller('geography/subdistricts')
 export class SubdistrictsController {
@@ -42,10 +50,19 @@ export class SubdistrictsController {
   async listSubdistricts(
     @Query(new ZodValidationPipe(SubdistrictListQueryDto)) query: SubdistrictListQuery,
     @I18n() i18n: I18nContext,
-  ): Promise<ApiResponse<SubdistrictList>> {
-    return buildResponse({
+  ): Promise<SubdistrictListResponse> {
+    const result = await this.subdistrictsService.listSubdistricts(query);
+
+    return buildOffsetPaginatedResponse({
       i18n,
-      data: await this.subdistrictsService.listSubdistricts(query),
+      items: result.items,
+      totalRecords: result.pagination.totalRecords,
+      options: query,
+      extraData: {
+        count: result.count,
+        dataset: result.dataset,
+        release: result.release,
+      },
       message: 'api.responses.geography.subdistrictsFetched',
       fallbackMessage: 'Subdistricts fetched successfully',
     });

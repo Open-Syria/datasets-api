@@ -2,6 +2,8 @@ import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
 import { I18n, type I18nContext } from 'nestjs-i18n';
 import { ZodValidationPipe } from 'nestjs-zod';
 import type { ApiResponse } from '../../../common/dto/api-response.dto';
+import type { ApiOffsetPaginatedResponse } from '../../../common/dto/offset-pagination/offset-paginated-response.dto';
+import { buildOffsetPaginatedResponse } from '../../../common/helpers/build-offset-paginated-response';
 import { buildResponse } from '../../../common/helpers/build-response';
 import { ApiParamDto, ApiQueryDto } from '../../../decorators/api-request-dto';
 import { ApiPublic } from '../../../decorators/http-decorators';
@@ -18,8 +20,14 @@ import {
   GovernorateListQueryDto,
   type GovernorateParams,
   GovernorateParamsDto,
+  type GovernorateSummary,
 } from './governorates.dto';
 import { GovernoratesService } from './governorates.service';
+
+type GovernorateListResponse = ApiOffsetPaginatedResponse<
+  GovernorateSummary,
+  Omit<GovernorateList, 'items' | 'pagination'>
+>;
 
 @Controller('geography/governorates')
 export class GovernoratesController {
@@ -42,10 +50,19 @@ export class GovernoratesController {
   async listGovernorates(
     @Query(new ZodValidationPipe(GovernorateListQueryDto)) query: GovernorateListQuery,
     @I18n() i18n: I18nContext,
-  ): Promise<ApiResponse<GovernorateList>> {
-    return buildResponse({
+  ): Promise<GovernorateListResponse> {
+    const result = await this.governoratesService.listGovernorates(query);
+
+    return buildOffsetPaginatedResponse({
       i18n,
-      data: await this.governoratesService.listGovernorates(query),
+      items: result.items,
+      totalRecords: result.pagination.totalRecords,
+      options: query,
+      extraData: {
+        count: result.count,
+        dataset: result.dataset,
+        release: result.release,
+      },
       message: 'api.responses.geography.governoratesFetched',
       fallbackMessage: 'Governorates fetched successfully',
     });
