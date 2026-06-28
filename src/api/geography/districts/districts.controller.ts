@@ -1,9 +1,10 @@
 import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
-import { ApiParam, ApiQuery } from '@nestjs/swagger';
+import { ApiParam } from '@nestjs/swagger';
 import { I18n, type I18nContext } from 'nestjs-i18n';
 import { ZodValidationPipe } from 'nestjs-zod';
 import type { ApiResponse } from '../../../common/dto/api-response.dto';
 import { buildResponse } from '../../../common/helpers/build-response';
+import { ApiQueryDto } from '../../../decorators/api-query-dto';
 import { ApiPublic } from '../../../decorators/http-decorators';
 import { districtDetailResponseExample, districtListResponseExample } from '../geography.examples';
 import {
@@ -24,44 +25,7 @@ export class DistrictsController {
   ) {}
 
   @Get()
-  @ApiQuery({
-    name: 'page',
-    required: false,
-    description: 'Page number for offset pagination.',
-    example: 1,
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-    description: 'Maximum number of records to return.',
-    example: 20,
-  })
-  @ApiQuery({
-    name: 'q',
-    required: false,
-    description: 'Search term matched against ID, names, governorate ID, and source status.',
-    example: 'damascus',
-  })
-  @ApiQuery({
-    name: 'order',
-    required: false,
-    enum: ['asc', 'desc'],
-    description: 'Sort order by English display name.',
-    example: 'asc',
-  })
-  @ApiQuery({
-    name: 'governorateId',
-    required: false,
-    description: 'Filter districts by stable OpenSyria governorate ID.',
-    example: 'sy-damascus',
-  })
-  @ApiQuery({
-    name: 'sourceStatus',
-    required: false,
-    enum: ['pending_release', 'seed', 'released', 'deprecated'],
-    description: 'Filter records by source review or release status.',
-    example: 'released',
-  })
+  @ApiQueryDto(DistrictListQueryDto)
   @ApiPublic({
     type: DistrictListDto,
     tags: ['Geography'],

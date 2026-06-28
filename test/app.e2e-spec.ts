@@ -57,8 +57,17 @@ type OpenApiResponseBody = {
   paths: Record<string, unknown>;
 };
 
+type OpenApiParameterObject = {
+  name: string;
+  in: string;
+  schema?: {
+    enum?: string[];
+  };
+};
+
 type OpenApiPathItem = {
   get?: {
+    parameters?: OpenApiParameterObject[];
     responses?: Record<
       string,
       {
@@ -72,6 +81,12 @@ type OpenApiPathItem = {
     >;
   };
 };
+
+function getQueryParameters(pathItem: unknown): OpenApiParameterObject[] {
+  return ((pathItem as OpenApiPathItem).get?.parameters ?? []).filter(
+    (parameter) => parameter.in === 'query',
+  );
+}
 
 describe('AppController (e2e)', () => {
   let app: NestFastifyApplication;
@@ -454,6 +469,54 @@ describe('AppController (e2e)', () => {
     );
     expect(geographyDocument.paths).toHaveProperty('/api/v1/geography/localities');
     expect(geographyDocument.paths).toHaveProperty('/api/v1/geography/localities/{localityId}');
+    expect(
+      getQueryParameters(geographyDocument.paths['/api/v1/geography/governorates']).map(
+        (parameter) => parameter.name,
+      ),
+    ).toEqual(expect.arrayContaining(['page', 'limit', 'q', 'order', 'sourceStatus']));
+    expect(
+      getQueryParameters(geographyDocument.paths['/api/v1/geography/districts']).map(
+        (parameter) => parameter.name,
+      ),
+    ).toEqual(
+      expect.arrayContaining(['page', 'limit', 'q', 'order', 'governorateId', 'sourceStatus']),
+    );
+    expect(
+      getQueryParameters(geographyDocument.paths['/api/v1/geography/subdistricts']).map(
+        (parameter) => parameter.name,
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        'page',
+        'limit',
+        'q',
+        'order',
+        'governorateId',
+        'districtId',
+        'sourceStatus',
+      ]),
+    );
+    const localityQueryParameters = getQueryParameters(
+      geographyDocument.paths['/api/v1/geography/localities'],
+    );
+    expect(localityQueryParameters.map((parameter) => parameter.name)).toEqual(
+      expect.arrayContaining([
+        'page',
+        'limit',
+        'q',
+        'order',
+        'governorateId',
+        'districtId',
+        'subdistrictId',
+        'kind',
+        'sourceStatus',
+      ]),
+    );
+    expect(
+      localityQueryParameters.find((parameter) => parameter.name === 'kind')?.schema,
+    ).toMatchObject({
+      enum: ['city', 'town', 'locality'],
+    });
     expect(
       (geographyDocument.paths['/api/v1/geography/localities'] as OpenApiPathItem).get?.responses?.[
         '200'

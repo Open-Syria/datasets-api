@@ -1,10 +1,12 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
+import { buildOffsetPaginationQueryParameters } from '../../../common/dto/offset-pagination/offset-page-options.dto';
 import { sourceAttributionSchema } from '../../../common/dto/source-attribution.dto';
 import {
   offsetPaginationQuerySchema,
   offsetPaginationSchema,
 } from '../../../common/schemas/pagination.schema';
+import type { ApiQueryParameter } from '../../../decorators/api-query-dto';
 
 export const localityKindSchema = z.enum(['city', 'town', 'locality']);
 
@@ -93,7 +95,47 @@ export const localityDetailSchema = z.object({
 
 export class LocalitySummaryDto extends createZodDto(localitySummarySchema) {}
 export class LocalityRecordDto extends createZodDto(localityRecordSchema) {}
-export class LocalityListQueryDto extends createZodDto(localityListQuerySchema) {}
+export class LocalityListQueryDto extends createZodDto(localityListQuerySchema) {
+  static readonly openApiQueryParameters = [
+    ...buildOffsetPaginationQueryParameters({
+      searchDescription:
+        'Search term matched against IDs, names, aliases, external IDs, source IDs, kind, and source status.',
+      searchExample: 'hasakeh',
+    }),
+    {
+      name: 'governorateId',
+      required: false,
+      description: 'Filter localities by stable OpenSyria governorate ID.',
+      example: 'sy-al-hasakah',
+    },
+    {
+      name: 'districtId',
+      required: false,
+      description: 'Filter localities by stable OpenSyria district ID.',
+      example: 'sy-al-hasakah-al-hasakah',
+    },
+    {
+      name: 'subdistrictId',
+      required: false,
+      description: 'Filter localities by stable OpenSyria subdistrict ID.',
+      example: 'sy-al-hasakah-al-hasakah-al-hasakeh',
+    },
+    {
+      name: 'kind',
+      required: false,
+      enum: ['city', 'town', 'locality'],
+      description: 'Filter records by locality kind.',
+      example: 'city',
+    },
+    {
+      name: 'sourceStatus',
+      required: false,
+      enum: ['pending_release', 'seed', 'released', 'deprecated'],
+      description: 'Filter records by source review or release status.',
+      example: 'released',
+    },
+  ] satisfies readonly ApiQueryParameter[];
+}
 export class LocalityListDto extends createZodDto(localityListSchema) {}
 export class LocalityDetailDto extends createZodDto(localityDetailSchema) {}
 

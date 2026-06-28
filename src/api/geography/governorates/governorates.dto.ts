@@ -1,10 +1,12 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
+import { buildOffsetPaginationQueryParameters } from '../../../common/dto/offset-pagination/offset-page-options.dto';
 import { sourceAttributionSchema } from '../../../common/dto/source-attribution.dto';
 import {
   offsetPaginationQuerySchema,
   offsetPaginationSchema,
 } from '../../../common/schemas/pagination.schema';
+import type { ApiQueryParameter } from '../../../decorators/api-query-dto';
 
 export const geographicPointSchema = z.object({
   latitude: z.number().min(-90).max(90),
@@ -64,7 +66,21 @@ export const governorateDetailSchema = z.object({
 });
 
 export class GovernorateSummaryDto extends createZodDto(governorateSummarySchema) {}
-export class GovernorateListQueryDto extends createZodDto(governorateListQuerySchema) {}
+export class GovernorateListQueryDto extends createZodDto(governorateListQuerySchema) {
+  static readonly openApiQueryParameters = [
+    ...buildOffsetPaginationQueryParameters({
+      searchDescription: 'Search term matched against ID, names, ISO code, and source status.',
+      searchExample: 'damascus',
+    }),
+    {
+      name: 'sourceStatus',
+      required: false,
+      enum: ['pending_release', 'seed', 'released', 'deprecated'],
+      description: 'Filter records by source review or release status.',
+      example: 'released',
+    },
+  ] satisfies readonly ApiQueryParameter[];
+}
 export class GovernorateListDto extends createZodDto(governorateListSchema) {}
 export class GovernorateDetailDto extends createZodDto(governorateDetailSchema) {}
 
