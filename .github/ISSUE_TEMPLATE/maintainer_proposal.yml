@@ -1,0 +1,60 @@
+name: Maintainer Proposal
+description: Propose an API, tooling, documentation, or operations change for maintainer review.
+title: 'proposal: '
+labels:
+  - maintainer-review
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This API repository is maintainer-led. Proposals are welcome for discussion, but implementation decisions stay with project maintainers.
+
+        Dataset corrections and missing records should go to the relevant dataset repository.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - API contract
+        - OpenAPI documentation
+        - Dataset release loading
+        - Read model
+        - Deployment
+        - Tooling or CI
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case
+      description: What would this help users, maintainers, or operators do?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What should change?
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Compatibility and Operations Impact
+      description: Mention public API changes, migrations, config changes, or deployment impact.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: What alternatives have you considered?
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: I understand unsolicited feature PRs may be closed or converted into maintainer-tracked work.
+          required: true
+        - label: This proposal does not include private, personal, restricted, military, or surveillance-related data.
+          required: true

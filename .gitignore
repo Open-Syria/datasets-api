@@ -3,6 +3,7 @@ dist/
 coverage/
 data/
 generated/
+dev-docs/
 prisma/generated/
 src/generated/
 *.tsbuildinfo
