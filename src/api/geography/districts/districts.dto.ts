@@ -65,7 +65,6 @@ export const districtReleaseContextSchema = z
 
 export const districtListSchema = z.object({
   items: z.array(districtSummarySchema),
-  count: z.number().int().nonnegative(),
   pagination: offsetPaginationSchema,
   dataset: districtDatasetContextSchema,
   release: districtReleaseContextSchema,

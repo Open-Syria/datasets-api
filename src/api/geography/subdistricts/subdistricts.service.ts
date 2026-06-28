@@ -45,8 +45,11 @@ export class SubdistrictsService {
     if (databaseReadModel) {
       return {
         items: databaseReadModel.items,
-        count: databaseReadModel.items.length,
-        pagination: buildOffsetPagination(databaseReadModel.totalRecords, query),
+        pagination: buildOffsetPagination(
+          databaseReadModel.totalRecords,
+          query,
+          databaseReadModel.items.length,
+        ),
         dataset: buildGeographyDatasetContext(databaseReadModel.manifest),
         release: buildGeographyReleaseContext(databaseReadModel.manifest),
       };
@@ -59,8 +62,7 @@ export class SubdistrictsService {
 
     return {
       items,
-      count: items.length,
-      pagination: buildOffsetPagination(sortedItems.length, query),
+      pagination: buildOffsetPagination(sortedItems.length, query, items.length),
       dataset: buildGeographyDatasetContext(readModel.manifest),
       release: buildGeographyReleaseContext(readModel.manifest),
     };

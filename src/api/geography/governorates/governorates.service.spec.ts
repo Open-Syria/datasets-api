@@ -83,10 +83,10 @@ describe('GovernoratesService', () => {
     const service = createService([governorate]);
 
     await expect(service.listGovernorates(defaultListQuery)).resolves.toMatchObject({
-      count: 1,
       items: [governorate],
       pagination: {
         currentPage: 1,
+        pageRecords: 1,
         totalRecords: 1,
       },
       dataset: {

@@ -12,8 +12,8 @@ import { createFixtureRelease } from './support/geography-fixture-release';
 type ListResponseBody = {
   data: {
     items: unknown[];
-    count: number;
     pagination: {
+      pageRecords: number;
       totalRecords: number;
     };
     dataset: {
@@ -112,8 +112,8 @@ describe('geography release loading (e2e)', () => {
       localitiesResponse,
     ]) {
       expect(response.json<ListResponseBody>().data).toMatchObject({
-        count: 1,
         pagination: {
+          pageRecords: 1,
           totalRecords: 1,
         },
         dataset: {

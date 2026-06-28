@@ -432,6 +432,7 @@ or a paginated response:
     pagination: {
       limit: 10,
       currentPage: 1,
+      pageRecords: 10,
       totalRecords: 100,
       totalPages: 5,
       nextPage: 2

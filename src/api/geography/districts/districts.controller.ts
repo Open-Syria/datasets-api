@@ -56,7 +56,6 @@ export class DistrictsController {
       totalRecords: result.pagination.totalRecords,
       options: query,
       extraData: {
-        count: result.count,
         dataset: result.dataset,
         release: result.release,
       },

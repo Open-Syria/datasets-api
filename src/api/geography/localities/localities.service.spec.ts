@@ -99,7 +99,6 @@ describe('LocalitiesService', () => {
     const service = createService([locality]);
 
     await expect(service.listLocalities(defaultListQuery)).resolves.toMatchObject({
-      count: 1,
       items: [
         {
           id: locality.id,
@@ -114,6 +113,7 @@ describe('LocalitiesService', () => {
       ],
       pagination: {
         currentPage: 1,
+        pageRecords: 1,
         totalRecords: 1,
       },
       dataset: {
@@ -137,9 +137,9 @@ describe('LocalitiesService', () => {
         subdistrictId: locality.subdistrictId,
       }),
     ).resolves.toMatchObject({
-      count: 0,
       items: [],
       pagination: {
+        pageRecords: 0,
         totalRecords: 0,
       },
     });
@@ -154,12 +154,14 @@ describe('LocalitiesService', () => {
         q: 'dimashq',
       }),
     ).resolves.toMatchObject({
-      count: 1,
       items: [
         {
           id: locality.id,
         },
       ],
+      pagination: {
+        pageRecords: 1,
+      },
     });
   });
 

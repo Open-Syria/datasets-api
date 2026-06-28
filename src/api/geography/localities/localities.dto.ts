@@ -92,7 +92,6 @@ export const localityReleaseContextSchema = z
 
 export const localityListSchema = z.object({
   items: z.array(localitySummarySchema),
-  count: z.number().int().nonnegative(),
   pagination: offsetPaginationSchema,
   dataset: localityDatasetContextSchema,
   release: localityReleaseContextSchema,

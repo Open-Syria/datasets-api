@@ -31,7 +31,10 @@ type ReleaseListResponseBody = {
 type GovernorateListResponseBody = {
   data: {
     items: unknown[];
-    count: number;
+    pagination: {
+      pageRecords: number;
+      totalRecords: number;
+    };
     dataset: {
       repository: string;
       status: string;
@@ -357,9 +360,9 @@ describe('AppController (e2e)', () => {
 
     expect(response.statusCode).toBe(200);
     expect(body.data).toMatchObject({
-      count: 0,
       pagination: {
         currentPage: 1,
+        pageRecords: 0,
         totalRecords: 0,
       },
       dataset: {
@@ -380,9 +383,9 @@ describe('AppController (e2e)', () => {
 
     expect(response.statusCode).toBe(200);
     expect(body.data).toMatchObject({
-      count: 0,
       pagination: {
         currentPage: 1,
+        pageRecords: 0,
         totalRecords: 0,
       },
       dataset: {
@@ -403,9 +406,9 @@ describe('AppController (e2e)', () => {
 
     expect(response.statusCode).toBe(200);
     expect(body.data).toMatchObject({
-      count: 0,
       pagination: {
         currentPage: 1,
+        pageRecords: 0,
         totalRecords: 0,
       },
       dataset: {
@@ -426,9 +429,9 @@ describe('AppController (e2e)', () => {
 
     expect(response.statusCode).toBe(200);
     expect(body.data).toMatchObject({
-      count: 0,
       pagination: {
         currentPage: 1,
+        pageRecords: 0,
         totalRecords: 0,
       },
       dataset: {

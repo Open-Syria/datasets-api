@@ -14,6 +14,7 @@ const exampleRelease = {
 const examplePagination = {
   limit: 10,
   currentPage: 1,
+  pageRecords: 1,
   totalRecords: 1,
   totalPages: 1,
   nextPage: null,
@@ -114,7 +115,6 @@ function createListExample(message: string, item: unknown) {
     message,
     data: {
       items: [item],
-      count: 1,
       pagination: examplePagination,
       dataset: exampleDataset,
       release: exampleRelease,

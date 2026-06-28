@@ -64,7 +64,6 @@ export const governorateReleaseContextSchema = z
 
 export const governorateListSchema = z.object({
   items: z.array(governorateSummarySchema),
-  count: z.number().int().nonnegative(),
   pagination: offsetPaginationSchema,
   dataset: governorateDatasetContextSchema,
   release: governorateReleaseContextSchema,
