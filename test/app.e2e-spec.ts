@@ -162,6 +162,66 @@ describe('AppController (e2e)', () => {
     });
   });
 
+  it('sets security hardening headers', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/health',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-security-policy']).toContain("default-src 'self'");
+    expect(response.headers['content-security-policy']).toContain("frame-ancestors 'none'");
+    expect(response.headers['referrer-policy']).toBe('no-referrer');
+    expect(response.headers['x-content-type-options']).toBe('nosniff');
+    expect(response.headers['x-frame-options']).toBe('DENY');
+    expect(response.headers['x-permitted-cross-domain-policies']).toBe('none');
+    expect(response.headers['x-powered-by']).toBeUndefined();
+  });
+
+  it('allows read-only CORS preflight requests with approved headers', async () => {
+    const response = await app.inject({
+      method: 'OPTIONS',
+      url: '/api/v1/datasets',
+      headers: {
+        origin: 'https://example.org',
+        'access-control-request-method': 'GET',
+        'access-control-request-headers': 'x-lang, content-type',
+      },
+    });
+
+    expect(response.statusCode).toBe(204);
+    expect(response.headers['access-control-allow-origin']).toBe('*');
+    expect(response.headers['access-control-allow-methods']).toBe('GET, HEAD, OPTIONS');
+    expect(response.headers['access-control-allow-headers']).toBe(
+      'Content-Type, Authorization, X-Requested-With, X-Lang',
+    );
+    expect(response.headers['access-control-max-age']).toBe('600');
+  });
+
+  it('rejects CORS preflight requests for mutating methods and unknown headers', async () => {
+    const postResponse = await app.inject({
+      method: 'OPTIONS',
+      url: '/api/v1/datasets',
+      headers: {
+        origin: 'https://example.org',
+        'access-control-request-method': 'POST',
+      },
+    });
+    const headerResponse = await app.inject({
+      method: 'OPTIONS',
+      url: '/api/v1/datasets',
+      headers: {
+        origin: 'https://example.org',
+        'access-control-request-method': 'GET',
+        'access-control-request-headers': 'x-admin-token',
+      },
+    });
+
+    expect(postResponse.statusCode).toBe(403);
+    expect(postResponse.headers.allow).toBe('GET, HEAD, OPTIONS');
+    expect(headerResponse.statusCode).toBe(403);
+  });
+
   it('lists dataset metadata through the versioned API', async () => {
     const response = await app.inject({
       method: 'GET',

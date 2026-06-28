@@ -643,6 +643,22 @@ Rules:
 - Use `cleanupOpenApiDoc` from `nestjs-zod` before serving documents.
 - Domain documents are filtered from one base document, not generated from separate app instances.
 
+## Security Headers and CORS
+
+`datasets-api` is public and read-only, but it should still fail closed around browser and HTTP edge behavior.
+
+Rules:
+
+- Register Helmet through Fastify during app setup.
+- Keep content security policy strict for API responses.
+- Loosen CSP only for public docs assets when docs are enabled.
+- Emit HSTS only when the app is actually served through HTTPS.
+- Do not expose `X-Powered-By`.
+- CORS preflight should allow only `GET`, `HEAD`, and `OPTIONS`.
+- CORS preflight should allow only documented public request headers.
+- Do not reflect arbitrary requested CORS methods or headers.
+- Keep the default request body limit small because the API is read-only.
+
 ## Documentation Descriptions
 
 Every public endpoint should have:
