@@ -25,6 +25,7 @@ const GOVERNORATES_ARTIFACT_NAME = 'governorates';
 const DISTRICTS_ARTIFACT_NAME = 'districts';
 const SUBDISTRICTS_ARTIFACT_NAME = 'subdistricts';
 const LOCALITIES_ARTIFACT_NAME = 'localities';
+const DEFAULT_BATCH_SIZE = 500;
 
 type GeographyReadModelImportSummary = {
   releaseId: string;
@@ -56,6 +57,42 @@ function mapCentroid(centroid: { latitude: number; longitude: number } | null) {
     latitude: centroid?.latitude ?? null,
     longitude: centroid?.longitude ?? null,
   };
+}
+
+function flattenSearchValues(value: unknown): unknown[] {
+  if (!value) {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => flattenSearchValues(item));
+  }
+
+  if (typeof value === 'object') {
+    return Object.values(value as Record<string, unknown>).flatMap((item) =>
+      flattenSearchValues(item),
+    );
+  }
+
+  return [value];
+}
+
+function buildSearchText(values: Array<unknown>) {
+  return values
+    .flatMap((value) => flattenSearchValues(value))
+    .filter((value): value is string => typeof value === 'string' && value.length > 0)
+    .join(' ')
+    .toLowerCase();
+}
+
+function chunkItems<TItem>(items: TItem[], size = DEFAULT_BATCH_SIZE) {
+  const chunks: TItem[][] = [];
+
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+
+  return chunks;
 }
 
 @Injectable()
@@ -105,7 +142,7 @@ export class GeographyReadModelImportService {
 
     const manifest = governoratesArtifact.manifest;
     const releaseId = getReleaseId(manifest);
-    const client = await this.prismaService.getClient();
+    const client = this.prismaService.getClient();
 
     await client.$transaction(async (transaction) => {
       await transaction.datasetRelease.deleteMany({
@@ -142,25 +179,29 @@ export class GeographyReadModelImportService {
         })),
       });
 
-      await transaction.geographyGovernorate.createMany({
-        data: governoratesArtifact.data.map((governorate) =>
-          this.mapGovernorate(releaseId, governorate),
-        ),
-      });
+      for (const batch of chunkItems(governoratesArtifact.data)) {
+        await transaction.geographyGovernorate.createMany({
+          data: batch.map((governorate) => this.mapGovernorate(releaseId, governorate)),
+        });
+      }
 
-      await transaction.geographyDistrict.createMany({
-        data: districtsArtifact.data.map((district) => this.mapDistrict(releaseId, district)),
-      });
+      for (const batch of chunkItems(districtsArtifact.data)) {
+        await transaction.geographyDistrict.createMany({
+          data: batch.map((district) => this.mapDistrict(releaseId, district)),
+        });
+      }
 
-      await transaction.geographySubdistrict.createMany({
-        data: subdistrictsArtifact.data.map((subdistrict) =>
-          this.mapSubdistrict(releaseId, subdistrict),
-        ),
-      });
+      for (const batch of chunkItems(subdistrictsArtifact.data)) {
+        await transaction.geographySubdistrict.createMany({
+          data: batch.map((subdistrict) => this.mapSubdistrict(releaseId, subdistrict)),
+        });
+      }
 
-      await transaction.geographyLocality.createMany({
-        data: localitiesArtifact.data.map((locality) => this.mapLocality(releaseId, locality)),
-      });
+      for (const batch of chunkItems(localitiesArtifact.data)) {
+        await transaction.geographyLocality.createMany({
+          data: batch.map((locality) => this.mapLocality(releaseId, locality)),
+        });
+      }
     });
 
     return {
@@ -188,6 +229,13 @@ export class GeographyReadModelImportService {
       iso31662: governorate.iso31662,
       latitude: centroid.latitude,
       longitude: centroid.longitude,
+      searchText: buildSearchText([
+        governorate.id,
+        governorate.name.en,
+        governorate.name.ar,
+        governorate.iso31662,
+        governorate.sourceStatus,
+      ]),
       sourceStatus: governorate.sourceStatus,
       raw: toJson(governorate),
     };
@@ -204,6 +252,13 @@ export class GeographyReadModelImportService {
       nameAr: district.name.ar ?? null,
       latitude: centroid.latitude,
       longitude: centroid.longitude,
+      searchText: buildSearchText([
+        district.id,
+        district.governorateId,
+        district.name.en,
+        district.name.ar,
+        district.sourceStatus,
+      ]),
       sourceStatus: district.sourceStatus,
       raw: toJson(district),
     };
@@ -221,6 +276,14 @@ export class GeographyReadModelImportService {
       nameAr: subdistrict.name.ar ?? null,
       latitude: centroid.latitude,
       longitude: centroid.longitude,
+      searchText: buildSearchText([
+        subdistrict.id,
+        subdistrict.governorateId,
+        subdistrict.districtId,
+        subdistrict.name.en,
+        subdistrict.name.ar,
+        subdistrict.sourceStatus,
+      ]),
       sourceStatus: subdistrict.sourceStatus,
       raw: toJson(subdistrict),
     };
@@ -242,6 +305,19 @@ export class GeographyReadModelImportService {
       longitude: centroid.longitude,
       aliases: toJson(locality.aliases),
       externalIds: toJson(locality.externalIds),
+      searchText: buildSearchText([
+        locality.id,
+        locality.governorateId,
+        locality.districtId,
+        locality.subdistrictId,
+        locality.kind,
+        locality.name.en,
+        locality.name.ar,
+        locality.sourceStatus,
+        locality.aliases.map((alias) => alias.value),
+        locality.externalIds,
+        locality.sourceIds,
+      ]),
       sourceStatus: locality.sourceStatus,
       sourceIds: toJson(locality.sourceIds),
       raw: toJson(locality),

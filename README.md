@@ -107,7 +107,9 @@ Datasets live in separate repositories. This API should consume versioned releas
 
 Local release manifests and artifacts are read from `DATASETS_RELEASES_DIR`, which defaults to `data/releases`.
 
-The first wired artifacts are the geography governorates, districts, subdistricts, and localities JSON files. When a synced `opensyria-geography` release includes matching artifacts, the matching geography endpoints read the local files after checksum and size verification.
+Dataset repositories can publish multiple generated formats, such as JSON, NDJSON, CSV, SQL, YAML, XML, and later GeoJSON or SQLite. JSON remains the primary API ingestion format. The other formats are public distribution artifacts for downloads, spreadsheets, database imports, review, and external tooling.
+
+The first wired artifacts are the geography governorates, districts, subdistricts, and localities JSON files. When a synced `opensyria-geography` release includes matching artifacts, the API verifies those files by checksum, size, and schema before using them.
 
 To sync pinned GitHub Release artifacts into the local release directory:
 
@@ -138,10 +140,10 @@ Release artifacts are the public data contract. The API database is the internal
 The intended production flow is:
 
 ```text
-dataset repo release -> verified local artifacts -> PostgreSQL/PostGIS read model -> public API responses
+dataset repo canonical JSON -> generated release artifacts -> verified JSON artifacts -> PostgreSQL/PostGIS read model -> public API responses
 ```
 
-During early seeding, endpoints can still read verified JSON artifacts directly. Production should enable the database read model and require dataset releases:
+Geography endpoints prefer the database read model when `DATABASE_ENABLED=true` and an imported geography release exists. During early seeding, endpoints can still fall back to verified JSON artifacts directly. Production should enable the database read model and require dataset releases:
 
 ```text
 DATABASE_ENABLED=true
@@ -156,6 +158,7 @@ Local database dependencies:
 docker compose up -d postgres redis
 pnpm run db:generate
 pnpm run db:migrate
+DATASETS_RELEASES_DIR=../data-geography/dist/release DATABASE_ENABLED=true pnpm run read-model:import:geography
 ```
 
 See [docs/read-model-architecture.md](docs/read-model-architecture.md).
@@ -180,6 +183,7 @@ pnpm run test
 pnpm run test:e2e
 pnpm run datasets:sync
 pnpm run read-model:import:geography
+pnpm run read-model:refresh:geography
 pnpm run smoke:geography
 pnpm run audit:prod
 pnpm run validate

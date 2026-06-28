@@ -62,6 +62,7 @@ CREATE TABLE "GeographyGovernorate" (
     "longitude" DOUBLE PRECISION,
     "areaKm2" DOUBLE PRECISION,
     "population" JSONB,
+    "searchText" TEXT NOT NULL,
     "sourceStatus" "RecordSourceStatus" NOT NULL,
     "sourceIds" JSONB,
     "raw" JSONB,
@@ -82,6 +83,7 @@ CREATE TABLE "GeographyDistrict" (
     "longitude" DOUBLE PRECISION,
     "areaKm2" DOUBLE PRECISION,
     "population" JSONB,
+    "searchText" TEXT NOT NULL,
     "sourceStatus" "RecordSourceStatus" NOT NULL,
     "sourceIds" JSONB,
     "raw" JSONB,
@@ -103,6 +105,7 @@ CREATE TABLE "GeographySubdistrict" (
     "longitude" DOUBLE PRECISION,
     "areaKm2" DOUBLE PRECISION,
     "population" JSONB,
+    "searchText" TEXT NOT NULL,
     "sourceStatus" "RecordSourceStatus" NOT NULL,
     "sourceIds" JSONB,
     "raw" JSONB,
@@ -127,6 +130,7 @@ CREATE TABLE "GeographyLocality" (
     "population" JSONB,
     "aliases" JSONB,
     "externalIds" JSONB,
+    "searchText" TEXT NOT NULL,
     "sourceStatus" "RecordSourceStatus" NOT NULL,
     "sourceIds" JSONB,
     "raw" JSONB,
@@ -164,6 +168,9 @@ CREATE INDEX "GeographyGovernorate_id_idx" ON "GeographyGovernorate"("id");
 CREATE INDEX "GeographyGovernorate_nameEn_idx" ON "GeographyGovernorate"("nameEn");
 
 -- CreateIndex
+CREATE INDEX "GeographyGovernorate_searchText_idx" ON "GeographyGovernorate"("searchText");
+
+-- CreateIndex
 CREATE INDEX "GeographyGovernorate_sourceStatus_idx" ON "GeographyGovernorate"("sourceStatus");
 
 -- CreateIndex
@@ -177,6 +184,9 @@ CREATE INDEX "GeographyDistrict_governorateId_idx" ON "GeographyDistrict"("gover
 
 -- CreateIndex
 CREATE INDEX "GeographyDistrict_nameEn_idx" ON "GeographyDistrict"("nameEn");
+
+-- CreateIndex
+CREATE INDEX "GeographyDistrict_searchText_idx" ON "GeographyDistrict"("searchText");
 
 -- CreateIndex
 CREATE INDEX "GeographyDistrict_sourceStatus_idx" ON "GeographyDistrict"("sourceStatus");
@@ -195,6 +205,9 @@ CREATE INDEX "GeographySubdistrict_districtId_idx" ON "GeographySubdistrict"("di
 
 -- CreateIndex
 CREATE INDEX "GeographySubdistrict_nameEn_idx" ON "GeographySubdistrict"("nameEn");
+
+-- CreateIndex
+CREATE INDEX "GeographySubdistrict_searchText_idx" ON "GeographySubdistrict"("searchText");
 
 -- CreateIndex
 CREATE INDEX "GeographySubdistrict_sourceStatus_idx" ON "GeographySubdistrict"("sourceStatus");
@@ -219,6 +232,9 @@ CREATE INDEX "GeographyLocality_kind_idx" ON "GeographyLocality"("kind");
 
 -- CreateIndex
 CREATE INDEX "GeographyLocality_nameEn_idx" ON "GeographyLocality"("nameEn");
+
+-- CreateIndex
+CREATE INDEX "GeographyLocality_searchText_idx" ON "GeographyLocality"("searchText");
 
 -- CreateIndex
 CREATE INDEX "GeographyLocality_sourceStatus_idx" ON "GeographyLocality"("sourceStatus");

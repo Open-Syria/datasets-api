@@ -1,16 +1,36 @@
 import '../config/load-env';
+import { CacheModule } from '@nestjs/cache-manager';
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
-import { Logger } from 'nestjs-pino';
-import { AppModule } from '../app.module';
+import cacheConfig from '../config/cache/cache.config';
+import useCacheFactory from '../config/cache/cache.factory';
+import databaseConfig from '../config/database/database.config';
+import datasetsConfig from '../config/datasets/datasets.config';
+import redisConfig from '../config/redis/redis.config';
+import { GeographyReadModelModule } from '../read-model/geography/geography-read-model.module';
 import { GeographyReadModelImportService } from '../read-model/geography/geography-read-model-import.service';
 
-async function main() {
-  const app = await NestFactory.createApplicationContext(AppModule, {
-    bufferLogs: true,
-  });
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      ignoreEnvFile: true,
+      load: [redisConfig, cacheConfig, datasetsConfig, databaseConfig],
+    }),
+    CacheModule.registerAsync({
+      isGlobal: true,
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: useCacheFactory,
+    }),
+    GeographyReadModelModule,
+  ],
+})
+class ImportGeographyReadModelCliModule {}
 
-  const logger = app.get(Logger);
-  app.useLogger(logger);
+async function main() {
+  const app = await NestFactory.createApplicationContext(ImportGeographyReadModelCliModule);
 
   try {
     const importService = app.get(GeographyReadModelImportService);

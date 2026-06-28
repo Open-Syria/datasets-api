@@ -1,7 +1,8 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import type { DatasetReleaseManifest } from '../../../datasets/contracts/dataset-release-manifest.schema';
 import { DatasetReleaseRegistryService } from '../../../datasets/dataset-release-registry.service';
 import { LocalDatasetArtifactReaderService } from '../../../datasets/loaders/local-dataset-artifact-reader.service';
+import { GeographyReadModelQueryService } from '../../../read-model/geography/geography-read-model-query.service';
 import {
   buildGeographyDatasetContext,
   buildGeographyReleaseContext,
@@ -33,9 +34,24 @@ export class SubdistrictsService {
     private readonly datasetReleaseRegistryService: DatasetReleaseRegistryService,
     @Inject(LocalDatasetArtifactReaderService)
     private readonly localDatasetArtifactReaderService: LocalDatasetArtifactReaderService,
+    @Optional()
+    @Inject(GeographyReadModelQueryService)
+    private readonly geographyReadModelQueryService?: GeographyReadModelQueryService,
   ) {}
 
   async listSubdistricts(query: SubdistrictListQuery): Promise<SubdistrictList> {
+    const databaseReadModel = await this.geographyReadModelQueryService?.listSubdistricts(query);
+
+    if (databaseReadModel) {
+      return {
+        items: databaseReadModel.items,
+        count: databaseReadModel.items.length,
+        pagination: buildOffsetPagination(databaseReadModel.totalRecords, query),
+        dataset: buildGeographyDatasetContext(databaseReadModel.manifest),
+        release: buildGeographyReleaseContext(databaseReadModel.manifest),
+      };
+    }
+
     const readModel = await this.readSubdistricts();
     const filteredItems = this.filterSubdistricts(readModel.items, query);
     const sortedItems = this.sortSubdistricts(filteredItems, query.order);
@@ -51,6 +67,22 @@ export class SubdistrictsService {
   }
 
   async getSubdistrict(subdistrictId: string): Promise<SubdistrictDetail> {
+    const databaseReadModel =
+      await this.geographyReadModelQueryService?.getSubdistrict(subdistrictId);
+
+    if (databaseReadModel) {
+      if (!databaseReadModel.item) {
+        throw new NotFoundException('Subdistrict not found');
+      }
+
+      return {
+        item: databaseReadModel.item,
+        dataset: buildGeographyDatasetContext(databaseReadModel.manifest),
+        release: buildGeographyReleaseContext(databaseReadModel.manifest),
+        sources: mapGeographySources(databaseReadModel.manifest),
+      };
+    }
+
     const readModel = await this.readSubdistricts();
     const subdistrict = readModel.items.find((item) => item.id === subdistrictId);
 

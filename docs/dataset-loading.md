@@ -10,7 +10,7 @@ The manifest contract is documented in [`release-manifest.md`](./release-manifes
 
 1. A dataset repository stores canonical source data and source attribution.
 2. CI validates schemas, IDs, references, duplicates, language fields, and source metadata.
-3. CI generates release artifacts such as JSON, NDJSON, CSV, GeoJSON, SQLite, and TypeScript types.
+3. CI generates release artifacts such as JSON, NDJSON, CSV, SQL, YAML, XML, and later GeoJSON, SQLite, and TypeScript types.
 4. CI publishes a versioned GitHub Release with:
    - `release-manifest.json`
    - artifact files
@@ -18,8 +18,27 @@ The manifest contract is documented in [`release-manifest.md`](./release-manifes
    - schema version
    - source attribution summary
 5. `datasets-api` is configured to consume specific release versions.
-6. During build, deploy, or a controlled sync step, the API downloads the manifests and artifacts, verifies checksums and schema versions, then stores a local read model.
-7. Runtime requests read from local memory, local files, SQLite, object storage, or a database-backed read model. They should not call GitHub for every request.
+6. During build, deploy, or a controlled sync step, the API downloads the manifests and artifacts, verifies checksums and schema versions, then imports the primary JSON artifacts into the local read model.
+7. Runtime requests read from the database-backed read model, with verified JSON artifact fallback allowed only for early seeding or local development. They should not call GitHub for every request.
+
+## Generated Exports
+
+Generated exports belong to the dataset repositories, not to `datasets-api`.
+
+The export roles are:
+
+| Format | API role | Public role |
+| --- | --- | --- |
+| JSON | Primary ingestion format for manifest verification and read-model imports | Structured download format |
+| NDJSON | Optional future streaming import format | Large-file and pipeline-friendly exports |
+| CSV | Not used for runtime serving | Spreadsheet and simple analytics exports |
+| SQL | Not used for runtime serving | Direct database import for external users |
+| YAML | Not used for runtime serving | Human-readable review and documentation |
+| XML | Not used for runtime serving | Integration format for consumers that require XML |
+| GeoJSON | Future geospatial download format | Map tooling and GIS exports |
+| SQLite | Future packaged read-only database | Offline usage and local analysis |
+
+The API may expose download links and artifact metadata from the release manifest, but it should not parse every export format at runtime. This keeps the serving system stable even when additional public export formats are added.
 
 ## Current Loader
 
@@ -102,7 +121,7 @@ Set `GEOGRAPHY_RELEASE_DIR` to use a different local release directory.
 
 ## Initial Implementation
 
-For the first public API foundation, endpoints can return empty lists while dataset repositories are being prepared. Once release artifacts are synced locally, endpoints should read from those verified local files.
+For the first public API foundation, endpoints can return empty lists while dataset repositories are being prepared. Once release artifacts are synced locally, endpoints should read from the database read model when `DATABASE_ENABLED=true`, with verified local JSON artifact fallback available during early seeding.
 
 The first real loading implementation should use pinned GitHub Release artifacts:
 
@@ -130,15 +149,17 @@ Versioned release artifacts make the API predictable and easier to audit.
 
 ## Future Runtime Options
 
-Start simple:
+Start with the PostgreSQL/PostGIS read model for production serving:
 
 - download released JSON artifacts during deployment,
-- load them into memory on boot,
+- verify checksums, sizes, and schemas,
+- import the verified artifacts into read tables,
+- keep generated exports available through release metadata,
 - use Redis for hot cache and throttling.
 
-Later, if datasets become large:
+Later, if exports become large:
 
-- convert release artifacts into SQLite or PostgreSQL read tables,
 - store generated artifacts in object storage,
-- keep Redis for cache and rate limits,
-- add a sync command that updates the read model only after manifest verification.
+- add signed or proxied download URLs if needed,
+- add SQLite and GeoJSON release assets once their generator and licensing rules are stable,
+- update the read model only after manifest verification succeeds.
