@@ -2,6 +2,7 @@ packages:
   - .
 
 overrides:
+  '@hono/node-server': 1.19.13
   js-yaml: 4.2.0
   multer: 2.2.0
 
@@ -15,5 +16,7 @@ verifyDepsBeforeRun: install
 trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 525600
 allowBuilds:
+  '@prisma/engines': true
   '@scarf/scarf': false
+  prisma: true
   unrs-resolver: true
