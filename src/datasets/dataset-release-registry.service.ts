@@ -2,6 +2,7 @@ import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { GlobalConfig } from '../config/config.type';
 import type { DatasetReleaseManifest } from './contracts/dataset-release-manifest.schema';
+import type { LoadedDatasetReleaseManifest } from './loaders/dataset-manifest-loader.interface';
 import { LocalDatasetManifestLoader } from './loaders/local-dataset-manifest-loader.service';
 
 export type DatasetReleaseRegistryHealth = {
@@ -12,7 +13,7 @@ export type DatasetReleaseRegistryHealth = {
 
 @Injectable()
 export class DatasetReleaseRegistryService implements OnModuleInit {
-  private manifests: DatasetReleaseManifest[] = [];
+  private manifests: LoadedDatasetReleaseManifest[] = [];
 
   constructor(
     @Inject(ConfigService)
@@ -32,11 +33,15 @@ export class DatasetReleaseRegistryService implements OnModuleInit {
   }
 
   listManifests(): DatasetReleaseManifest[] {
-    return this.manifests;
+    return this.manifests.map((registration) => registration.manifest);
   }
 
   getManifestByDatasetId(datasetId: string): DatasetReleaseManifest | undefined {
-    return this.manifests.find((manifest) => manifest.dataset.id === datasetId);
+    return this.getManifestRegistrationByDatasetId(datasetId)?.manifest;
+  }
+
+  getManifestRegistrationByDatasetId(datasetId: string): LoadedDatasetReleaseManifest | undefined {
+    return this.manifests.find((registration) => registration.manifest.dataset.id === datasetId);
   }
 
   getHealth(): DatasetReleaseRegistryHealth {

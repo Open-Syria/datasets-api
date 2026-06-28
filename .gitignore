@@ -2,6 +2,10 @@ node_modules/
 dist/
 coverage/
 data/
+generated/
+prisma/generated/
+src/generated/
+*.tsbuildinfo
 
 .env
 .env.*

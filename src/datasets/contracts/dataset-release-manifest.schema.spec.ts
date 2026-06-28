@@ -31,6 +31,14 @@ describe('datasetReleaseManifestSchema', () => {
           sizeBytes: 1024,
           recordCount: 14,
         },
+        {
+          name: 'governorates',
+          format: 'yaml',
+          path: 'artifacts/governorates.yaml',
+          sha256: '1'.repeat(64),
+          sizeBytes: 2048,
+          recordCount: 14,
+        },
       ],
       sources: [
         {

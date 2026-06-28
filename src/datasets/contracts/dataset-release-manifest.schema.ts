@@ -4,7 +4,16 @@ import { z } from 'zod';
 export const datasetReleaseManifestSchemaVersion = '1.0';
 
 export const datasetReleaseStatusSchema = z.enum(['planned', 'seed', 'released', 'deprecated']);
-export const datasetArtifactFormatSchema = z.enum(['json', 'ndjson', 'csv', 'geojson', 'sqlite']);
+export const datasetArtifactFormatSchema = z.enum([
+  'json',
+  'ndjson',
+  'csv',
+  'geojson',
+  'sqlite',
+  'sql',
+  'yaml',
+  'xml',
+]);
 export const datasetCategorySchema = z.enum([
   'geography',
   'education',

@@ -42,6 +42,10 @@ type GovernorateListResponseBody = {
   };
 };
 
+type DistrictListResponseBody = GovernorateListResponseBody;
+type SubdistrictListResponseBody = GovernorateListResponseBody;
+type LocalityListResponseBody = GovernorateListResponseBody;
+
 type ErrorResponseBody = {
   success: false;
   status: number;
@@ -52,6 +56,43 @@ type ErrorResponseBody = {
 type OpenApiResponseBody = {
   paths: Record<string, unknown>;
 };
+
+type OpenApiParameterObject = {
+  name: string;
+  in: string;
+  schema?: {
+    enum?: string[];
+  };
+};
+
+type OpenApiPathItem = {
+  get?: {
+    parameters?: OpenApiParameterObject[];
+    responses?: Record<
+      string,
+      {
+        content?: Record<
+          string,
+          {
+            example?: unknown;
+          }
+        >;
+      }
+    >;
+  };
+};
+
+function getQueryParameters(pathItem: unknown): OpenApiParameterObject[] {
+  return ((pathItem as OpenApiPathItem).get?.parameters ?? []).filter(
+    (parameter) => parameter.in === 'query',
+  );
+}
+
+function getPathParameters(pathItem: unknown): OpenApiParameterObject[] {
+  return ((pathItem as OpenApiPathItem).get?.parameters ?? []).filter(
+    (parameter) => parameter.in === 'path',
+  );
+}
 
 describe('AppController (e2e)', () => {
   let app: NestFastifyApplication;
@@ -119,6 +160,66 @@ describe('AppController (e2e)', () => {
         },
       },
     });
+  });
+
+  it('sets security hardening headers', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/health',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-security-policy']).toContain("default-src 'self'");
+    expect(response.headers['content-security-policy']).toContain("frame-ancestors 'none'");
+    expect(response.headers['referrer-policy']).toBe('no-referrer');
+    expect(response.headers['x-content-type-options']).toBe('nosniff');
+    expect(response.headers['x-frame-options']).toBe('DENY');
+    expect(response.headers['x-permitted-cross-domain-policies']).toBe('none');
+    expect(response.headers['x-powered-by']).toBeUndefined();
+  });
+
+  it('allows read-only CORS preflight requests with approved headers', async () => {
+    const response = await app.inject({
+      method: 'OPTIONS',
+      url: '/api/v1/datasets',
+      headers: {
+        origin: 'https://example.org',
+        'access-control-request-method': 'GET',
+        'access-control-request-headers': 'x-lang, content-type',
+      },
+    });
+
+    expect(response.statusCode).toBe(204);
+    expect(response.headers['access-control-allow-origin']).toBe('*');
+    expect(response.headers['access-control-allow-methods']).toBe('GET, HEAD, OPTIONS');
+    expect(response.headers['access-control-allow-headers']).toBe(
+      'Content-Type, Authorization, X-Requested-With, X-Lang',
+    );
+    expect(response.headers['access-control-max-age']).toBe('600');
+  });
+
+  it('rejects CORS preflight requests for mutating methods and unknown headers', async () => {
+    const postResponse = await app.inject({
+      method: 'OPTIONS',
+      url: '/api/v1/datasets',
+      headers: {
+        origin: 'https://example.org',
+        'access-control-request-method': 'POST',
+      },
+    });
+    const headerResponse = await app.inject({
+      method: 'OPTIONS',
+      url: '/api/v1/datasets',
+      headers: {
+        origin: 'https://example.org',
+        'access-control-request-method': 'GET',
+        'access-control-request-headers': 'x-admin-token',
+      },
+    });
+
+    expect(postResponse.statusCode).toBe(403);
+    expect(postResponse.headers.allow).toBe('GET, HEAD, OPTIONS');
+    expect(headerResponse.statusCode).toBe(403);
   });
 
   it('lists dataset metadata through the versioned API', async () => {
@@ -203,10 +304,172 @@ describe('AppController (e2e)', () => {
     expect(body.data.items).toEqual([]);
   });
 
+  it('serves the districts placeholder from the geography API', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/geography/districts',
+    });
+    const body = response.json<DistrictListResponseBody>();
+
+    expect(response.statusCode).toBe(200);
+    expect(body.data).toMatchObject({
+      count: 0,
+      pagination: {
+        currentPage: 1,
+        totalRecords: 0,
+      },
+      dataset: {
+        repository: 'data-geography',
+        status: 'pending_release',
+      },
+      release: null,
+    });
+    expect(body.data.items).toEqual([]);
+  });
+
+  it('serves the subdistricts placeholder from the geography API', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/geography/subdistricts',
+    });
+    const body = response.json<SubdistrictListResponseBody>();
+
+    expect(response.statusCode).toBe(200);
+    expect(body.data).toMatchObject({
+      count: 0,
+      pagination: {
+        currentPage: 1,
+        totalRecords: 0,
+      },
+      dataset: {
+        repository: 'data-geography',
+        status: 'pending_release',
+      },
+      release: null,
+    });
+    expect(body.data.items).toEqual([]);
+  });
+
+  it('serves the localities placeholder from the geography API', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/geography/localities',
+    });
+    const body = response.json<LocalityListResponseBody>();
+
+    expect(response.statusCode).toBe(200);
+    expect(body.data).toMatchObject({
+      count: 0,
+      pagination: {
+        currentPage: 1,
+        totalRecords: 0,
+      },
+      dataset: {
+        repository: 'data-geography',
+        status: 'pending_release',
+      },
+      release: null,
+    });
+    expect(body.data.items).toEqual([]);
+  });
+
+  it('maps named page limit options to numeric pagination limits', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/geography/governorates?limit=THIRTY_FIVE',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      data: {
+        pagination: {
+          limit: 35,
+        },
+      },
+    });
+  });
+
+  it('accepts named sort order options', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/geography/governorates?order=DESC',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      success: true,
+      data: {
+        pagination: {
+          currentPage: 1,
+        },
+      },
+    });
+  });
+
   it('validates governorate list query parameters', async () => {
     const response = await app.inject({
       method: 'GET',
       url: '/api/v1/geography/governorates?limit=abc',
+    });
+    const body = response.json<ErrorResponseBody>();
+
+    expect(response.statusCode).toBe(400);
+    expect(body).toMatchObject({
+      success: false,
+      status: 400,
+      error: 'ValidationError',
+    });
+  });
+
+  it('validates district list query parameters', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/geography/districts?limit=abc',
+    });
+    const body = response.json<ErrorResponseBody>();
+
+    expect(response.statusCode).toBe(400);
+    expect(body).toMatchObject({
+      success: false,
+      status: 400,
+      error: 'ValidationError',
+    });
+  });
+
+  it('validates subdistrict list query parameters', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/geography/subdistricts?limit=abc',
+    });
+    const body = response.json<ErrorResponseBody>();
+
+    expect(response.statusCode).toBe(400);
+    expect(body).toMatchObject({
+      success: false,
+      status: 400,
+      error: 'ValidationError',
+    });
+  });
+
+  it('validates locality list query parameters', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/geography/localities?kind=settlement',
+    });
+    const body = response.json<ErrorResponseBody>();
+
+    expect(response.statusCode).toBe(400);
+    expect(body).toMatchObject({
+      success: false,
+      status: 400,
+      error: 'ValidationError',
+    });
+  });
+
+  it('validates geography path parameters', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/geography/governorates/%20',
     });
     const body = response.json<ErrorResponseBody>();
 
@@ -230,6 +493,51 @@ describe('AppController (e2e)', () => {
       success: false,
       status: 404,
       message: 'Governorate not found',
+    });
+  });
+
+  it('returns not found for missing district details', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/geography/districts/sy-missing',
+    });
+    const body = response.json<ErrorResponseBody>();
+
+    expect(response.statusCode).toBe(404);
+    expect(body).toMatchObject({
+      success: false,
+      status: 404,
+      message: 'District not found',
+    });
+  });
+
+  it('returns not found for missing subdistrict details', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/geography/subdistricts/sy-missing',
+    });
+    const body = response.json<ErrorResponseBody>();
+
+    expect(response.statusCode).toBe(404);
+    expect(body).toMatchObject({
+      success: false,
+      status: 404,
+      message: 'Subdistrict not found',
+    });
+  });
+
+  it('returns not found for missing locality details', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/geography/localities/sy-missing',
+    });
+    const body = response.json<ErrorResponseBody>();
+
+    expect(response.statusCode).toBe(404);
+    expect(body).toMatchObject({
+      success: false,
+      status: 404,
+      message: 'Locality not found',
     });
   });
 
@@ -267,6 +575,107 @@ describe('AppController (e2e)', () => {
     expect(geographyDocument.paths).toHaveProperty(
       '/api/v1/geography/governorates/{governorateId}',
     );
+    expect(geographyDocument.paths).toHaveProperty('/api/v1/geography/districts');
+    expect(geographyDocument.paths).toHaveProperty('/api/v1/geography/districts/{districtId}');
+    expect(geographyDocument.paths).toHaveProperty('/api/v1/geography/subdistricts');
+    expect(geographyDocument.paths).toHaveProperty(
+      '/api/v1/geography/subdistricts/{subdistrictId}',
+    );
+    expect(geographyDocument.paths).toHaveProperty('/api/v1/geography/localities');
+    expect(geographyDocument.paths).toHaveProperty('/api/v1/geography/localities/{localityId}');
+    expect(
+      getPathParameters(
+        geographyDocument.paths['/api/v1/geography/governorates/{governorateId}'],
+      ).map((parameter) => parameter.name),
+    ).toEqual(['governorateId']);
+    expect(
+      getPathParameters(geographyDocument.paths['/api/v1/geography/districts/{districtId}']).map(
+        (parameter) => parameter.name,
+      ),
+    ).toEqual(['districtId']);
+    expect(
+      getPathParameters(
+        geographyDocument.paths['/api/v1/geography/subdistricts/{subdistrictId}'],
+      ).map((parameter) => parameter.name),
+    ).toEqual(['subdistrictId']);
+    expect(
+      getPathParameters(geographyDocument.paths['/api/v1/geography/localities/{localityId}']).map(
+        (parameter) => parameter.name,
+      ),
+    ).toEqual(['localityId']);
+    const governorateQueryParameters = getQueryParameters(
+      geographyDocument.paths['/api/v1/geography/governorates'],
+    );
+    expect(governorateQueryParameters.map((parameter) => parameter.name)).toEqual(
+      expect.arrayContaining(['page', 'limit', 'q', 'order', 'sourceStatus']),
+    );
+    expect(
+      governorateQueryParameters.find((parameter) => parameter.name === 'limit')?.schema,
+    ).toMatchObject({
+      enum: ['TEN', 'THIRTY_FIVE', 'FIFTY'],
+    });
+    expect(
+      governorateQueryParameters.find((parameter) => parameter.name === 'order')?.schema,
+    ).toMatchObject({
+      enum: ['ASC', 'DESC'],
+    });
+    expect(
+      getQueryParameters(geographyDocument.paths['/api/v1/geography/districts']).map(
+        (parameter) => parameter.name,
+      ),
+    ).toEqual(
+      expect.arrayContaining(['page', 'limit', 'q', 'order', 'governorateId', 'sourceStatus']),
+    );
+    expect(
+      getQueryParameters(geographyDocument.paths['/api/v1/geography/subdistricts']).map(
+        (parameter) => parameter.name,
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        'page',
+        'limit',
+        'q',
+        'order',
+        'governorateId',
+        'districtId',
+        'sourceStatus',
+      ]),
+    );
+    const localityQueryParameters = getQueryParameters(
+      geographyDocument.paths['/api/v1/geography/localities'],
+    );
+    expect(localityQueryParameters.map((parameter) => parameter.name)).toEqual(
+      expect.arrayContaining([
+        'page',
+        'limit',
+        'q',
+        'order',
+        'governorateId',
+        'districtId',
+        'subdistrictId',
+        'kind',
+        'sourceStatus',
+      ]),
+    );
+    expect(
+      localityQueryParameters.find((parameter) => parameter.name === 'kind')?.schema,
+    ).toMatchObject({
+      enum: ['city', 'town', 'locality'],
+    });
+    expect(
+      (geographyDocument.paths['/api/v1/geography/localities'] as OpenApiPathItem).get?.responses?.[
+        '200'
+      ]?.content?.['application/json']?.example,
+    ).toMatchObject({
+      data: {
+        items: [
+          {
+            id: 'sy-damascus-damascus-damascus-damascus',
+            kind: 'city',
+          },
+        ],
+      },
+    });
     expect(geographyDocument.paths).not.toHaveProperty('/api/v1/datasets');
     expect(educationResponse.statusCode).toBe(200);
     expect(educationDocument.paths).toHaveProperty('/health');

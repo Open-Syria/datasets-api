@@ -4,6 +4,8 @@ Each data repository should publish a `release-manifest.json` with every version
 
 The manifest is the contract between a dataset repository and `datasets-api`. It tells the API which dataset was released, which artifacts are available, how to verify them, and which sources support the release.
 
+Dataset repositories may publish several generated formats in the same release. JSON artifacts are the primary API ingestion format. Other formats such as NDJSON, CSV, SQL, YAML, XML, GeoJSON, and SQLite are distribution artifacts that the API can expose as release metadata or download links.
+
 ## File Name
 
 ```text
@@ -92,9 +94,20 @@ opensyria-geography
   artifact name: governorates
   artifact format: json
   artifact path: artifacts/governorates.json
+  artifact name: districts
+  artifact format: json
+  artifact path: artifacts/districts.json
+  artifact name: subdistricts
+  artifact format: json
+  artifact path: artifacts/subdistricts.json
+  artifact name: localities
+  artifact format: json
+  artifact path: artifacts/localities.json
 ```
 
-The governorates JSON artifact may be either an array of records or an object with an `items` array. Each record should match the public governorate summary schema exposed by `/api/v1/geography/governorates`.
+The governorates, districts, subdistricts, and localities JSON artifacts may be either arrays of records or objects with an `items` array. Each record should match the matching public schema exposed by the geography API.
+
+The API should not parse CSV, SQL, YAML, XML, GeoJSON, or SQLite artifacts for runtime endpoint serving unless a future importer intentionally adds that support. Those artifacts are still useful in the manifest because clients can discover and verify public downloads from one release contract.
 
 ## Sync Command
 

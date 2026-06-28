@@ -9,6 +9,7 @@ export type AppConfig = {
   url: string;
   apiPrefix: string;
   apiVersion: string;
+  bodyLimitBytes: number;
   isHttps: boolean;
   trustProxy: boolean;
   corsOrigin: AppCorsOrigin;

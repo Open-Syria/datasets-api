@@ -1,0 +1,220 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+  importFileExtension = ""
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum DatasetCategory {
+  geography
+  education
+  transport
+  heritage
+  telecom
+}
+
+enum DatasetReleaseStatus {
+  planned
+  seed
+  released
+  deprecated
+}
+
+enum RecordSourceStatus {
+  pending_release
+  seed
+  released
+  deprecated
+}
+
+enum LocalityKind {
+  city
+  town
+  village
+  neighborhood
+  camp
+  locality
+  unknown
+}
+
+model DatasetRelease {
+  id          String               @id
+  datasetId   String
+  slug        String
+  repository  String
+  category    DatasetCategory
+  titleEn     String
+  titleAr     String?
+  version     String
+  status      DatasetReleaseStatus
+  publishedAt DateTime?
+  generatedAt DateTime
+  manifestSha String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  sources      DatasetSource[]
+  governorates GeographyGovernorate[]
+  districts    GeographyDistrict[]
+  subdistricts GeographySubdistrict[]
+  localities   GeographyLocality[]
+
+  @@unique([datasetId, version])
+  @@index([datasetId])
+  @@index([slug])
+  @@index([category])
+  @@index([status])
+}
+
+model DatasetSource {
+  releaseId  String
+  sourceId   String
+  title      String
+  url        String?
+  license    String
+  accessedAt DateTime?
+  fields     Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  release DatasetRelease @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+
+  @@id([releaseId, sourceId])
+  @@index([sourceId])
+}
+
+model GeographyGovernorate {
+  id           String
+  releaseId    String
+  nameEn       String
+  nameAr       String?
+  iso31662     String?
+  latitude     Float?
+  longitude    Float?
+  areaKm2      Float?
+  population   Json?
+  searchText   String
+  sourceStatus RecordSourceStatus
+  sourceIds    Json?
+  raw          Json?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  release      DatasetRelease          @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  districts    GeographyDistrict[]
+  subdistricts GeographySubdistrict[]
+  localities   GeographyLocality[]
+
+  @@id([releaseId, id])
+  @@index([releaseId])
+  @@index([id])
+  @@index([nameEn])
+  @@index([searchText])
+  @@index([sourceStatus])
+}
+
+model GeographyDistrict {
+  id            String
+  releaseId     String
+  governorateId String
+  nameEn        String
+  nameAr        String?
+  latitude      Float?
+  longitude     Float?
+  areaKm2       Float?
+  population    Json?
+  searchText    String
+  sourceStatus  RecordSourceStatus
+  sourceIds     Json?
+  raw           Json?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  release      DatasetRelease          @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  governorate  GeographyGovernorate    @relation(fields: [releaseId, governorateId], references: [releaseId, id], onDelete: Restrict)
+  subdistricts GeographySubdistrict[]
+  localities   GeographyLocality[]
+
+  @@id([releaseId, id])
+  @@index([releaseId])
+  @@index([id])
+  @@index([governorateId])
+  @@index([nameEn])
+  @@index([searchText])
+  @@index([sourceStatus])
+}
+
+model GeographySubdistrict {
+  id            String
+  releaseId     String
+  governorateId String
+  districtId    String
+  nameEn        String
+  nameAr        String?
+  latitude      Float?
+  longitude     Float?
+  areaKm2       Float?
+  population    Json?
+  searchText    String
+  sourceStatus  RecordSourceStatus
+  sourceIds     Json?
+  raw           Json?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  release     DatasetRelease       @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  governorate GeographyGovernorate @relation(fields: [releaseId, governorateId], references: [releaseId, id], onDelete: Restrict)
+  district    GeographyDistrict    @relation(fields: [releaseId, districtId], references: [releaseId, id], onDelete: Restrict)
+  localities  GeographyLocality[]
+
+  @@id([releaseId, id])
+  @@index([releaseId])
+  @@index([id])
+  @@index([governorateId])
+  @@index([districtId])
+  @@index([nameEn])
+  @@index([searchText])
+  @@index([sourceStatus])
+}
+
+model GeographyLocality {
+  id            String
+  releaseId     String
+  governorateId String
+  districtId    String
+  subdistrictId String
+  kind          LocalityKind
+  nameEn        String
+  nameAr        String?
+  latitude      Float?
+  longitude     Float?
+  population    Json?
+  aliases       Json?
+  externalIds   Json?
+  searchText    String
+  sourceStatus  RecordSourceStatus
+  sourceIds     Json?
+  raw           Json?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  release     DatasetRelease        @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  governorate GeographyGovernorate  @relation(fields: [releaseId, governorateId], references: [releaseId, id], onDelete: Restrict)
+  district    GeographyDistrict    @relation(fields: [releaseId, districtId], references: [releaseId, id], onDelete: Restrict)
+  subdistrict GeographySubdistrict @relation(fields: [releaseId, subdistrictId], references: [releaseId, id], onDelete: Restrict)
+
+  @@id([releaseId, id])
+  @@index([releaseId])
+  @@index([id])
+  @@index([governorateId])
+  @@index([districtId])
+  @@index([subdistrictId])
+  @@index([kind])
+  @@index([nameEn])
+  @@index([searchText])
+  @@index([sourceStatus])
+}

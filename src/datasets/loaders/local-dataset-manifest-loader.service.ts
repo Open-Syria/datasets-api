@@ -9,7 +9,10 @@ import {
   datasetReleaseManifestSchema,
 } from '../contracts/dataset-release-manifest.schema';
 import { RELEASE_MANIFEST_FILE } from '../dataset-release-path.utils';
-import type { DatasetManifestLoader } from './dataset-manifest-loader.interface';
+import type {
+  DatasetManifestLoader,
+  LoadedDatasetReleaseManifest,
+} from './dataset-manifest-loader.interface';
 
 function getNodeErrorCode(error: unknown): string | undefined {
   if (typeof error !== 'object' || error === null || !('code' in error)) {
@@ -59,17 +62,22 @@ export class LocalDatasetManifestLoader implements DatasetManifestLoader {
     private readonly configService: ConfigService<GlobalConfig>,
   ) {}
 
-  async listManifests(): Promise<DatasetReleaseManifest[]> {
+  async listManifests(): Promise<LoadedDatasetReleaseManifest[]> {
     const datasetsConfig = this.configService.getOrThrow('datasets', { infer: true });
     const releasesDirectory = path.resolve(process.cwd(), datasetsConfig.releasesDirectory);
     const manifestFiles = await findManifestFiles(releasesDirectory);
-    const manifests: DatasetReleaseManifest[] = [];
+    const manifests: LoadedDatasetReleaseManifest[] = [];
 
     for (const manifestFile of manifestFiles) {
       const fileContents = await readFile(manifestFile, 'utf8');
       const json: unknown = JSON.parse(fileContents);
+      const manifest: DatasetReleaseManifest = datasetReleaseManifestSchema.parse(json);
 
-      manifests.push(datasetReleaseManifestSchema.parse(json));
+      manifests.push({
+        manifest,
+        manifestPath: manifestFile,
+        releaseDirectory: path.dirname(manifestFile),
+      });
     }
 
     return manifests;

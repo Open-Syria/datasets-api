@@ -10,8 +10,14 @@
       "listFetched": "Datasets fetched successfully"
     },
     "geography": {
+      "districtFetched": "District fetched successfully",
+      "districtsFetched": "Districts fetched successfully",
       "governorateFetched": "Governorate fetched successfully",
-      "governoratesFetched": "Governorates fetched successfully"
+      "governoratesFetched": "Governorates fetched successfully",
+      "localitiesFetched": "Localities fetched successfully",
+      "localityFetched": "Locality fetched successfully",
+      "subdistrictFetched": "Subdistrict fetched successfully",
+      "subdistrictsFetched": "Subdistricts fetched successfully"
     },
     "health": {
       "live": "API liveness returned successfully",

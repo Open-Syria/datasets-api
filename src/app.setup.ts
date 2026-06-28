@@ -10,9 +10,12 @@ import type { GlobalConfig } from './config/config.type';
 import { Environment } from './constants/app.constants';
 import { setupSwagger } from './tools/swagger/swagger.setup';
 
-const DEFAULT_ALLOWED_METHODS = 'GET,HEAD,OPTIONS';
+const ALLOWED_CORS_METHODS = ['GET', 'HEAD', 'OPTIONS'] as const;
+const ALLOWED_CORS_HEADERS = ['content-type', 'authorization', 'x-requested-with', 'x-lang'];
+const DEFAULT_ALLOWED_METHODS = ALLOWED_CORS_METHODS.join(', ');
 const DEFAULT_ALLOWED_HEADERS = 'Content-Type, Authorization, X-Requested-With, X-Lang';
 const DEFAULT_EXPOSED_HEADERS = 'X-Request-Id';
+const CORS_PREFLIGHT_MAX_AGE_SECONDS = 600;
 
 function appendVaryHeader(reply: FastifyReply, value: string) {
   const currentValue = reply.getHeader('Vary');
@@ -45,6 +48,37 @@ function getCorsResponseOrigin(origin: string, appConfig: AppConfig): string | f
   return isOriginAllowedByPatterns(origin, appConfig.corsOrigin) ? origin : false;
 }
 
+function getFirstHeaderValue(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function getRequestedCorsHeaders(value: string | string[] | undefined): string[] {
+  const headerValue = getFirstHeaderValue(value);
+
+  if (!headerValue) {
+    return [];
+  }
+
+  return headerValue
+    .split(',')
+    .map((header) => header.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function isAllowedCorsMethod(method: string | undefined) {
+  if (!method) {
+    return true;
+  }
+
+  return ALLOWED_CORS_METHODS.includes(
+    method.toUpperCase() as (typeof ALLOWED_CORS_METHODS)[number],
+  );
+}
+
+function getDisallowedCorsHeaders(value: string | string[] | undefined) {
+  return getRequestedCorsHeaders(value).filter((header) => !ALLOWED_CORS_HEADERS.includes(header));
+}
+
 function setupCors(app: NestFastifyApplication, appConfig: AppConfig) {
   const fastify = app.getHttpAdapter().getInstance();
 
@@ -74,13 +108,18 @@ function setupCors(app: NestFastifyApplication, appConfig: AppConfig) {
     }
 
     const requestedHeaders = request.headers['access-control-request-headers'];
-    const requestedMethod = request.headers['access-control-request-method'];
+    const requestedMethod = getFirstHeaderValue(request.headers['access-control-request-method']);
+    const disallowedHeaders = getDisallowedCorsHeaders(requestedHeaders);
 
-    reply.header(
-      'Access-Control-Allow-Methods',
-      requestedMethod ? `${requestedMethod}, OPTIONS` : DEFAULT_ALLOWED_METHODS,
-    );
-    reply.header('Access-Control-Allow-Headers', requestedHeaders ?? DEFAULT_ALLOWED_HEADERS);
+    if (!isAllowedCorsMethod(requestedMethod) || disallowedHeaders.length > 0) {
+      reply.header('Allow', DEFAULT_ALLOWED_METHODS);
+      reply.status(403).send();
+      return;
+    }
+
+    reply.header('Access-Control-Allow-Methods', DEFAULT_ALLOWED_METHODS);
+    reply.header('Access-Control-Allow-Headers', DEFAULT_ALLOWED_HEADERS);
+    reply.header('Access-Control-Max-Age', CORS_PREFLIGHT_MAX_AGE_SECONDS.toString());
     reply.status(204).send();
   });
 }
@@ -126,8 +165,30 @@ export async function setupApp(
   const appConfig = configService.getOrThrow('app', { infer: true });
 
   await app.register(fastifyHelmet, {
-    strictTransportSecurity: appConfig.isHttps,
     contentSecurityPolicy: getContentSecurityPolicy(appConfig),
+    referrerPolicy: {
+      policy: 'no-referrer',
+    },
+    strictTransportSecurity: appConfig.isHttps
+      ? {
+          maxAge: 31_536_000,
+          includeSubDomains: true,
+          preload: false,
+        }
+      : false,
+    xContentTypeOptions: true,
+    xDnsPrefetchControl: {
+      allow: false,
+    },
+    xDownloadOptions: true,
+    xFrameOptions: {
+      action: 'deny',
+    },
+    xPermittedCrossDomainPolicies: {
+      permittedPolicies: 'none',
+    },
+    xPoweredBy: false,
+    xXssProtection: false,
   });
 
   setupCors(app, appConfig);

@@ -1,8 +1,17 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import type { SourceAttribution } from '../../../common/dto/source-attribution.dto';
+import { Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import type { DatasetReleaseManifest } from '../../../datasets/contracts/dataset-release-manifest.schema';
 import { DatasetReleaseRegistryService } from '../../../datasets/dataset-release-registry.service';
 import { LocalDatasetArtifactReaderService } from '../../../datasets/loaders/local-dataset-artifact-reader.service';
+import { GeographyReadModelQueryService } from '../../../read-model/geography/geography-read-model-query.service';
+import {
+  buildGeographyDatasetContext,
+  buildGeographyReleaseContext,
+  buildOffsetPagination,
+  GEOGRAPHY_DATASET_ID,
+  mapGeographySources,
+  paginateRecords,
+  sortByEnglishName,
+} from '../geography.helpers';
 import {
   type GovernorateDetail,
   type GovernorateList,
@@ -11,7 +20,6 @@ import {
   governoratesArtifactSchema,
 } from './governorates.dto';
 
-const GEOGRAPHY_DATASET_ID = 'opensyria-geography';
 const GOVERNORATES_ARTIFACT_NAME = 'governorates';
 
 type GovernorateReadModel = {
@@ -26,9 +34,24 @@ export class GovernoratesService {
     private readonly datasetReleaseRegistryService: DatasetReleaseRegistryService,
     @Inject(LocalDatasetArtifactReaderService)
     private readonly localDatasetArtifactReaderService: LocalDatasetArtifactReaderService,
+    @Optional()
+    @Inject(GeographyReadModelQueryService)
+    private readonly geographyReadModelQueryService?: GeographyReadModelQueryService,
   ) {}
 
   async listGovernorates(query: GovernorateListQuery): Promise<GovernorateList> {
+    const databaseReadModel = await this.geographyReadModelQueryService?.listGovernorates(query);
+
+    if (databaseReadModel) {
+      return {
+        items: databaseReadModel.items,
+        count: databaseReadModel.items.length,
+        pagination: buildOffsetPagination(databaseReadModel.totalRecords, query),
+        dataset: buildGeographyDatasetContext(databaseReadModel.manifest),
+        release: buildGeographyReleaseContext(databaseReadModel.manifest),
+      };
+    }
+
     const readModel = await this.readGovernorates();
     const filteredItems = this.filterGovernorates(readModel.items, query);
     const sortedItems = this.sortGovernorates(filteredItems, query.order);
@@ -37,13 +60,29 @@ export class GovernoratesService {
     return {
       items,
       count: items.length,
-      pagination: this.buildPagination(sortedItems.length, query),
-      dataset: this.buildDatasetContext(readModel.manifest),
-      release: this.buildReleaseContext(readModel.manifest),
+      pagination: buildOffsetPagination(sortedItems.length, query),
+      dataset: buildGeographyDatasetContext(readModel.manifest),
+      release: buildGeographyReleaseContext(readModel.manifest),
     };
   }
 
   async getGovernorate(governorateId: string): Promise<GovernorateDetail> {
+    const databaseReadModel =
+      await this.geographyReadModelQueryService?.getGovernorate(governorateId);
+
+    if (databaseReadModel) {
+      if (!databaseReadModel.item) {
+        throw new NotFoundException('Governorate not found');
+      }
+
+      return {
+        item: databaseReadModel.item,
+        dataset: buildGeographyDatasetContext(databaseReadModel.manifest),
+        release: buildGeographyReleaseContext(databaseReadModel.manifest),
+        sources: mapGeographySources(databaseReadModel.manifest),
+      };
+    }
+
     const readModel = await this.readGovernorates();
     const governorate = readModel.items.find((item) => item.id === governorateId);
 
@@ -53,9 +92,9 @@ export class GovernoratesService {
 
     return {
       item: governorate,
-      dataset: this.buildDatasetContext(readModel.manifest),
-      release: this.buildReleaseContext(readModel.manifest),
-      sources: this.mapSources(readModel.manifest),
+      dataset: buildGeographyDatasetContext(readModel.manifest),
+      release: buildGeographyReleaseContext(readModel.manifest),
+      sources: mapGeographySources(readModel.manifest),
     };
   }
 
@@ -73,34 +112,6 @@ export class GovernoratesService {
       items: artifact?.data ?? [],
       manifest,
     };
-  }
-
-  private buildDatasetContext(manifest?: DatasetReleaseManifest): GovernorateList['dataset'] {
-    return {
-      id: GEOGRAPHY_DATASET_ID,
-      repository: 'data-geography',
-      status: manifest?.release.status ?? 'pending_release',
-    };
-  }
-
-  private buildReleaseContext(manifest?: DatasetReleaseManifest): GovernorateList['release'] {
-    const releaseVersion = manifest?.release.version;
-    const releasedAt = manifest?.release.publishedAt;
-
-    return releaseVersion && releasedAt ? { version: releaseVersion, releasedAt } : null;
-  }
-
-  private mapSources(manifest?: DatasetReleaseManifest): SourceAttribution[] {
-    return (
-      manifest?.sources.map((source) => ({
-        id: source.id,
-        title: source.title,
-        url: source.url ?? null,
-        license: source.license,
-        accessedAt: source.accessedAt ?? null,
-        fields: source.fields ?? [],
-      })) ?? []
-    );
   }
 
   private filterGovernorates(items: GovernorateSummary[], query: GovernorateListQuery) {
@@ -122,31 +133,10 @@ export class GovernoratesService {
   }
 
   private sortGovernorates(items: GovernorateSummary[], order: GovernorateListQuery['order']) {
-    return [...items].sort((first, second) => {
-      const comparison = first.name.en.localeCompare(second.name.en);
-
-      return order === 'asc' ? comparison : -comparison;
-    });
+    return sortByEnglishName(items, order);
   }
 
   private paginateGovernorates(items: GovernorateSummary[], query: GovernorateListQuery) {
-    const start = (query.page - 1) * query.limit;
-
-    return items.slice(start, start + query.limit);
-  }
-
-  private buildPagination(totalRecords: number, query: GovernorateListQuery) {
-    const totalPages = totalRecords === 0 ? 0 : Math.ceil(totalRecords / query.limit);
-    const hasNextPage = totalPages > 0 && query.page < totalPages;
-    const hasPreviousPage = query.page > 1 && query.page <= totalPages;
-
-    return {
-      limit: query.limit,
-      currentPage: query.page,
-      totalRecords,
-      totalPages,
-      nextPage: hasNextPage ? query.page + 1 : null,
-      previousPage: hasPreviousPage ? query.page - 1 : null,
-    };
+    return paginateRecords(items, query);
   }
 }

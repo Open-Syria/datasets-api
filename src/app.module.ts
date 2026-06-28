@@ -17,15 +17,18 @@ import { ApiModule } from './api/api.module';
 import appConfig from './config/app/app.config';
 import cacheConfig from './config/cache/cache.config';
 import useCacheFactory from './config/cache/cache.factory';
+import databaseConfig from './config/database/database.config';
 import datasetsConfig from './config/datasets/datasets.config';
 import i18nConfig from './config/i18n/i18n.config';
 import redisConfig from './config/redis/redis.config';
 import throttlerConfig from './config/throttler/throttler.config';
 import useThrottlerFactory from './config/throttler/throttler.factory';
 import { Environment } from './constants/app.constants';
+import { DatabaseModule } from './database/database.module';
 import { GlobalHttpExceptionFilter } from './exception-filters/http-exception.filter';
 import { ZodValidationExceptionFilter } from './exception-filters/zod-validation-exception.filter';
 import useI18nFactory from './i18n/i18n.factory';
+import { ReadModelModule } from './read-model/read-model.module';
 import { RedisConnectionsModule } from './shared/redis/redis-connections.module';
 import useLoggerFactory from './tools/logger/logger-factory';
 
@@ -34,7 +37,15 @@ import useLoggerFactory from './tools/logger/logger-factory';
     ConfigModule.forRoot({
       isGlobal: true,
       ignoreEnvFile: true,
-      load: [appConfig, redisConfig, cacheConfig, throttlerConfig, i18nConfig, datasetsConfig],
+      load: [
+        appConfig,
+        redisConfig,
+        cacheConfig,
+        throttlerConfig,
+        i18nConfig,
+        datasetsConfig,
+        databaseConfig,
+      ],
     }),
     ...(process.env.NODE_ENV === Environment.Test ? [] : [GracefulShutdownModule.forRoot()]),
     I18nModule.forRootAsync({
@@ -52,6 +63,8 @@ import useLoggerFactory from './tools/logger/logger-factory';
       inject: [ConfigService],
       useFactory: useLoggerFactory,
     }),
+    DatabaseModule,
+    ReadModelModule,
     RedisConnectionsModule,
     CacheModule.registerAsync({
       isGlobal: true,
