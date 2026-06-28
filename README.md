@@ -199,7 +199,7 @@ pnpm run validate
 - `GET /health/ready` checks runtime dependencies and dataset release readiness.
 - `GET /health` returns the aggregate public health payload.
 
-Readiness includes Redis status, database read-model status, and dataset release manifest status. Redis, database, and dataset releases can be optional or required through environment variables.
+Readiness includes Redis status, database read-model status, and dataset release manifest status. Redis, database, and dataset releases can be optional or required through environment variables. `/health/ready` returns HTTP 503 when a required dependency is unavailable.
 
 ## Tooling
 

@@ -52,4 +52,14 @@ export class HealthService {
       datasetReleases,
     };
   }
+
+  isReady(data: HealthResponseData) {
+    const redisConfig = this.configService.getOrThrow('redis', { infer: true });
+    const redisReady = !redisConfig.required || data.redis.status === 'up';
+    const databaseReady = !data.database.required || data.database.status === 'up';
+    const datasetReleasesReady =
+      !data.datasetReleases.required || data.datasetReleases.status === 'loaded';
+
+    return redisReady && databaseReady && datasetReleasesReady;
+  }
 }

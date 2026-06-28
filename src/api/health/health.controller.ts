@@ -1,4 +1,5 @@
-import { Controller, Get, Inject, VERSION_NEUTRAL } from '@nestjs/common';
+import { Controller, Get, HttpStatus, Inject, Res, VERSION_NEUTRAL } from '@nestjs/common';
+import type { FastifyReply } from 'fastify';
 import { I18n, type I18nContext } from 'nestjs-i18n';
 import type { ApiResponse } from '../../common/dto/api-response.dto';
 import { buildResponse } from '../../common/helpers/build-response';
@@ -67,10 +68,21 @@ export class HealthController {
       'Returns whether the API runtime dependencies, database read model, and dataset releases are ready.',
     responseName: 'ReadinessResponse',
   })
-  async getReadiness(@I18n() i18n: I18nContext): Promise<ApiResponse<HealthResponseData>> {
+  async getReadiness(
+    @I18n() i18n: I18nContext,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<ApiResponse<HealthResponseData>> {
+    const data = await this.healthService.getReadiness();
+    const status = this.healthService.isReady(data)
+      ? HttpStatus.OK
+      : HttpStatus.SERVICE_UNAVAILABLE;
+
+    reply.status(status);
+
     return buildResponse({
       i18n,
-      data: await this.healthService.getReadiness(),
+      data,
+      status,
       message: 'api.responses.health.ready',
       fallbackMessage: 'API readiness returned successfully',
     });
