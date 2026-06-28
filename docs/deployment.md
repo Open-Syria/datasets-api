@@ -83,6 +83,8 @@ docker run --rm --env-file .env -v "$(pwd)/data/releases:/app/data/releases" ope
 - `GET /health/ready` checks runtime dependencies and release readiness.
 - `GET /health` returns the aggregate public health payload.
 
+`/health/ready` returns HTTP 503 when a required dependency is unavailable. Optional dependencies may still mark the body as `degraded` without failing the readiness probe.
+
 ## Production Notes
 
 - Keep `APP_DOCS_ENABLED=true` only if public API documentation should be exposed by that environment.
