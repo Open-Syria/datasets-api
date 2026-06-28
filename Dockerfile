@@ -17,6 +17,13 @@ FROM deps AS build
 COPY . .
 RUN pnpm run build
 
+FROM deps AS migrations
+ENV NODE_ENV=production
+COPY prisma ./prisma
+COPY prisma.config.ts tsconfig.json ./
+COPY src/config/load-env.ts ./src/config/load-env.ts
+CMD ["pnpm", "run", "db:migrate:deploy"]
+
 FROM base AS runtime
 ENV NODE_ENV=production
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./

@@ -8,6 +8,7 @@
 - [Release Commands](#release-commands)
 - [Runtime Commands](#runtime-commands)
 - [Docker](#docker)
+- [GitHub Actions Deployment](#github-actions-deployment)
 - [Health Checks](#health-checks)
 - [Production Notes](#production-notes)
 
@@ -64,6 +65,18 @@ Build:
 docker build -t opensyria/datasets-api .
 ```
 
+Build the production runtime target:
+
+```bash
+docker build --target runtime -t opensyria/datasets-api .
+```
+
+Build the migration target:
+
+```bash
+docker build --target migrations -t opensyria/datasets-api:migrations .
+```
+
 Run without Redis:
 
 ```bash
@@ -87,6 +100,83 @@ Run a one-off sync job into a writable release volume:
 ```bash
 docker run --rm --env-file .env -v "$(pwd)/data/releases:/app/data/releases" opensyria/datasets-api pnpm run datasets:sync:prod
 ```
+
+## GitHub Actions Deployment
+
+Production deployment is handled by `.github/workflows/deploy-production.yml`.
+
+Push commits containing `[skip ci]` or `[ci skip]` skip the CI, CodeQL push job, and production deployment workflow jobs. Manual `workflow_dispatch` deployments and scheduled CodeQL analysis still run.
+
+The workflow:
+
+1. Runs the release readiness check.
+2. Builds a Linux ARM64 runtime image for `opensyria-prod`.
+3. Builds a Linux ARM64 migration image from the Docker `migrations` target.
+4. Pushes both images to GitHub Container Registry.
+5. Joins the tailnet with `tailscale/github-action@v4`.
+6. Copies `deploy/datasets-api` to `/srv/opensyria/datasets-api`.
+7. Runs the blue/green deployment script on the server.
+
+Images are pushed to GHCR using the built-in `GITHUB_TOKEN` with `packages: write`.
+
+Runtime image tags:
+
+```text
+ghcr.io/open-syria/datasets-api:sha-<short-sha>
+ghcr.io/open-syria/datasets-api:main
+```
+
+Migration image tags:
+
+```text
+ghcr.io/open-syria/datasets-api:sha-<short-sha>-migrations
+ghcr.io/open-syria/datasets-api:main-migrations
+```
+
+The server pulls the SHA-pinned tags produced by the current workflow run.
+
+Required production environment secrets:
+
+```text
+TS_OAUTH_CLIENT_ID
+TS_AUDIENCE
+DEPLOY_SSH_PRIVATE_KEY
+DEPLOY_SSH_KNOWN_HOSTS
+```
+
+Required production environment variables:
+
+```text
+PROD_DEPLOY_HOST
+PROD_DEPLOY_USER
+```
+
+Secret placement recommendation:
+
+- Use GitHub `production` environment secrets for this first deployment. They are only exposed to jobs that target the production environment and can later be protected with required reviewers.
+- Keep application/runtime secrets in the `production` environment as well.
+- Use organization secrets only when multiple OpenSyria repositories need the same value. If organization secrets are used, restrict them to selected repositories instead of all repositories.
+- Prefer Tailscale workload identity federation over a long-lived Tailscale OAuth secret.
+
+Tailscale requirements:
+
+- Create a GitHub Actions Tailscale identity that can use `tag:ci`.
+- Allow `tag:ci` to reach `opensyria-prod` on TCP port `22`.
+- Keep the deploy runner ephemeral.
+
+GHCR requirements:
+
+- The workflow can push to GHCR with the repository `GITHUB_TOKEN`.
+- The deploy job has `packages: read` and passes the short-lived repository `GITHUB_TOKEN` to the server for `docker login ghcr.io` during the pull.
+- No separate GHCR PAT is required for the normal deployment path.
+- If the package is later made public, authenticated pulls still work and can be kept for consistency.
+
+Blue/green runtime:
+
+- The local nginx proxy binds to `127.0.0.1:3000`.
+- `api-blue` binds to `127.0.0.1:3001`.
+- `api-green` binds to `127.0.0.1:3002`.
+- Deployments start the inactive color, verify readiness, reload nginx, then stop the old color after a short drain.
 
 ## Health Checks
 

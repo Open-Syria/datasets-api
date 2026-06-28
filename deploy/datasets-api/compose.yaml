@@ -1,0 +1,141 @@
+name: opensyria-datasets-api
+
+services:
+  postgres:
+    image: opensyria/postgis:16-bookworm
+    build:
+      context: ./postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  proxy:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    ports:
+      - '127.0.0.1:${API_PROXY_PORT:-3000}:80'
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./state/nginx-upstream.conf:/etc/nginx/conf.d/upstream.conf:ro
+    networks:
+      - backend
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1/health/live >/dev/null 2>&1 || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  migrate:
+    image: ${MIGRATIONS_IMAGE:-ghcr.io/open-syria/datasets-api:main-migrations}
+    profiles: ['ops']
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend
+
+  api-blue:
+    image: ${API_BLUE_IMAGE:-ghcr.io/open-syria/datasets-api:main}
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      REDIS_URL: redis://redis:6379
+      DATASETS_RELEASES_DIR: data/releases
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - '127.0.0.1:${API_BLUE_HOST_PORT:-3001}:3000'
+    volumes:
+      - release_data:/app/data/releases
+    networks:
+      - backend
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          node -e "require('node:http').get('http://127.0.0.1:3000/health/live', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  api-green:
+    image: ${API_GREEN_IMAGE:-ghcr.io/open-syria/datasets-api:main}
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      REDIS_URL: redis://redis:6379
+      DATASETS_RELEASES_DIR: data/releases
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - '127.0.0.1:${API_GREEN_HOST_PORT:-3002}:3000'
+    volumes:
+      - release_data:/app/data/releases
+    networks:
+      - backend
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          node -e "require('node:http').get('http://127.0.0.1:3000/health/live', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  postgres_data:
+  redis_data:
+  release_data:
+
+networks:
+  backend:
+    driver: bridge

@@ -1,0 +1,203 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-datasets-api
+  cancel-in-progress: false
+
+env:
+  GEOGRAPHY_RELEASE: v0.1.0
+
+jobs:
+  verify:
+    name: Verify Release
+    if: ${{ github.event_name != 'push' || (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11.9.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate
+        run: pnpm run validate
+
+      - name: Check release readiness
+        run: pnpm run release:check -- --geography-release "$GEOGRAPHY_RELEASE" --skip-build
+
+  build:
+    name: Build And Push Images
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      runtime-image: ${{ steps.images.outputs.runtime-image }}
+      migrations-image: ${{ steps.images.outputs.migrations-image }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Prepare image names
+        id: images
+        shell: bash
+        run: |
+          repository="${GITHUB_REPOSITORY,,}"
+          image="ghcr.io/${repository}"
+          short_sha="${GITHUB_SHA::12}"
+
+          runtime_image="${image}:sha-${short_sha}"
+          migrations_image="${image}:sha-${short_sha}-migrations"
+
+          {
+            echo "runtime-image=${runtime_image}"
+            echo "migrations-image=${migrations_image}"
+            echo "runtime-tags<<EOF"
+            echo "${runtime_image}"
+            if [ "${GITHUB_REF_NAME}" = "main" ]; then
+              echo "${image}:main"
+            fi
+            echo "EOF"
+            echo "migrations-tags<<EOF"
+            echo "${migrations_image}"
+            if [ "${GITHUB_REF_NAME}" = "main" ]; then
+              echo "${image}:main-migrations"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push runtime image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: runtime
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.images.outputs.runtime-tags }}
+          cache-from: type=gha,scope=datasets-api-runtime
+          cache-to: type=gha,mode=max,scope=datasets-api-runtime
+
+      - name: Build and push migrations image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: migrations
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.images.outputs.migrations-tags }}
+          cache-from: type=gha,scope=datasets-api-migrations
+          cache-to: type=gha,mode=max,scope=datasets-api-migrations
+
+  deploy:
+    name: Deploy To opensyria-prod
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: https://api.opensyria.org/health
+    permissions:
+      contents: read
+      id-token: write
+      packages: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Connect to tailnet
+        uses: tailscale/github-action@v4
+        with:
+          version: latest
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          audience: ${{ secrets.TS_AUDIENCE }}
+          tags: tag:ci
+          ping: ${{ vars.PROD_DEPLOY_HOST }}
+
+      - name: Install SSH key
+        shell: bash
+        env:
+          DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          DEPLOY_SSH_KNOWN_HOSTS: ${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_PRIVATE_KEY" > ~/.ssh/opensyria_deploy
+          chmod 600 ~/.ssh/opensyria_deploy
+          printf '%s\n' "$DEPLOY_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Copy deployment files
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ vars.PROD_DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.PROD_DEPLOY_USER }}
+        run: |
+          tar -C deploy/datasets-api -czf - . \
+            | ssh -i ~/.ssh/opensyria_deploy -o StrictHostKeyChecking=yes "${DEPLOY_USER}@${DEPLOY_HOST}" \
+                'mkdir -p /srv/opensyria/datasets-api && tar -xzf - -C /srv/opensyria/datasets-api && chmod 700 /srv/opensyria/datasets-api/bin/*.sh'
+
+      - name: Deploy image
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ vars.PROD_DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.PROD_DEPLOY_USER }}
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUNTIME_IMAGE: ${{ needs.build.outputs.runtime-image }}
+          MIGRATIONS_IMAGE: ${{ needs.build.outputs.migrations-image }}
+        run: |
+          printf -v ghcr_username_q '%q' "$GHCR_USERNAME"
+          printf -v ghcr_token_q '%q' "$GHCR_TOKEN"
+
+          ssh -i ~/.ssh/opensyria_deploy -o StrictHostKeyChecking=yes "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "cd /srv/opensyria/datasets-api && GHCR_USERNAME=${ghcr_username_q} GHCR_TOKEN=${ghcr_token_q} bin/deploy-blue-green.sh '${RUNTIME_IMAGE}' '${MIGRATIONS_IMAGE}'"
+
+      - name: Verify private health
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ vars.PROD_DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.PROD_DEPLOY_USER }}
+        run: |
+          ssh -i ~/.ssh/opensyria_deploy -o StrictHostKeyChecking=yes "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            'cd /srv/opensyria/datasets-api && bin/check.sh'
