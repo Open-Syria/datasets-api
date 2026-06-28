@@ -84,10 +84,10 @@ describe('SubdistrictsService', () => {
     const service = createService([subdistrict]);
 
     await expect(service.listSubdistricts(defaultListQuery)).resolves.toMatchObject({
-      count: 1,
       items: [subdistrict],
       pagination: {
         currentPage: 1,
+        pageRecords: 1,
         totalRecords: 1,
       },
       dataset: {
@@ -110,9 +110,9 @@ describe('SubdistrictsService', () => {
         districtId: 'sy-rif-dimashq-duma',
       }),
     ).resolves.toMatchObject({
-      count: 0,
       items: [],
       pagination: {
+        pageRecords: 0,
         totalRecords: 0,
       },
     });

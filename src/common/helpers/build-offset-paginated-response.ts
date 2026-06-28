@@ -36,6 +36,7 @@ export function buildOffsetPaginatedResponse<TItem, TExtra extends object = Reco
   const pagination = {
     limit,
     currentPage,
+    pageRecords: items.length,
     totalRecords,
     totalPages,
     nextPage: hasNextPage ? currentPage + 1 : null,

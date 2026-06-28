@@ -84,6 +84,7 @@ export function paginateRecords<TRecord>(items: TRecord[], query: PaginationQuer
 export function buildOffsetPagination(
   totalRecords: number,
   query: PaginationQuery,
+  pageRecords: number,
 ): OffsetPagination {
   const totalPages = totalRecords === 0 ? 0 : Math.ceil(totalRecords / query.limit);
   const hasNextPage = totalPages > 0 && query.page < totalPages;
@@ -92,6 +93,7 @@ export function buildOffsetPagination(
   return {
     limit: query.limit,
     currentPage: query.page,
+    pageRecords,
     totalRecords,
     totalPages,
     nextPage: hasNextPage ? query.page + 1 : null,

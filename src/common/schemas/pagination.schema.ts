@@ -25,6 +25,7 @@ export const offsetPaginationQuerySchema = z.object({
 export const offsetPaginationSchema = z.object({
   limit: z.number().int().positive(),
   currentPage: z.number().int().positive(),
+  pageRecords: z.number().int().nonnegative(),
   totalRecords: z.number().int().nonnegative(),
   totalPages: z.number().int().nonnegative(),
   nextPage: z.number().int().positive().nullable(),
