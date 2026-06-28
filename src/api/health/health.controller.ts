@@ -27,7 +27,7 @@ export class HealthController {
     tags: ['Health'],
     summary: 'Get API health',
     description:
-      'Returns the public API health status, current environment, uptime, and Redis availability.',
+      'Returns the public API health status, current environment, uptime, Redis availability, database read-model availability, and dataset release availability.',
     responseName: 'HealthResponse',
   })
   async getHealth(@I18n() i18n: I18nContext): Promise<ApiResponse<HealthResponseData>> {
@@ -63,7 +63,8 @@ export class HealthController {
     type: HealthResponseDataDto,
     tags: ['Health'],
     summary: 'Get readiness health',
-    description: 'Returns whether the API runtime dependencies and dataset releases are ready.',
+    description:
+      'Returns whether the API runtime dependencies, database read model, and dataset releases are ready.',
     responseName: 'ReadinessResponse',
   })
   async getReadiness(@I18n() i18n: I18nContext): Promise<ApiResponse<HealthResponseData>> {

@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { GlobalConfig } from '../../config/config.type';
+import { PrismaService } from '../../database/prisma.service';
 import { DatasetReleaseRegistryService } from '../../datasets/dataset-release-registry.service';
 import { RedisConnectionsService } from '../../shared/redis/redis-connections.service';
 import type { HealthResponseData, LivenessResponseData } from './health.dto';
@@ -12,6 +13,8 @@ export class HealthService {
     private readonly configService: ConfigService<GlobalConfig>,
     @Inject(RedisConnectionsService)
     private readonly redisConnectionsService: RedisConnectionsService,
+    @Inject(PrismaService)
+    private readonly prismaService: PrismaService,
     @Inject(DatasetReleaseRegistryService)
     private readonly datasetReleaseRegistryService: DatasetReleaseRegistryService,
   ) {}
@@ -36,13 +39,16 @@ export class HealthService {
   async getReadiness(): Promise<HealthResponseData> {
     const liveness = this.getLiveness();
     const redis = await this.redisConnectionsService.checkHealth();
+    const database = await this.prismaService.checkHealth();
     const datasetReleases = this.datasetReleaseRegistryService.getHealth();
-    const isDegraded = redis.status === 'down' || datasetReleases.status === 'missing';
+    const isDegraded =
+      redis.status === 'down' || database.status === 'down' || datasetReleases.status === 'missing';
 
     return {
       ...liveness,
       status: isDegraded ? 'degraded' : 'ok',
       redis,
+      database,
       datasetReleases,
     };
   }
