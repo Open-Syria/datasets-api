@@ -49,7 +49,7 @@ const rateLimitExample = {
   success: false,
   status: 429,
   error: 'ThrottlerException',
-  message: 'Too many requests',
+  message: 'You are out of free API requests for today. Please try again after your quota resets.',
   timestamp: '2026-06-27T00:00:00.000Z',
 };
 
@@ -93,7 +93,7 @@ export function ApiPaginatedResponse(options: ApiPaginatedResponseOptions) {
       example: badRequestExample,
     }),
     ApiTooManyRequestsResponse({
-      description: 'Rate limit exceeded',
+      description: 'Daily quota exhausted',
       type: ErrorResponseDto,
       example: rateLimitExample,
     }),

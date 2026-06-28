@@ -23,9 +23,11 @@ The goal is that every endpoint looks and behaves like it belongs to the same AP
 - [Swagger Decorators](#swagger-decorators)
 - [Standard Error Responses](#standard-error-responses)
 - [Pagination](#pagination)
+- [Localized Data](#localized-data)
 - [i18n Message Keys](#i18n-message-keys)
 - [OpenAPI Documents](#openapi-documents)
 - [Security Headers and CORS](#security-headers-and-cors)
+- [Rate Limiting](#rate-limiting)
 - [Documentation Descriptions](#documentation-descriptions)
 - [Controller Example](#controller-example)
 - [Review Checklist](#review-checklist)
@@ -645,6 +647,26 @@ Use cursor pagination only when:
 - offsets become inefficient,
 - or data changes frequently enough that offset pagination becomes misleading.
 
+## Localized Data
+
+Public dataset fields that carry translated content should be returned as locale-keyed objects:
+
+```json
+{
+  "name": {
+    "en": "Administrative Geography",
+    "ar": "الجغرافيا الإدارية"
+  }
+}
+```
+
+Rules:
+
+- Do not collapse canonical dataset text to one localized string based on request headers.
+- Keep all available public translations in the response so API consumers can cache one representation and choose display language client-side.
+- Use `X-Lang`, `lang`, or `Accept-Language` only for response envelope messages such as `message`.
+- Document `X-Lang` in OpenAPI with the supported locale values.
+
 ## i18n Message Keys
 
 Use structured keys:
@@ -712,6 +734,24 @@ Rules:
 - CORS preflight should allow only documented public request headers.
 - Do not reflect arbitrary requested CORS methods or headers.
 - Keep the default request body limit small because the API is read-only.
+
+## Rate Limiting
+
+Public data API endpoints under `/api/*` share one free-tier quota bucket per client:
+
+```text
+500 requests per day
+```
+
+Rules:
+
+- The quota is shared across all data endpoints, not counted per route.
+- Health checks, Scalar/Swagger documentation, OpenAPI JSON, and CORS preflight requests do not count against the quota.
+- Quota exhaustion should return HTTP 429 with a clear quota message and `Retry-After` header.
+- Until API keys or authenticated accounts exist, the client identity is the trusted visitor IP from the proxy chain.
+- In production, prefer Cloudflare's `CF-Connecting-IP` header when `APP_TRUST_PROXY=true`.
+- Keep quota env names tier-oriented: `THROTTLE_FREE_TIER_DAILY_LIMIT` and `THROTTLE_FREE_TIER_DAILY_TTL_SECONDS`.
+- Future paid tiers should use an authenticated API key or account identity instead of only an IP address.
 
 ## Documentation Descriptions
 

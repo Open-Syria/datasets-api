@@ -15,6 +15,9 @@ Public read-only API for released OpenSyria datasets.
 - [Data Flow](#data-flow)
 - [Public Routes](#public-routes)
 - [Query Conventions](#query-conventions)
+- [Localization](#localization)
+- [Rate Limiting](#rate-limiting)
+- [Search Indexing](#search-indexing)
 - [Local Development](#local-development)
 - [Local Read Model](#local-read-model)
 - [Validation](#validation)
@@ -70,6 +73,8 @@ GET /swagger-ui
 GET /openapi.json
 GET /openapi/core.json
 GET /openapi/geography.json
+GET /robots.txt
+GET /favicon.ico
 ```
 
 `/docs` and `/swagger-ui` use the complete `/openapi.json` document. The filtered
@@ -103,6 +108,32 @@ Example:
 ```text
 GET /api/v1/geography/localities?q=damascus&limit=THIRTY_FIVE&order=ASC&sourceStatus=RELEASED
 ```
+
+## Localization
+
+Dataset text fields are returned as locale-keyed objects, such as `{ "en": "...", "ar": "..." }`.
+This keeps the public reference data complete and cache-friendly.
+
+Use `X-Lang: en` or `X-Lang: ar` to choose localized response envelope messages.
+The API also accepts `lang` query values and standard `Accept-Language` negotiation.
+
+## Rate Limiting
+
+The public free tier allows 500 data API requests per client per day across `/api/*`.
+Health checks, documentation, OpenAPI JSON, and CORS preflight requests do not count
+against the daily quota.
+
+When the quota is exhausted, the API returns HTTP 429 with a quota-specific message
+and a `Retry-After` header.
+
+Until authenticated API keys are introduced, the client is identified from the trusted
+proxy chain, preferring Cloudflare's `CF-Connecting-IP` header in production.
+
+## Search Indexing
+
+The API host opts out of search indexing with `robots.txt` and `X-Robots-Tag:
+noindex, nofollow`. Public discovery should happen through the OpenSyria website and
+linked API documentation, not indexed JSON endpoint responses.
 
 ## Local Development
 

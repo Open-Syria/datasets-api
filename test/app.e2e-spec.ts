@@ -55,6 +55,19 @@ type ErrorResponseBody = {
 
 type OpenApiResponseBody = {
   paths: Record<string, unknown>;
+  components?: {
+    schemas?: Record<
+      string,
+      {
+        properties?: Record<
+          string,
+          {
+            example?: unknown;
+          }
+        >;
+      }
+    >;
+  };
   tags?: Array<{
     name: string;
   }>;
@@ -91,6 +104,12 @@ function getQueryParameters(pathItem: unknown): OpenApiParameterObject[] {
   );
 }
 
+function getHeaderParameters(pathItem: unknown): OpenApiParameterObject[] {
+  return ((pathItem as OpenApiPathItem).get?.parameters ?? []).filter(
+    (parameter) => parameter.in === 'header',
+  );
+}
+
 function getPathParameters(pathItem: unknown): OpenApiParameterObject[] {
   return ((pathItem as OpenApiPathItem).get?.parameters ?? []).filter(
     (parameter) => parameter.in === 'path',
@@ -99,9 +118,15 @@ function getPathParameters(pathItem: unknown): OpenApiParameterObject[] {
 
 describe('AppController (e2e)', () => {
   let app: NestFastifyApplication;
+  let appTrustProxy = 'false';
+  let freeTierDailyLimit = '500';
+  const freeTierDailyTtlSeconds = '86400';
 
   beforeEach(async () => {
     process.env.APP_DOCS_ENABLED = 'true';
+    process.env.APP_TRUST_PROXY = appTrustProxy;
+    process.env.THROTTLE_FREE_TIER_DAILY_LIMIT = freeTierDailyLimit;
+    process.env.THROTTLE_FREE_TIER_DAILY_TTL_SECONDS = freeTierDailyTtlSeconds;
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -179,6 +204,36 @@ describe('AppController (e2e)', () => {
     expect(response.headers['x-frame-options']).toBe('DENY');
     expect(response.headers['x-permitted-cross-domain-policies']).toBe('none');
     expect(response.headers['x-powered-by']).toBeUndefined();
+    expect(response.headers['x-robots-tag']).toBe('noindex, nofollow');
+  });
+
+  it('serves crawler and favicon assets', async () => {
+    const robotsResponse = await app.inject({
+      method: 'GET',
+      url: '/robots.txt',
+    });
+    const faviconResponse = await app.inject({
+      method: 'GET',
+      url: '/favicon.ico',
+    });
+    const manifestResponse = await app.inject({
+      method: 'GET',
+      url: '/site.webmanifest',
+    });
+
+    expect(robotsResponse.statusCode).toBe(200);
+    expect(robotsResponse.headers['content-type']).toContain('text/plain');
+    expect(robotsResponse.body).toContain('User-agent: *');
+    expect(robotsResponse.body).toContain('Disallow: /');
+    expect(robotsResponse.headers['x-robots-tag']).toBe('noindex, nofollow');
+    expect(faviconResponse.statusCode).toBe(200);
+    expect(faviconResponse.headers['content-type']).toContain('image/');
+    expect(faviconResponse.body.length).toBeGreaterThan(0);
+    expect(manifestResponse.statusCode).toBe(200);
+    expect(manifestResponse.json()).toMatchObject({
+      name: 'OpenSyria',
+      short_name: 'OpenSyria',
+    });
   });
 
   it('allows read-only CORS preflight requests with approved headers', async () => {
@@ -618,6 +673,19 @@ describe('AppController (e2e)', () => {
     expect(defaultDocument.paths).toHaveProperty('/api/v1/geography/districts');
     expect(defaultDocument.paths).toHaveProperty('/api/v1/geography/subdistricts');
     expect(defaultDocument.paths).toHaveProperty('/api/v1/geography/localities');
+    expect(
+      defaultDocument.components?.schemas?.DatasetSummaryListResponse_Output?.properties?.status
+        ?.example,
+    ).toBe(200);
+    expect(defaultDocument.components?.schemas?.ErrorResponseDto?.properties?.status?.example).toBe(
+      400,
+    );
+    const datasetHeaderParameters = getHeaderParameters(defaultDocument.paths['/api/v1/datasets']);
+    expect(datasetHeaderParameters.map((parameter) => parameter.name)).toEqual(['X-Lang']);
+    expect(datasetHeaderParameters[0]?.schema).toMatchObject({
+      enum: ['en', 'ar'],
+      default: 'en',
+    });
     expect(coreDocument.tags?.map((tag) => tag.name)).toEqual([
       'Health',
       'Dataset Discovery',
@@ -762,8 +830,77 @@ describe('AppController (e2e)', () => {
     expect([200, 302]).toContain(response.statusCode);
   });
 
+  describe('free tier rate limiting', () => {
+    beforeAll(() => {
+      appTrustProxy = 'true';
+      freeTierDailyLimit = '2';
+    });
+
+    afterAll(() => {
+      appTrustProxy = 'false';
+      freeTierDailyLimit = '500';
+    });
+
+    it('limits data API requests by trusted client across routes', async () => {
+      const clientHeaders = {
+        'cf-connecting-ip': '203.0.113.10',
+      };
+
+      const healthResponse = await app.inject({
+        method: 'GET',
+        url: '/health',
+        headers: clientHeaders,
+      });
+      const openApiResponse = await app.inject({
+        method: 'GET',
+        url: '/openapi.json',
+        headers: clientHeaders,
+      });
+      const firstApiResponse = await app.inject({
+        method: 'GET',
+        url: '/api/v1/datasets',
+        headers: clientHeaders,
+      });
+      const secondApiResponse = await app.inject({
+        method: 'GET',
+        url: '/api/v1/releases',
+        headers: clientHeaders,
+      });
+      const thirdApiResponse = await app.inject({
+        method: 'GET',
+        url: '/api/v1/geography/governorates',
+        headers: clientHeaders,
+      });
+      const otherClientResponse = await app.inject({
+        method: 'GET',
+        url: '/api/v1/geography/governorates',
+        headers: {
+          'cf-connecting-ip': '203.0.113.11',
+        },
+      });
+
+      expect(healthResponse.statusCode).toBe(200);
+      expect(openApiResponse.statusCode).toBe(200);
+      expect(firstApiResponse.statusCode).toBe(200);
+      expect(secondApiResponse.statusCode).toBe(200);
+      expect(secondApiResponse.headers['x-ratelimit-limit-free-tier-daily']).toBe('2');
+      expect(thirdApiResponse.statusCode).toBe(429);
+      expect(thirdApiResponse.json<ErrorResponseBody>()).toMatchObject({
+        success: false,
+        status: 429,
+        error: 'ThrottlerException',
+        message:
+          'You are out of free API requests for today. Please try again after your quota resets.',
+      });
+      expect(otherClientResponse.statusCode).toBe(200);
+    });
+  });
+
   afterEach(async () => {
     await app.close();
     delete process.env.APP_DOCS_ENABLED;
+    delete process.env.APP_TRUST_PROXY;
+    delete process.env.THROTTLE_FREE_TIER_DAILY_LIMIT;
+    delete process.env.THROTTLE_FREE_TIER_DAILY_TTL_SECONDS;
   });
 });
