@@ -47,7 +47,7 @@ body:
     attributes:
       label: Dataset Release
       description: If relevant, include the dataset release version or manifest source.
-      placeholder: Open-Syria/data-geography@v0.1.0
+      placeholder: Open-Syria/data-geography@v0.1.1
   - type: textarea
     id: logs
     attributes:

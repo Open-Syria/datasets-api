@@ -7,8 +7,8 @@ const exampleDataset = {
 };
 
 const exampleRelease = {
-  version: 'v0.1.0',
-  releasedAt: '2026-06-27T00:00:00.000Z',
+  version: 'v0.1.1',
+  releasedAt: '2026-06-28T00:00:00.000Z',
 };
 
 const examplePagination = {

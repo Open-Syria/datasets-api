@@ -46,7 +46,7 @@ The current manifest schema version is:
     }
   },
   "release": {
-    "version": "v0.1.0",
+    "version": "v0.1.1",
     "status": "released",
     "publishedAt": "2026-06-27T00:00:00.000Z",
     "notes": "Initial verified geography release."
@@ -56,7 +56,7 @@ The current manifest schema version is:
       "name": "governorates",
       "format": "json",
       "path": "artifacts/governorates.json",
-      "url": "https://github.com/Open-Syria/data-geography/releases/download/v0.1.0/governorates.json",
+      "url": "https://github.com/Open-Syria/data-geography/releases/download/v0.1.1/governorates.json",
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
       "sizeBytes": 1024,
       "recordCount": 14,
@@ -123,7 +123,7 @@ The API should not parse CSV, SQL, YAML, XML, GeoJSON, or SQLite artifacts for r
 `datasets-api` includes a GitHub Release sync command:
 
 ```bash
-DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.0" pnpm run datasets:sync
+DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.1" pnpm run datasets:sync
 ```
 
 The command expects every pinned release to include `release-manifest.json` as a release asset. Artifact files listed in the manifest are matched by the basename of `artifacts[].path`.
