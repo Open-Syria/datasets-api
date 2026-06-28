@@ -12,22 +12,22 @@ import {
   sortByEnglishName,
 } from '../geography.helpers';
 import {
-  type GovernorateDetail,
-  type GovernorateList,
-  type GovernorateListQuery,
-  type GovernorateSummary,
-  governoratesArtifactSchema,
-} from './governorates.dto';
+  type DistrictDetail,
+  type DistrictList,
+  type DistrictListQuery,
+  type DistrictSummary,
+  districtsArtifactSchema,
+} from './districts.dto';
 
-const GOVERNORATES_ARTIFACT_NAME = 'governorates';
+const DISTRICTS_ARTIFACT_NAME = 'districts';
 
-type GovernorateReadModel = {
-  items: GovernorateSummary[];
+type DistrictReadModel = {
+  items: DistrictSummary[];
   manifest?: DatasetReleaseManifest;
 };
 
 @Injectable()
-export class GovernoratesService {
+export class DistrictsService {
   constructor(
     @Inject(DatasetReleaseRegistryService)
     private readonly datasetReleaseRegistryService: DatasetReleaseRegistryService,
@@ -35,11 +35,11 @@ export class GovernoratesService {
     private readonly localDatasetArtifactReaderService: LocalDatasetArtifactReaderService,
   ) {}
 
-  async listGovernorates(query: GovernorateListQuery): Promise<GovernorateList> {
-    const readModel = await this.readGovernorates();
-    const filteredItems = this.filterGovernorates(readModel.items, query);
-    const sortedItems = this.sortGovernorates(filteredItems, query.order);
-    const items = this.paginateGovernorates(sortedItems, query);
+  async listDistricts(query: DistrictListQuery): Promise<DistrictList> {
+    const readModel = await this.readDistricts();
+    const filteredItems = this.filterDistricts(readModel.items, query);
+    const sortedItems = this.sortDistricts(filteredItems, query.order);
+    const items = this.paginateDistricts(sortedItems, query);
 
     return {
       items,
@@ -50,27 +50,27 @@ export class GovernoratesService {
     };
   }
 
-  async getGovernorate(governorateId: string): Promise<GovernorateDetail> {
-    const readModel = await this.readGovernorates();
-    const governorate = readModel.items.find((item) => item.id === governorateId);
+  async getDistrict(districtId: string): Promise<DistrictDetail> {
+    const readModel = await this.readDistricts();
+    const district = readModel.items.find((item) => item.id === districtId);
 
-    if (!governorate) {
-      throw new NotFoundException('Governorate not found');
+    if (!district) {
+      throw new NotFoundException('District not found');
     }
 
     return {
-      item: governorate,
+      item: district,
       dataset: buildGeographyDatasetContext(readModel.manifest),
       release: buildGeographyReleaseContext(readModel.manifest),
       sources: mapGeographySources(readModel.manifest),
     };
   }
 
-  private async readGovernorates(): Promise<GovernorateReadModel> {
+  private async readDistricts(): Promise<DistrictReadModel> {
     const artifact = await this.localDatasetArtifactReaderService.readJsonArtifact({
       datasetId: GEOGRAPHY_DATASET_ID,
-      artifactName: GOVERNORATES_ARTIFACT_NAME,
-      schema: governoratesArtifactSchema,
+      artifactName: DISTRICTS_ARTIFACT_NAME,
+      schema: districtsArtifactSchema,
     });
     const manifest =
       artifact?.manifest ??
@@ -82,10 +82,14 @@ export class GovernoratesService {
     };
   }
 
-  private filterGovernorates(items: GovernorateSummary[], query: GovernorateListQuery) {
+  private filterDistricts(items: DistrictSummary[], query: DistrictListQuery) {
     const search = query.q?.toLowerCase();
 
     return items.filter((item) => {
+      if (query.governorateId && item.governorateId !== query.governorateId) {
+        return false;
+      }
+
       if (query.sourceStatus && item.sourceStatus !== query.sourceStatus) {
         return false;
       }
@@ -94,17 +98,17 @@ export class GovernoratesService {
         return true;
       }
 
-      return [item.id, item.name.en, item.name.ar, item.iso31662, item.sourceStatus].some((value) =>
-        value?.toLowerCase().includes(search),
+      return [item.id, item.governorateId, item.name.en, item.name.ar, item.sourceStatus].some(
+        (value) => value?.toLowerCase().includes(search),
       );
     });
   }
 
-  private sortGovernorates(items: GovernorateSummary[], order: GovernorateListQuery['order']) {
+  private sortDistricts(items: DistrictSummary[], order: DistrictListQuery['order']) {
     return sortByEnglishName(items, order);
   }
 
-  private paginateGovernorates(items: GovernorateSummary[], query: GovernorateListQuery) {
+  private paginateDistricts(items: DistrictSummary[], query: DistrictListQuery) {
     return paginateRecords(items, query);
   }
 }

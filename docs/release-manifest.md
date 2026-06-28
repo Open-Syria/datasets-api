@@ -92,9 +92,18 @@ opensyria-geography
   artifact name: governorates
   artifact format: json
   artifact path: artifacts/governorates.json
+  artifact name: districts
+  artifact format: json
+  artifact path: artifacts/districts.json
+  artifact name: subdistricts
+  artifact format: json
+  artifact path: artifacts/subdistricts.json
+  artifact name: localities
+  artifact format: json
+  artifact path: artifacts/localities.json
 ```
 
-The governorates JSON artifact may be either an array of records or an object with an `items` array. Each record should match the public governorate summary schema exposed by `/api/v1/geography/governorates`.
+The governorates, districts, subdistricts, and localities JSON artifacts may be either arrays of records or objects with an `items` array. Each record should match the matching public schema exposed by the geography API.
 
 ## Sync Command
 

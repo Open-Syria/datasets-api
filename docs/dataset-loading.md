@@ -37,7 +37,15 @@ Runtime dataset endpoints then resolve artifacts from the synced release layout:
 data/releases/<dataset-slug>/<release-version>/<artifact-path>
 ```
 
-For example, `GET /api/v1/geography/governorates` reads `artifacts/governorates.json` when the active `opensyria-geography` manifest includes a JSON artifact named `governorates`.
+The loader also supports a direct release directory such as:
+
+```text
+../data-geography/dist/release
+```
+
+In that mode, artifacts are resolved relative to the directory containing `release-manifest.json`. This is useful for local development before a dataset repository publishes a GitHub Release.
+
+For example, `GET /api/v1/geography/governorates` reads `artifacts/governorates.json`, `GET /api/v1/geography/districts` reads `artifacts/districts.json`, `GET /api/v1/geography/subdistricts` reads `artifacts/subdistricts.json`, and `GET /api/v1/geography/localities` reads `artifacts/localities.json`, when the active `opensyria-geography` manifest includes matching JSON artifacts.
 
 Before parsing an artifact, the API verifies:
 
@@ -72,6 +80,25 @@ The sync command:
 Set `DATASETS_SYNC_DOWNLOAD_ARTIFACTS=false` to sync manifests only.
 
 Set `GITHUB_TOKEN` when syncing private releases or when higher GitHub API limits are needed.
+
+## Local Geography Smoke Test
+
+When `data-geography` is available as a sibling repository and its release artifacts have been generated, run:
+
+```bash
+pnpm run smoke:geography
+```
+
+The command boots the API in-process, reads `../data-geography/dist/release`, verifies dataset release readiness, and checks the expected geography totals:
+
+```text
+governorates: 14
+districts: 62
+subdistricts: 272
+localities: 7605
+```
+
+Set `GEOGRAPHY_RELEASE_DIR` to use a different local release directory.
 
 ## Initial Implementation
 

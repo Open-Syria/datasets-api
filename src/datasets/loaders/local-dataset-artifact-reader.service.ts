@@ -2,18 +2,13 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import type { Cache } from 'cache-manager';
 import type { z } from 'zod';
-import type { GlobalConfig } from '../../config/config.type';
 import type {
   DatasetReleaseArtifact,
   DatasetReleaseManifest,
 } from '../contracts/dataset-release-manifest.schema';
-import {
-  resolveDatasetReleaseDirectory,
-  safeResolveDatasetReleasePath,
-} from '../dataset-release-path.utils';
+import { safeResolveDatasetReleasePath } from '../dataset-release-path.utils';
 import { DatasetReleaseRegistryService } from '../dataset-release-registry.service';
 
 type ReadJsonArtifactOptions<TData> = {
@@ -35,8 +30,6 @@ function sha256(buffer: Buffer) {
 @Injectable()
 export class LocalDatasetArtifactReaderService {
   constructor(
-    @Inject(ConfigService)
-    private readonly configService: ConfigService<GlobalConfig>,
     @Inject(DatasetReleaseRegistryService)
     private readonly datasetReleaseRegistryService: DatasetReleaseRegistryService,
     @Inject(CACHE_MANAGER)
@@ -48,7 +41,9 @@ export class LocalDatasetArtifactReaderService {
     artifactName,
     schema,
   }: ReadJsonArtifactOptions<TData>): Promise<ReadJsonArtifactResult<TData> | null> {
-    const manifest = this.datasetReleaseRegistryService.getManifestByDatasetId(datasetId);
+    const registration =
+      this.datasetReleaseRegistryService.getManifestRegistrationByDatasetId(datasetId);
+    const manifest = registration?.manifest;
 
     if (!manifest) {
       return null;
@@ -79,12 +74,10 @@ export class LocalDatasetArtifactReaderService {
       };
     }
 
-    const datasetsConfig = this.configService.getOrThrow('datasets', { infer: true });
-    const releaseDirectory = resolveDatasetReleaseDirectory(
-      datasetsConfig.releasesDirectory,
-      manifest,
+    const artifactPath = safeResolveDatasetReleasePath(
+      registration.releaseDirectory,
+      artifact.path,
     );
-    const artifactPath = safeResolveDatasetReleasePath(releaseDirectory, artifact.path);
     const artifactBuffer = await readFile(artifactPath);
 
     this.verifyArtifact(artifact, artifactBuffer);

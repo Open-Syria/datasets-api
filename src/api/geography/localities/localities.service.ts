@@ -1,0 +1,151 @@
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import type { DatasetReleaseManifest } from '../../../datasets/contracts/dataset-release-manifest.schema';
+import { DatasetReleaseRegistryService } from '../../../datasets/dataset-release-registry.service';
+import { LocalDatasetArtifactReaderService } from '../../../datasets/loaders/local-dataset-artifact-reader.service';
+import {
+  buildGeographyDatasetContext,
+  buildGeographyReleaseContext,
+  buildOffsetPagination,
+  GEOGRAPHY_DATASET_ID,
+  mapGeographySources,
+  paginateRecords,
+  sortByEnglishName,
+} from '../geography.helpers';
+import {
+  type LocalityDetail,
+  type LocalityList,
+  type LocalityListQuery,
+  type LocalityRecord,
+  type LocalitySummary,
+  localitiesArtifactSchema,
+} from './localities.dto';
+
+const LOCALITIES_ARTIFACT_NAME = 'localities';
+
+type LocalityReadModel = {
+  items: LocalityRecord[];
+  manifest?: DatasetReleaseManifest;
+};
+
+@Injectable()
+export class LocalitiesService {
+  constructor(
+    @Inject(DatasetReleaseRegistryService)
+    private readonly datasetReleaseRegistryService: DatasetReleaseRegistryService,
+    @Inject(LocalDatasetArtifactReaderService)
+    private readonly localDatasetArtifactReaderService: LocalDatasetArtifactReaderService,
+  ) {}
+
+  async listLocalities(query: LocalityListQuery): Promise<LocalityList> {
+    const readModel = await this.readLocalities();
+    const filteredItems = this.filterLocalities(readModel.items, query);
+    const sortedItems = this.sortLocalities(filteredItems, query.order);
+    const pageItems = this.paginateLocalities(sortedItems, query);
+    const items = pageItems.map((item) => this.toSummary(item));
+
+    return {
+      items,
+      count: items.length,
+      pagination: buildOffsetPagination(sortedItems.length, query),
+      dataset: buildGeographyDatasetContext(readModel.manifest),
+      release: buildGeographyReleaseContext(readModel.manifest),
+    };
+  }
+
+  async getLocality(localityId: string): Promise<LocalityDetail> {
+    const readModel = await this.readLocalities();
+    const locality = readModel.items.find((item) => item.id === localityId);
+
+    if (!locality) {
+      throw new NotFoundException('Locality not found');
+    }
+
+    return {
+      item: locality,
+      dataset: buildGeographyDatasetContext(readModel.manifest),
+      release: buildGeographyReleaseContext(readModel.manifest),
+      sources: mapGeographySources(readModel.manifest),
+    };
+  }
+
+  private async readLocalities(): Promise<LocalityReadModel> {
+    const artifact = await this.localDatasetArtifactReaderService.readJsonArtifact({
+      datasetId: GEOGRAPHY_DATASET_ID,
+      artifactName: LOCALITIES_ARTIFACT_NAME,
+      schema: localitiesArtifactSchema,
+    });
+    const manifest =
+      artifact?.manifest ??
+      this.datasetReleaseRegistryService.getManifestByDatasetId(GEOGRAPHY_DATASET_ID);
+
+    return {
+      items: artifact?.data ?? [],
+      manifest,
+    };
+  }
+
+  private toSummary(item: LocalityRecord): LocalitySummary {
+    return {
+      id: item.id,
+      governorateId: item.governorateId,
+      districtId: item.districtId,
+      subdistrictId: item.subdistrictId,
+      kind: item.kind,
+      name: item.name,
+      centroid: item.centroid,
+      sourceStatus: item.sourceStatus,
+    };
+  }
+
+  private filterLocalities(items: LocalityRecord[], query: LocalityListQuery) {
+    const search = query.q?.toLowerCase();
+
+    return items.filter((item) => {
+      if (query.governorateId && item.governorateId !== query.governorateId) {
+        return false;
+      }
+
+      if (query.districtId && item.districtId !== query.districtId) {
+        return false;
+      }
+
+      if (query.subdistrictId && item.subdistrictId !== query.subdistrictId) {
+        return false;
+      }
+
+      if (query.kind && item.kind !== query.kind) {
+        return false;
+      }
+
+      if (query.sourceStatus && item.sourceStatus !== query.sourceStatus) {
+        return false;
+      }
+
+      if (!search) {
+        return true;
+      }
+
+      return [
+        item.id,
+        item.governorateId,
+        item.districtId,
+        item.subdistrictId,
+        item.kind,
+        item.name.en,
+        item.name.ar,
+        item.sourceStatus,
+        ...item.aliases.map((alias) => alias.value),
+        ...Object.values(item.externalIds),
+        ...item.sourceIds,
+      ].some((value) => value?.toLowerCase().includes(search));
+    });
+  }
+
+  private sortLocalities(items: LocalityRecord[], order: LocalityListQuery['order']) {
+    return sortByEnglishName(items, order);
+  }
+
+  private paginateLocalities(items: LocalityRecord[], query: LocalityListQuery) {
+    return paginateRecords(items, query);
+  }
+}

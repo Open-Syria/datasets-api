@@ -4,6 +4,7 @@ import {
   ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
   ApiOperation,
+  ApiResponse as ApiSwaggerResponse,
   ApiTags,
   ApiTooManyRequestsResponse,
   ApiUnprocessableEntityResponse,
@@ -20,6 +21,7 @@ export type ApiStandardResponseOptions = {
   status?: number;
   responseDescription?: string;
   responseName?: string;
+  example?: unknown;
 };
 
 const badRequestExample = {
@@ -77,6 +79,16 @@ export function ApiStandardResponse(options: ApiStandardResponseOptions) {
       description: options.responseDescription ?? options.summary,
       type: responseDto as never,
     }),
+    ...(options.example
+      ? [
+          ApiSwaggerResponse({
+            status,
+            description: options.responseDescription ?? options.summary,
+            type: responseDto,
+            example: options.example,
+          }),
+        ]
+      : []),
     ApiBadRequestResponse({
       description: 'Bad request',
       type: ErrorResponseDto,

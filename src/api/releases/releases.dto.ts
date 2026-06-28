@@ -1,8 +1,9 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
+import { datasetArtifactFormatSchema } from '../../datasets/contracts/dataset-release-manifest.schema';
 
 export const releaseStatusSchema = z.enum(['planned', 'seed', 'released', 'deprecated']);
-export const releaseArtifactFormatSchema = z.enum(['json', 'ndjson', 'csv', 'geojson', 'sqlite']);
+export const releaseArtifactFormatSchema = datasetArtifactFormatSchema;
 
 export const releaseDatasetSchema = z.object({
   datasetId: z.string().min(1),
