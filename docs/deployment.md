@@ -9,6 +9,7 @@
 - [Runtime Commands](#runtime-commands)
 - [Docker](#docker)
 - [GitHub Actions Deployment](#github-actions-deployment)
+- [Redis Cache](#redis-cache)
 - [Health Checks](#health-checks)
 - [Production Notes](#production-notes)
 
@@ -178,6 +179,19 @@ Blue/green runtime:
 - `api-green` binds to `127.0.0.1:3002`.
 - Deployments start the inactive color, verify readiness, reload nginx, then stop the old color after a short drain.
 
+## Redis Cache
+
+Runtime Redis is used for the public daily quota and for cache-manager-backed public data caches. The cache namespace stores endpoint data payloads and verified artifact payloads; throttling keys use a separate prefix.
+
+Cache invalidation should normally be automatic:
+
+- `CACHE_TTL_SECONDS` sets normal expiry.
+- Geography read-model imports clear the application cache after a successful import.
+- Geography endpoint keys include the active release id and generated timestamp, so a newly imported release bypasses old keys even before TTL expiry.
+- Artifact fallback keys include artifact checksums.
+
+Manual Redis cleanup should only be needed after operational mistakes, such as importing the wrong release and then restoring the correct one outside the normal import command.
+
 ## Health Checks
 
 - `GET /health/live` checks that the process is alive.
@@ -197,6 +211,7 @@ Blue/green runtime:
 - Set `APP_TRUST_PROXY=true` only when the service is actually behind a trusted reverse proxy.
 - Keep `THROTTLE_FREE_TIER_DAILY_LIMIT=500` and `THROTTLE_FREE_TIER_DAILY_TTL_SECONDS=86400` for the public free tier unless a release intentionally changes the quota.
 - Set `REDIS_REQUIRED=true` when the deployment must fail closed if Redis is unavailable.
+- Keep `CACHE_TTL_SECONDS` short enough for operational recovery. The default is 300 seconds.
 - Set `DATABASE_ENABLED=true` and `DATABASE_REQUIRED=true` when endpoints should serve from the database read model.
 - Keep `DATASETS_REQUIRE_RELEASES=true` for environments that must not boot without synced dataset manifests.
 - Do not bake private tokens into the Docker image. Use runtime environment variables such as `GITHUB_TOKEN` only during controlled sync steps.

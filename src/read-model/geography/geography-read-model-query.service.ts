@@ -32,6 +32,7 @@ import type {
   GeographySubdistrict,
   Prisma,
 } from '../../generated/prisma/client';
+import { PublicDataCacheService } from '../../shared/cache/public-data-cache.service';
 
 type ReleaseWithSources = DatasetRelease & {
   sources: DatasetSource[];
@@ -114,6 +115,8 @@ export class GeographyReadModelQueryService {
   constructor(
     @Inject(PrismaService)
     private readonly prismaService: PrismaService,
+    @Inject(PublicDataCacheService)
+    private readonly publicDataCacheService: PublicDataCacheService,
   ) {}
 
   async listGovernorates(
@@ -125,27 +128,33 @@ export class GeographyReadModelQueryService {
       return null;
     }
 
-    const where: Prisma.GeographyGovernorateWhereInput = {
-      releaseId: context.release.id,
-      ...(query.sourceStatus ? { sourceStatus: query.sourceStatus } : {}),
-      ...this.searchWhere(query.q),
-    };
-    const [totalRecords, records] = await context.client.$transaction([
-      context.client.geographyGovernorate.count({ where }),
-      context.client.geographyGovernorate.findMany({
-        where,
-        orderBy: {
-          nameEn: query.order,
-        },
-        ...getPagination(query),
-      }),
-    ]);
+    return this.publicDataCacheService.getOrSet(
+      'geography:governorates:list',
+      this.buildCachePayload(context.release, query),
+      async () => {
+        const where: Prisma.GeographyGovernorateWhereInput = {
+          releaseId: context.release.id,
+          ...(query.sourceStatus ? { sourceStatus: query.sourceStatus } : {}),
+          ...this.searchWhere(query.q),
+        };
+        const [totalRecords, records] = await context.client.$transaction([
+          context.client.geographyGovernorate.count({ where }),
+          context.client.geographyGovernorate.findMany({
+            where,
+            orderBy: {
+              nameEn: query.order,
+            },
+            ...getPagination(query),
+          }),
+        ]);
 
-    return {
-      items: records.map((record) => this.mapGovernorate(record)),
-      totalRecords,
-      manifest: context.manifest,
-    };
+        return {
+          items: records.map((record) => this.mapGovernorate(record)),
+          totalRecords,
+          manifest: context.manifest,
+        };
+      },
+    );
   }
 
   async getGovernorate(
@@ -157,19 +166,25 @@ export class GeographyReadModelQueryService {
       return null;
     }
 
-    const record = await context.client.geographyGovernorate.findUnique({
-      where: {
-        releaseId_id: {
-          releaseId: context.release.id,
-          id: governorateId,
-        },
-      },
-    });
+    return this.publicDataCacheService.getOrSet(
+      'geography:governorates:detail',
+      this.buildCachePayload(context.release, { governorateId }),
+      async () => {
+        const record = await context.client.geographyGovernorate.findUnique({
+          where: {
+            releaseId_id: {
+              releaseId: context.release.id,
+              id: governorateId,
+            },
+          },
+        });
 
-    return {
-      item: record ? this.mapGovernorate(record) : null,
-      manifest: context.manifest,
-    };
+        return {
+          item: record ? this.mapGovernorate(record) : null,
+          manifest: context.manifest,
+        };
+      },
+    );
   }
 
   async listDistricts(
@@ -181,28 +196,34 @@ export class GeographyReadModelQueryService {
       return null;
     }
 
-    const where: Prisma.GeographyDistrictWhereInput = {
-      releaseId: context.release.id,
-      ...(query.governorateId ? { governorateId: query.governorateId } : {}),
-      ...(query.sourceStatus ? { sourceStatus: query.sourceStatus } : {}),
-      ...this.searchWhere(query.q),
-    };
-    const [totalRecords, records] = await context.client.$transaction([
-      context.client.geographyDistrict.count({ where }),
-      context.client.geographyDistrict.findMany({
-        where,
-        orderBy: {
-          nameEn: query.order,
-        },
-        ...getPagination(query),
-      }),
-    ]);
+    return this.publicDataCacheService.getOrSet(
+      'geography:districts:list',
+      this.buildCachePayload(context.release, query),
+      async () => {
+        const where: Prisma.GeographyDistrictWhereInput = {
+          releaseId: context.release.id,
+          ...(query.governorateId ? { governorateId: query.governorateId } : {}),
+          ...(query.sourceStatus ? { sourceStatus: query.sourceStatus } : {}),
+          ...this.searchWhere(query.q),
+        };
+        const [totalRecords, records] = await context.client.$transaction([
+          context.client.geographyDistrict.count({ where }),
+          context.client.geographyDistrict.findMany({
+            where,
+            orderBy: {
+              nameEn: query.order,
+            },
+            ...getPagination(query),
+          }),
+        ]);
 
-    return {
-      items: records.map((record) => this.mapDistrict(record)),
-      totalRecords,
-      manifest: context.manifest,
-    };
+        return {
+          items: records.map((record) => this.mapDistrict(record)),
+          totalRecords,
+          manifest: context.manifest,
+        };
+      },
+    );
   }
 
   async getDistrict(
@@ -214,19 +235,25 @@ export class GeographyReadModelQueryService {
       return null;
     }
 
-    const record = await context.client.geographyDistrict.findUnique({
-      where: {
-        releaseId_id: {
-          releaseId: context.release.id,
-          id: districtId,
-        },
-      },
-    });
+    return this.publicDataCacheService.getOrSet(
+      'geography:districts:detail',
+      this.buildCachePayload(context.release, { districtId }),
+      async () => {
+        const record = await context.client.geographyDistrict.findUnique({
+          where: {
+            releaseId_id: {
+              releaseId: context.release.id,
+              id: districtId,
+            },
+          },
+        });
 
-    return {
-      item: record ? this.mapDistrict(record) : null,
-      manifest: context.manifest,
-    };
+        return {
+          item: record ? this.mapDistrict(record) : null,
+          manifest: context.manifest,
+        };
+      },
+    );
   }
 
   async listSubdistricts(
@@ -238,29 +265,35 @@ export class GeographyReadModelQueryService {
       return null;
     }
 
-    const where: Prisma.GeographySubdistrictWhereInput = {
-      releaseId: context.release.id,
-      ...(query.governorateId ? { governorateId: query.governorateId } : {}),
-      ...(query.districtId ? { districtId: query.districtId } : {}),
-      ...(query.sourceStatus ? { sourceStatus: query.sourceStatus } : {}),
-      ...this.searchWhere(query.q),
-    };
-    const [totalRecords, records] = await context.client.$transaction([
-      context.client.geographySubdistrict.count({ where }),
-      context.client.geographySubdistrict.findMany({
-        where,
-        orderBy: {
-          nameEn: query.order,
-        },
-        ...getPagination(query),
-      }),
-    ]);
+    return this.publicDataCacheService.getOrSet(
+      'geography:subdistricts:list',
+      this.buildCachePayload(context.release, query),
+      async () => {
+        const where: Prisma.GeographySubdistrictWhereInput = {
+          releaseId: context.release.id,
+          ...(query.governorateId ? { governorateId: query.governorateId } : {}),
+          ...(query.districtId ? { districtId: query.districtId } : {}),
+          ...(query.sourceStatus ? { sourceStatus: query.sourceStatus } : {}),
+          ...this.searchWhere(query.q),
+        };
+        const [totalRecords, records] = await context.client.$transaction([
+          context.client.geographySubdistrict.count({ where }),
+          context.client.geographySubdistrict.findMany({
+            where,
+            orderBy: {
+              nameEn: query.order,
+            },
+            ...getPagination(query),
+          }),
+        ]);
 
-    return {
-      items: records.map((record) => this.mapSubdistrict(record)),
-      totalRecords,
-      manifest: context.manifest,
-    };
+        return {
+          items: records.map((record) => this.mapSubdistrict(record)),
+          totalRecords,
+          manifest: context.manifest,
+        };
+      },
+    );
   }
 
   async getSubdistrict(
@@ -272,19 +305,25 @@ export class GeographyReadModelQueryService {
       return null;
     }
 
-    const record = await context.client.geographySubdistrict.findUnique({
-      where: {
-        releaseId_id: {
-          releaseId: context.release.id,
-          id: subdistrictId,
-        },
-      },
-    });
+    return this.publicDataCacheService.getOrSet(
+      'geography:subdistricts:detail',
+      this.buildCachePayload(context.release, { subdistrictId }),
+      async () => {
+        const record = await context.client.geographySubdistrict.findUnique({
+          where: {
+            releaseId_id: {
+              releaseId: context.release.id,
+              id: subdistrictId,
+            },
+          },
+        });
 
-    return {
-      item: record ? this.mapSubdistrict(record) : null,
-      manifest: context.manifest,
-    };
+        return {
+          item: record ? this.mapSubdistrict(record) : null,
+          manifest: context.manifest,
+        };
+      },
+    );
   }
 
   async listLocalities(
@@ -296,31 +335,37 @@ export class GeographyReadModelQueryService {
       return null;
     }
 
-    const where: Prisma.GeographyLocalityWhereInput = {
-      releaseId: context.release.id,
-      ...(query.governorateId ? { governorateId: query.governorateId } : {}),
-      ...(query.districtId ? { districtId: query.districtId } : {}),
-      ...(query.subdistrictId ? { subdistrictId: query.subdistrictId } : {}),
-      ...(query.kind ? { kind: query.kind } : {}),
-      ...(query.sourceStatus ? { sourceStatus: query.sourceStatus } : {}),
-      ...this.searchWhere(query.q),
-    };
-    const [totalRecords, records] = await context.client.$transaction([
-      context.client.geographyLocality.count({ where }),
-      context.client.geographyLocality.findMany({
-        where,
-        orderBy: {
-          nameEn: query.order,
-        },
-        ...getPagination(query),
-      }),
-    ]);
+    return this.publicDataCacheService.getOrSet(
+      'geography:localities:list',
+      this.buildCachePayload(context.release, query),
+      async () => {
+        const where: Prisma.GeographyLocalityWhereInput = {
+          releaseId: context.release.id,
+          ...(query.governorateId ? { governorateId: query.governorateId } : {}),
+          ...(query.districtId ? { districtId: query.districtId } : {}),
+          ...(query.subdistrictId ? { subdistrictId: query.subdistrictId } : {}),
+          ...(query.kind ? { kind: query.kind } : {}),
+          ...(query.sourceStatus ? { sourceStatus: query.sourceStatus } : {}),
+          ...this.searchWhere(query.q),
+        };
+        const [totalRecords, records] = await context.client.$transaction([
+          context.client.geographyLocality.count({ where }),
+          context.client.geographyLocality.findMany({
+            where,
+            orderBy: {
+              nameEn: query.order,
+            },
+            ...getPagination(query),
+          }),
+        ]);
 
-    return {
-      items: records.map((record) => this.toLocalitySummary(this.mapLocality(record))),
-      totalRecords,
-      manifest: context.manifest,
-    };
+        return {
+          items: records.map((record) => this.toLocalitySummary(this.mapLocality(record))),
+          totalRecords,
+          manifest: context.manifest,
+        };
+      },
+    );
   }
 
   async getLocality(
@@ -332,19 +377,25 @@ export class GeographyReadModelQueryService {
       return null;
     }
 
-    const record = await context.client.geographyLocality.findUnique({
-      where: {
-        releaseId_id: {
-          releaseId: context.release.id,
-          id: localityId,
-        },
-      },
-    });
+    return this.publicDataCacheService.getOrSet(
+      'geography:localities:detail',
+      this.buildCachePayload(context.release, { localityId }),
+      async () => {
+        const record = await context.client.geographyLocality.findUnique({
+          where: {
+            releaseId_id: {
+              releaseId: context.release.id,
+              id: localityId,
+            },
+          },
+        });
 
-    return {
-      item: record ? this.mapLocality(record) : null,
-      manifest: context.manifest,
-    };
+        return {
+          item: record ? this.mapLocality(record) : null,
+          manifest: context.manifest,
+        };
+      },
+    );
   }
 
   private async getQueryContext() {
@@ -391,6 +442,19 @@ export class GeographyReadModelQueryService {
           },
         }
       : {};
+  }
+
+  private buildCachePayload(release: ReleaseWithSources, payload: unknown) {
+    return {
+      release: {
+        id: release.id,
+        version: release.version,
+        status: release.status,
+        generatedAt: release.generatedAt,
+        publishedAt: release.publishedAt,
+      },
+      payload,
+    };
   }
 
   private mapReleaseManifest(release: ReleaseWithSources): DatasetReleaseManifest {

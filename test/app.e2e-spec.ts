@@ -54,6 +54,10 @@ type ErrorResponseBody = {
 };
 
 type OpenApiResponseBody = {
+  info: {
+    title: string;
+    description?: string;
+  };
   paths: Record<string, unknown>;
   components?: {
     schemas?: Record<
@@ -666,6 +670,12 @@ describe('AppController (e2e)', () => {
       'Releases',
       'Geography',
     ]);
+    expect(defaultDocument.info).toMatchObject({
+      title: 'OpenSyria Datasets API',
+    });
+    expect(defaultDocument.info.description).toContain(
+      'Public read-only API for stable, versioned OpenSyria reference datasets.',
+    );
     expect(defaultDocument.tags?.map((tag) => tag.name)).not.toEqual(
       expect.arrayContaining(['Universities', 'Transport', 'Heritage', 'Telecom']),
     );
@@ -843,6 +853,7 @@ describe('AppController (e2e)', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.headers['content-type']).toContain('text/html');
+    expect(response.body).toContain('<title>OpenSyria Datasets API Reference</title>');
   });
 
   it('serves Swagger UI fallback', async () => {

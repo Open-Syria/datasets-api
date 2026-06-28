@@ -19,6 +19,7 @@ Release artifacts remain the public distribution contract. The database is an in
 - [Why Use A Database](#why-use-a-database)
 - [Schema Changes](#schema-changes)
 - [Serving Strategy](#serving-strategy)
+- [Redis Cache Strategy](#redis-cache-strategy)
 - [Local Commands](#local-commands)
 
 ## Exports And Runtime Serving
@@ -79,6 +80,26 @@ REDIS_REQUIRED=true
 ```
 
 This makes readiness fail if the read model, release artifacts, or Redis are unavailable.
+
+## Redis Cache Strategy
+
+Redis backs cache-manager when `REDIS_ENABLED=true`. Public endpoints cache stable data payloads, not full HTTP responses, so localized envelope messages can still honor `X-Lang`, `lang`, and `Accept-Language`.
+
+Cached payloads include:
+
+- dataset discovery metadata,
+- release discovery metadata,
+- geography list and detail results served from the PostgreSQL read model,
+- verified local JSON artifact payloads used by development and fallback paths.
+
+Geography read-model cache keys include the active release id, release version, release status, generated timestamp, published timestamp, and normalized query or detail parameters. A newly imported release therefore uses different cache keys immediately.
+
+Invalidation is layered:
+
+- `CACHE_TTL_SECONDS` controls normal expiry and defaults to 300 seconds.
+- The geography read-model import clears the application cache after its database transaction commits.
+- Local artifact cache keys include the artifact SHA-256 checksum, so changed artifacts do not reuse old entries.
+- Versioned release keys allow old entries to expire naturally without affecting the newly active release.
 
 ## Local Commands
 

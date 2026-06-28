@@ -26,6 +26,59 @@ type OpenApiOperation = {
   parameters?: OpenApiParameter[];
 };
 
+const API_DOCUMENT_TITLE = 'OpenSyria Datasets API';
+const API_REFERENCE_TITLE = 'OpenSyria Datasets API Reference';
+const API_DOCUMENT_DESCRIPTION =
+  'Public read-only API for stable, versioned OpenSyria reference datasets. The first released dataset covers Syrian administrative geography, including governorates, districts, subdistricts, localities, release metadata, and source attribution.';
+const API_REFERENCE_CUSTOM_CSS = `
+.light-mode {
+  --scalar-font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --scalar-font-code: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --scalar-color-1: oklch(0.24 0.022 135);
+  --scalar-color-2: oklch(0.48 0.03 125);
+  --scalar-color-3: color-mix(in oklab, oklch(0.48 0.03 125) 72%, transparent);
+  --scalar-color-accent: oklch(0.48 0.11 172);
+  --scalar-background-1: oklch(0.994 0.004 95);
+  --scalar-background-2: oklch(0.968 0.018 106);
+  --scalar-background-3: oklch(0.945 0.04 84);
+  --scalar-background-accent: color-mix(in oklab, oklch(0.48 0.11 172) 12%, transparent);
+  --scalar-border-color: oklch(0.89 0.02 112);
+}
+
+.dark-mode {
+  --scalar-font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --scalar-font-code: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --scalar-color-1: oklch(0.975 0.01 100);
+  --scalar-color-2: oklch(0.78 0.03 108);
+  --scalar-color-3: color-mix(in oklab, oklch(0.78 0.03 108) 68%, transparent);
+  --scalar-color-accent: oklch(0.78 0.11 170);
+  --scalar-background-1: oklch(0.19 0.015 142);
+  --scalar-background-2: oklch(0.225 0.018 140);
+  --scalar-background-3: oklch(0.28 0.02 134);
+  --scalar-background-accent: color-mix(in oklab, oklch(0.78 0.11 170) 16%, transparent);
+  --scalar-border-color: oklch(1 0 0 / 10%);
+}
+
+.light-mode .sidebar,
+.dark-mode .sidebar {
+  --scalar-sidebar-background-1: var(--scalar-background-1);
+  --scalar-sidebar-border-color: var(--scalar-border-color);
+  --scalar-sidebar-color-1: var(--scalar-color-1);
+  --scalar-sidebar-color-2: var(--scalar-color-2);
+  --scalar-sidebar-color-active: var(--scalar-color-1);
+  --scalar-sidebar-item-hover-color: var(--scalar-color-1);
+  --scalar-sidebar-item-hover-background: var(--scalar-background-2);
+  --scalar-sidebar-item-active-background: var(--scalar-background-accent);
+  --scalar-sidebar-search-background: var(--scalar-background-2);
+  --scalar-sidebar-search-border-color: var(--scalar-border-color);
+  --scalar-sidebar-search-color: var(--scalar-color-2);
+}
+
+.scalar-app {
+  background: var(--scalar-background-1);
+}
+`;
+
 const OPENAPI_TAGS = [
   {
     name: 'Health',
@@ -176,19 +229,25 @@ async function registerScalarRoute(app: NestFastifyApplication, appConfig: AppCo
 
   if (appConfig.nodeEnv === Environment.Test) {
     fastify.get('/docs', (_request, reply) => {
-      reply.type('text/html').send('<!doctype html><title>OpenSyria API Reference</title>');
+      reply.type('text/html').send(`<!doctype html><title>${API_REFERENCE_TITLE}</title>`);
     });
     return;
   }
 
   const { apiReference } = await import('@scalar/nestjs-api-reference');
   const handler = apiReference({
-    title: `${appConfig.name} API Reference`,
-    pageTitle: `${appConfig.name} API Reference`,
+    title: API_REFERENCE_TITLE,
+    pageTitle: API_REFERENCE_TITLE,
+    theme: 'none',
+    layout: 'modern',
+    darkMode: true,
+    hideDarkModeToggle: false,
+    favicon: '/favicon.ico',
+    customCss: API_REFERENCE_CUSTOM_CSS,
     withFastify: true,
     sources: [
       {
-        title: 'OpenSyria Datasets API',
+        title: API_DOCUMENT_TITLE,
         url: '/openapi.json',
         default: true,
       },
@@ -203,8 +262,8 @@ async function registerScalarRoute(app: NestFastifyApplication, appConfig: AppCo
 
 export async function setupSwagger(app: NestFastifyApplication, appConfig: AppConfig) {
   const documentConfig = new DocumentBuilder()
-    .setTitle('OpenSyria Datasets API')
-    .setDescription('Read-only public API for released OpenSyria datasets.')
+    .setTitle(API_DOCUMENT_TITLE)
+    .setDescription(API_DOCUMENT_DESCRIPTION)
     .setVersion('0.0.1')
     .setOpenAPIVersion('3.1.0')
     .addServer(appConfig.url);

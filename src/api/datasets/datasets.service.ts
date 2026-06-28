@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { PublicDataCacheService } from '../../shared/cache/public-data-cache.service';
 import type { DatasetSummaryList } from './datasets.dto';
 
 const DATASETS: DatasetSummaryList['items'] = [
@@ -101,10 +102,22 @@ const DATASETS: DatasetSummaryList['items'] = [
 
 @Injectable()
 export class DatasetsService {
-  listDatasets(): DatasetSummaryList {
-    return {
-      items: DATASETS,
-      count: DATASETS.length,
-    };
+  constructor(
+    @Inject(PublicDataCacheService)
+    private readonly publicDataCacheService: PublicDataCacheService,
+  ) {}
+
+  async listDatasets(): Promise<DatasetSummaryList> {
+    return this.publicDataCacheService.getOrSet(
+      'datasets:list',
+      {
+        source: 'seed-metadata',
+        version: 1,
+      },
+      () => ({
+        items: DATASETS,
+        count: DATASETS.length,
+      }),
+    );
   }
 }

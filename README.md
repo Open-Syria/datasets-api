@@ -17,7 +17,6 @@ Public read-only API for released OpenSyria datasets.
 - [Query Conventions](#query-conventions)
 - [Localization](#localization)
 - [Rate Limiting](#rate-limiting)
-- [Search Indexing](#search-indexing)
 - [Local Development](#local-development)
 - [Local Read Model](#local-read-model)
 - [Validation](#validation)
@@ -73,7 +72,6 @@ GET /swagger-ui
 GET /openapi.json
 GET /openapi/core.json
 GET /openapi/geography.json
-GET /robots.txt
 GET /favicon.ico
 ```
 
@@ -128,12 +126,6 @@ and a `Retry-After` header.
 
 Until authenticated API keys are introduced, the client is identified from the trusted
 proxy chain, preferring Cloudflare's `CF-Connecting-IP` header in production.
-
-## Search Indexing
-
-The API host opts out of search indexing with `robots.txt` and `X-Robots-Tag:
-noindex, nofollow`. Public discovery should happen through the OpenSyria website and
-linked API documentation, not indexed JSON endpoint responses.
 
 ## Local Development
 
