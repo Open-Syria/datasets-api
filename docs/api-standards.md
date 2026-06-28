@@ -131,7 +131,9 @@ Rules:
 - Allowed limit values are `TEN`, `THIRTY_FIVE`, and `FIFTY`.
 - The API transforms limit names into numeric pagination sizes: `TEN=10`, `THIRTY_FIVE=35`, and `FIFTY=50`.
 - `q` is a broad text search parameter.
-- `order` is `asc` or `desc`.
+- `order` is a named enum, not a free string.
+- Allowed order values are `ASC` and `DESC`.
+- The API transforms order names into internal sort values: `ASC=asc` and `DESC=desc`.
 - Resource-specific filters should use explicit names such as `sourceStatus`, `governorateId`, or `datasetId`.
 - Avoid ambiguous filter names such as `id`, `type`, or `status` when more specific terms exist.
 - Query DTOs should expose their OpenAPI query metadata through `static readonly openApiQueryParameters`.
@@ -339,6 +341,10 @@ export const listQuerySchema = z.object({
     .enum(['TEN', 'THIRTY_FIVE', 'FIFTY'])
     .default('TEN')
     .transform((limit) => ({ TEN: 10, THIRTY_FIVE: 35, FIFTY: 50 })[limit]),
+  order: z
+    .enum(['ASC', 'DESC'])
+    .default('ASC')
+    .transform((order) => ({ ASC: 'asc', DESC: 'desc' })[order]),
   q: z.string().trim().min(1).optional(),
 });
 ```
@@ -570,7 +576,7 @@ Default query parameters:
 page=1
 limit=TEN
 q=
-order=asc|desc
+order=ASC|DESC
 ```
 
 Defaults:
@@ -580,6 +586,7 @@ DEFAULT_CURRENT_PAGE=1
 DEFAULT_PAGE_LIMIT_OPTION=TEN
 DEFAULT_PAGE_LIMIT=10
 MAX_PAGE_LIMIT=50
+DEFAULT_SORT_ORDER_OPTION=ASC
 DEFAULT_SORT_ORDER=asc
 ```
 
