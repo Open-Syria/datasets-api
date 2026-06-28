@@ -1,35 +1,65 @@
-name: Bug Report
-description: Report a reproducible issue in datasets-api.
+name: API Bug Report
+description: Report reproducible incorrect behavior in datasets-api.
 title: 'bug: '
 labels:
   - bug
 body:
   - type: markdown
     attributes:
-      value: Thanks for helping improve OpenSyria.
+      value: |
+        Thanks for helping improve OpenSyria Datasets API.
+
+        Use this form for reproducible API, documentation, deployment, or tooling bugs in this repository. Dataset record corrections should be reported in the relevant dataset repository.
   - type: textarea
     id: problem
     attributes:
       label: Problem
       description: What happened?
+      placeholder: The endpoint returned ...
     validations:
       required: true
   - type: textarea
     id: expected
     attributes:
       label: Expected Behavior
-      description: What did you expect to happen?
+      description: What did you expect to happen instead?
     validations:
       required: true
   - type: textarea
     id: reproduce
     attributes:
       label: Reproduction Steps
-      description: Include route, request, response, and environment details when possible.
+      description: Include route, request, response, environment, and dataset release version when possible.
       placeholder: |
-        1. Run ...
-        2. Request ...
-        3. See ...
+        1. Start the API with ...
+        2. Request GET /api/v1/...
+        3. Observe ...
     validations:
       required: true
-
+  - type: input
+    id: endpoint
+    attributes:
+      label: Endpoint
+      description: Which route is affected?
+      placeholder: GET /api/v1/geography/governorates
+  - type: input
+    id: release
+    attributes:
+      label: Dataset Release
+      description: If relevant, include the dataset release version or manifest source.
+      placeholder: Open-Syria/data-geography@v0.1.0
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or Response Body
+      description: Paste only non-sensitive logs or response snippets.
+      render: shell
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: I did not include secrets, tokens, private data, or personal data.
+          required: true
+        - label: This is not a dataset record correction.
+          required: true

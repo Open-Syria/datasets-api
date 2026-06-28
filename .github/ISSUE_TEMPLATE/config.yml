@@ -3,4 +3,9 @@ contact_links:
   - name: Security Policy
     url: https://github.com/Open-Syria/datasets-api/security/policy
     about: Please report security issues privately.
-
+  - name: Dataset Corrections
+    url: https://github.com/Open-Syria/data-geography/issues/new/choose
+    about: Report geography data corrections or missing records in the dataset repository.
+  - name: OpenSyria Project Overview
+    url: https://github.com/Open-Syria
+    about: Visit the OpenSyria organization for project-level repositories.
