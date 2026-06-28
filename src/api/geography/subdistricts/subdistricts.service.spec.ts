@@ -7,9 +7,9 @@ import { SubdistrictsService } from './subdistricts.service';
 
 const defaultListQuery = {
   page: 1,
-  limit: 20,
-  order: 'asc' as const,
-};
+  limit: 10,
+  order: 'asc',
+} as const;
 
 const subdistrict: SubdistrictSummary = {
   id: 'sy-damascus-damascus-damascus',

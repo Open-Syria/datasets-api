@@ -1,9 +1,11 @@
 import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
-import { ApiParam, ApiQuery } from '@nestjs/swagger';
 import { I18n, type I18nContext } from 'nestjs-i18n';
 import { ZodValidationPipe } from 'nestjs-zod';
 import type { ApiResponse } from '../../../common/dto/api-response.dto';
+import type { ApiOffsetPaginatedResponse } from '../../../common/dto/offset-pagination/offset-paginated-response.dto';
+import { buildOffsetPaginatedResponse } from '../../../common/helpers/build-offset-paginated-response';
 import { buildResponse } from '../../../common/helpers/build-response';
+import { ApiParamDto, ApiQueryDto } from '../../../decorators/api-request-dto';
 import { ApiPublic } from '../../../decorators/http-decorators';
 import { districtDetailResponseExample, districtListResponseExample } from '../geography.examples';
 import {
@@ -13,8 +15,16 @@ import {
   DistrictListDto,
   type DistrictListQuery,
   DistrictListQueryDto,
+  type DistrictParams,
+  DistrictParamsDto,
+  type DistrictSummary,
 } from './districts.dto';
 import { DistrictsService } from './districts.service';
+
+type DistrictListResponse = ApiOffsetPaginatedResponse<
+  DistrictSummary,
+  Omit<DistrictList, 'items' | 'pagination'>
+>;
 
 @Controller('geography/districts')
 export class DistrictsController {
@@ -24,44 +34,7 @@ export class DistrictsController {
   ) {}
 
   @Get()
-  @ApiQuery({
-    name: 'page',
-    required: false,
-    description: 'Page number for offset pagination.',
-    example: 1,
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-    description: 'Maximum number of records to return.',
-    example: 20,
-  })
-  @ApiQuery({
-    name: 'q',
-    required: false,
-    description: 'Search term matched against ID, names, governorate ID, and source status.',
-    example: 'damascus',
-  })
-  @ApiQuery({
-    name: 'order',
-    required: false,
-    enum: ['asc', 'desc'],
-    description: 'Sort order by English display name.',
-    example: 'asc',
-  })
-  @ApiQuery({
-    name: 'governorateId',
-    required: false,
-    description: 'Filter districts by stable OpenSyria governorate ID.',
-    example: 'sy-damascus',
-  })
-  @ApiQuery({
-    name: 'sourceStatus',
-    required: false,
-    enum: ['pending_release', 'seed', 'released', 'deprecated'],
-    description: 'Filter records by source review or release status.',
-    example: 'released',
-  })
+  @ApiQueryDto(DistrictListQueryDto)
   @ApiPublic({
     type: DistrictListDto,
     tags: ['Geography'],
@@ -74,21 +47,26 @@ export class DistrictsController {
   async listDistricts(
     @Query(new ZodValidationPipe(DistrictListQueryDto)) query: DistrictListQuery,
     @I18n() i18n: I18nContext,
-  ): Promise<ApiResponse<DistrictList>> {
-    return buildResponse({
+  ): Promise<DistrictListResponse> {
+    const result = await this.districtsService.listDistricts(query);
+
+    return buildOffsetPaginatedResponse({
       i18n,
-      data: await this.districtsService.listDistricts(query),
+      items: result.items,
+      totalRecords: result.pagination.totalRecords,
+      options: query,
+      extraData: {
+        count: result.count,
+        dataset: result.dataset,
+        release: result.release,
+      },
       message: 'api.responses.geography.districtsFetched',
       fallbackMessage: 'Districts fetched successfully',
     });
   }
 
   @Get(':districtId')
-  @ApiParam({
-    name: 'districtId',
-    description: 'Stable OpenSyria district ID.',
-    example: 'sy-damascus-damascus',
-  })
+  @ApiParamDto(DistrictParamsDto)
   @ApiPublic({
     type: DistrictDetailDto,
     tags: ['Geography'],
@@ -98,12 +76,12 @@ export class DistrictsController {
     example: districtDetailResponseExample,
   })
   async getDistrict(
-    @Param('districtId') districtId: string,
+    @Param(new ZodValidationPipe(DistrictParamsDto)) params: DistrictParams,
     @I18n() i18n: I18nContext,
   ): Promise<ApiResponse<DistrictDetail>> {
     return buildResponse({
       i18n,
-      data: await this.districtsService.getDistrict(districtId),
+      data: await this.districtsService.getDistrict(params.districtId),
       message: 'api.responses.geography.districtFetched',
       fallbackMessage: 'District fetched successfully',
     });

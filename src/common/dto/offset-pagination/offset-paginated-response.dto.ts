@@ -4,10 +4,15 @@ import { apiBaseSuccessResponseSchema } from '../../schemas/api-response.schema'
 import { type OffsetPagination, offsetPaginationSchema } from '../../schemas/pagination.schema';
 import { type ApiResponse, getResponseDtoName } from '../api-response.dto';
 
-export type ApiOffsetPaginatedResponse<TItem> = ApiResponse<{
+export type ApiOffsetPaginatedData<TItem, TExtra extends object = Record<string, never>> = {
   items: TItem[];
   pagination: OffsetPagination;
-}>;
+} & TExtra;
+
+export type ApiOffsetPaginatedResponse<
+  TItem,
+  TExtra extends object = Record<string, never>,
+> = ApiResponse<ApiOffsetPaginatedData<TItem, TExtra>>;
 
 export function createOffsetPaginatedResponseDto(
   itemDto: ZodDto,

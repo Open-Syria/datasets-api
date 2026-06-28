@@ -4,6 +4,9 @@ FROM node:24-bookworm-slim AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 WORKDIR /app
+RUN apt-get update -y \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 RUN corepack enable pnpm
 
 FROM base AS deps
@@ -22,4 +25,3 @@ COPY --from=build /app/dist ./dist
 
 EXPOSE 3000
 CMD ["node", "dist/main.js"]
-

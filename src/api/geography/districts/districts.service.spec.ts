@@ -7,9 +7,9 @@ import { DistrictsService } from './districts.service';
 
 const defaultListQuery = {
   page: 1,
-  limit: 20,
-  order: 'asc' as const,
-};
+  limit: 10,
+  order: 'asc',
+} as const;
 
 const district: DistrictSummary = {
   id: 'sy-damascus-damascus',

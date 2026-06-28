@@ -127,12 +127,87 @@ order
 Rules:
 
 - `page` is 1-based.
-- `limit` must respect the shared maximum limit.
+- `limit` is a named enum, not a free integer.
+- Allowed limit values are `TEN`, `THIRTY_FIVE`, and `FIFTY`.
+- The API transforms limit names into numeric pagination sizes: `TEN=10`, `THIRTY_FIVE=35`, and `FIFTY=50`.
 - `q` is a broad text search parameter.
-- `order` is `asc` or `desc`.
+- `order` is a named enum, not a free string.
+- Allowed order values are `ASC` and `DESC`.
+- The API transforms order names into internal sort values: `ASC=asc` and `DESC=desc`.
 - Resource-specific filters should use explicit names such as `sourceStatus`, `governorateId`, or `datasetId`.
 - Avoid ambiguous filter names such as `id`, `type`, or `status` when more specific terms exist.
-- Document query parameters with `@ApiQuery` when Swagger cannot infer them from Zod DTOs.
+- Query DTOs should expose their OpenAPI query metadata through `static readonly openApiQueryParameters`.
+- Controllers should use `@ApiQueryDto(QueryDto)` instead of repeating raw `@ApiQuery()` decorators.
+- Use raw `@ApiQuery()` only for a truly one-off case that cannot be expressed through the shared DTO metadata helper.
+
+Example:
+
+```ts
+export class GovernorateListQueryDto extends createZodDto(governorateListQuerySchema) {
+  static readonly openApiQueryParameters = [
+    ...buildOffsetPaginationQueryParameters({
+      searchDescription: 'Search term matched against ID, names, ISO code, and source status.',
+      searchExample: 'damascus',
+    }),
+    {
+      name: 'sourceStatus',
+      required: false,
+      enum: ['pending_release', 'seed', 'released', 'deprecated'],
+      description: 'Filter records by source review or release status.',
+      example: 'released',
+    },
+  ] satisfies readonly ApiQueryParameter[];
+}
+```
+
+## Request DTOs
+
+Queries, route params, and future request bodies should all use Zod schemas wrapped with `createZodDto`.
+
+Rules:
+
+- Query schemas end with `QuerySchema`; query DTOs end with `QueryDto`.
+- Param schemas end with `ParamsSchema`; param DTOs end with `ParamsDto`.
+- Body schemas end with `BodySchema`; body DTOs end with `BodyDto`.
+- Controllers should receive the complete DTO object, such as `@Param() params`, instead of extracting raw strings with `@Param('id')`.
+- Controllers should validate request DTOs with Zod. The app has a global `ZodValidationPipe`; route handlers may also use explicit `new ZodValidationPipe(Dto)` when that makes the validation boundary clearer.
+- OpenAPI metadata for request DTOs lives beside the DTO class.
+
+Metadata fields:
+
+```text
+openApiQueryParameters
+openApiParamParameters
+openApiBody
+```
+
+Controller decorators:
+
+```text
+@ApiQueryDto(QueryDto)
+@ApiParamDto(ParamsDto)
+@ApiBodyDto(BodyDto)
+```
+
+Example:
+
+```ts
+export const governorateParamsSchema = z.object({
+  governorateId: z.string().trim().min(1),
+});
+
+export class GovernorateParamsDto extends createZodDto(governorateParamsSchema) {
+  static readonly openApiParamParameters = [
+    {
+      name: 'governorateId',
+      description: 'Stable OpenSyria governorate ID.',
+      example: 'sy-damascus',
+    },
+  ] satisfies readonly ApiParamParameter[];
+}
+```
+
+`datasets-api` is read-only, so body DTOs should be rare. If a body endpoint is ever added for an operational need, it should still use a Zod body schema, `BodyDto`, `@Body() body`, and `@ApiBodyDto(BodyDto)`.
 
 ## OpenAPI Tags
 
@@ -257,12 +332,19 @@ export const datasetSummarySchema = z.object({
 export class DatasetSummaryDto extends createZodDto(datasetSummarySchema) {}
 ```
 
-Use `z.coerce` for query parameters that arrive as strings:
+Use Zod transforms for query parameters that should expose stable public options while remaining ergonomic internally:
 
 ```ts
 export const listQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(20),
+  limit: z
+    .enum(['TEN', 'THIRTY_FIVE', 'FIFTY'])
+    .default('TEN')
+    .transform((limit) => ({ TEN: 10, THIRTY_FIVE: 35, FIFTY: 50 })[limit]),
+  order: z
+    .enum(['ASC', 'DESC'])
+    .default('ASC')
+    .transform((order) => ({ ASC: 'asc', DESC: 'desc' })[order]),
   q: z.string().trim().min(1).optional(),
 });
 ```
@@ -298,7 +380,7 @@ or a paginated response:
   data: {
     items: [],
     pagination: {
-      limit: 20,
+      limit: 10,
       currentPage: 1,
       totalRecords: 100,
       totalPages: 5,
@@ -424,6 +506,7 @@ Required:
 ```text
 decorators/api-response.ts
 decorators/api-paginated-response.ts
+decorators/api-request-dto.ts
 decorators/http-decorators.ts
 ```
 
@@ -491,17 +574,19 @@ Default query parameters:
 
 ```text
 page=1
-limit=20
+limit=TEN
 q=
-order=asc|desc
+order=ASC|DESC
 ```
 
 Defaults:
 
 ```text
 DEFAULT_CURRENT_PAGE=1
-DEFAULT_PAGE_LIMIT=20
-MAX_PAGE_LIMIT=100
+DEFAULT_PAGE_LIMIT_OPTION=TEN
+DEFAULT_PAGE_LIMIT=10
+MAX_PAGE_LIMIT=50
+DEFAULT_SORT_ORDER_OPTION=ASC
 DEFAULT_SORT_ORDER=asc
 ```
 
@@ -565,6 +650,22 @@ Rules:
 - Use `cleanupOpenApiDoc` from `nestjs-zod` before serving documents.
 - Domain documents are filtered from one base document, not generated from separate app instances.
 
+## Security Headers and CORS
+
+`datasets-api` is public and read-only, but it should still fail closed around browser and HTTP edge behavior.
+
+Rules:
+
+- Register Helmet through Fastify during app setup.
+- Keep content security policy strict for API responses.
+- Loosen CSP only for public docs assets when docs are enabled.
+- Emit HSTS only when the app is actually served through HTTPS.
+- Do not expose `X-Powered-By`.
+- CORS preflight should allow only `GET`, `HEAD`, and `OPTIONS`.
+- CORS preflight should allow only documented public request headers.
+- Do not reflect arbitrary requested CORS methods or headers.
+- Keep the default request body limit small because the API is read-only.
+
 ## Documentation Descriptions
 
 Every public endpoint should have:
@@ -602,6 +703,7 @@ export class GovernoratesController {
   constructor(private readonly governoratesService: GovernoratesService) {}
 
   @Get()
+  @ApiQueryDto(GovernorateListQueryDto)
   @ApiPublic({
     type: GovernorateSummaryDto,
     tags: [GEOGRAPHY_TAG],
@@ -611,7 +713,7 @@ export class GovernoratesController {
     isPaginated: true,
   })
   async listGovernorates(
-    @Query() query: GovernorateListQueryDto,
+    @Query(new ZodValidationPipe(GovernorateListQueryDto)) query: GovernorateListQuery,
   ): Promise<ApiOffsetPaginatedResponse<GovernorateSummaryDto>> {
     const result = await this.governoratesService.listGovernorates(query);
 
@@ -621,6 +723,25 @@ export class GovernoratesController {
       options: query,
       message: 'api.responses.geography.governoratesFetched',
       fallbackMessage: 'Governorates fetched successfully',
+    });
+  }
+
+  @Get(':governorateId')
+  @ApiParamDto(GovernorateParamsDto)
+  @ApiPublic({
+    type: GovernorateDetailDto,
+    tags: [GEOGRAPHY_TAG],
+    summary: 'Get governorate details',
+    description:
+      'Returns one released governorate record with stable OpenSyria IDs, localized names, source references, and external identifiers when available.',
+  })
+  async getGovernorate(
+    @Param(new ZodValidationPipe(GovernorateParamsDto)) params: GovernorateParams,
+  ): Promise<ApiResponse<GovernorateDetail>> {
+    return buildResponse({
+      data: await this.governoratesService.getGovernorate(params.governorateId),
+      message: 'api.responses.geography.governorateFetched',
+      fallbackMessage: 'Governorate fetched successfully',
     });
   }
 }

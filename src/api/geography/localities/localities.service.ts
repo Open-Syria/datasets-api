@@ -1,7 +1,8 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import type { DatasetReleaseManifest } from '../../../datasets/contracts/dataset-release-manifest.schema';
 import { DatasetReleaseRegistryService } from '../../../datasets/dataset-release-registry.service';
 import { LocalDatasetArtifactReaderService } from '../../../datasets/loaders/local-dataset-artifact-reader.service';
+import { GeographyReadModelQueryService } from '../../../read-model/geography/geography-read-model-query.service';
 import {
   buildGeographyDatasetContext,
   buildGeographyReleaseContext,
@@ -34,9 +35,24 @@ export class LocalitiesService {
     private readonly datasetReleaseRegistryService: DatasetReleaseRegistryService,
     @Inject(LocalDatasetArtifactReaderService)
     private readonly localDatasetArtifactReaderService: LocalDatasetArtifactReaderService,
+    @Optional()
+    @Inject(GeographyReadModelQueryService)
+    private readonly geographyReadModelQueryService?: GeographyReadModelQueryService,
   ) {}
 
   async listLocalities(query: LocalityListQuery): Promise<LocalityList> {
+    const databaseReadModel = await this.geographyReadModelQueryService?.listLocalities(query);
+
+    if (databaseReadModel) {
+      return {
+        items: databaseReadModel.items,
+        count: databaseReadModel.items.length,
+        pagination: buildOffsetPagination(databaseReadModel.totalRecords, query),
+        dataset: buildGeographyDatasetContext(databaseReadModel.manifest),
+        release: buildGeographyReleaseContext(databaseReadModel.manifest),
+      };
+    }
+
     const readModel = await this.readLocalities();
     const filteredItems = this.filterLocalities(readModel.items, query);
     const sortedItems = this.sortLocalities(filteredItems, query.order);
@@ -53,6 +69,21 @@ export class LocalitiesService {
   }
 
   async getLocality(localityId: string): Promise<LocalityDetail> {
+    const databaseReadModel = await this.geographyReadModelQueryService?.getLocality(localityId);
+
+    if (databaseReadModel) {
+      if (!databaseReadModel.item) {
+        throw new NotFoundException('Locality not found');
+      }
+
+      return {
+        item: databaseReadModel.item,
+        dataset: buildGeographyDatasetContext(databaseReadModel.manifest),
+        release: buildGeographyReleaseContext(databaseReadModel.manifest),
+        sources: mapGeographySources(databaseReadModel.manifest),
+      };
+    }
+
     const readModel = await this.readLocalities();
     const locality = readModel.items.find((item) => item.id === localityId);
 

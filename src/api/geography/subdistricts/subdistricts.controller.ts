@@ -1,9 +1,11 @@
 import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
-import { ApiParam, ApiQuery } from '@nestjs/swagger';
 import { I18n, type I18nContext } from 'nestjs-i18n';
 import { ZodValidationPipe } from 'nestjs-zod';
 import type { ApiResponse } from '../../../common/dto/api-response.dto';
+import type { ApiOffsetPaginatedResponse } from '../../../common/dto/offset-pagination/offset-paginated-response.dto';
+import { buildOffsetPaginatedResponse } from '../../../common/helpers/build-offset-paginated-response';
 import { buildResponse } from '../../../common/helpers/build-response';
+import { ApiParamDto, ApiQueryDto } from '../../../decorators/api-request-dto';
 import { ApiPublic } from '../../../decorators/http-decorators';
 import {
   subdistrictDetailResponseExample,
@@ -16,8 +18,16 @@ import {
   SubdistrictListDto,
   type SubdistrictListQuery,
   SubdistrictListQueryDto,
+  type SubdistrictParams,
+  SubdistrictParamsDto,
+  type SubdistrictSummary,
 } from './subdistricts.dto';
 import { SubdistrictsService } from './subdistricts.service';
+
+type SubdistrictListResponse = ApiOffsetPaginatedResponse<
+  SubdistrictSummary,
+  Omit<SubdistrictList, 'items' | 'pagination'>
+>;
 
 @Controller('geography/subdistricts')
 export class SubdistrictsController {
@@ -27,51 +37,7 @@ export class SubdistrictsController {
   ) {}
 
   @Get()
-  @ApiQuery({
-    name: 'page',
-    required: false,
-    description: 'Page number for offset pagination.',
-    example: 1,
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-    description: 'Maximum number of records to return.',
-    example: 20,
-  })
-  @ApiQuery({
-    name: 'q',
-    required: false,
-    description:
-      'Search term matched against ID, names, governorate ID, district ID, and source status.',
-    example: 'hasakeh',
-  })
-  @ApiQuery({
-    name: 'order',
-    required: false,
-    enum: ['asc', 'desc'],
-    description: 'Sort order by English display name.',
-    example: 'asc',
-  })
-  @ApiQuery({
-    name: 'governorateId',
-    required: false,
-    description: 'Filter subdistricts by stable OpenSyria governorate ID.',
-    example: 'sy-al-hasakah',
-  })
-  @ApiQuery({
-    name: 'districtId',
-    required: false,
-    description: 'Filter subdistricts by stable OpenSyria district ID.',
-    example: 'sy-al-hasakah-al-hasakah',
-  })
-  @ApiQuery({
-    name: 'sourceStatus',
-    required: false,
-    enum: ['pending_release', 'seed', 'released', 'deprecated'],
-    description: 'Filter records by source review or release status.',
-    example: 'released',
-  })
+  @ApiQueryDto(SubdistrictListQueryDto)
   @ApiPublic({
     type: SubdistrictListDto,
     tags: ['Geography'],
@@ -84,21 +50,26 @@ export class SubdistrictsController {
   async listSubdistricts(
     @Query(new ZodValidationPipe(SubdistrictListQueryDto)) query: SubdistrictListQuery,
     @I18n() i18n: I18nContext,
-  ): Promise<ApiResponse<SubdistrictList>> {
-    return buildResponse({
+  ): Promise<SubdistrictListResponse> {
+    const result = await this.subdistrictsService.listSubdistricts(query);
+
+    return buildOffsetPaginatedResponse({
       i18n,
-      data: await this.subdistrictsService.listSubdistricts(query),
+      items: result.items,
+      totalRecords: result.pagination.totalRecords,
+      options: query,
+      extraData: {
+        count: result.count,
+        dataset: result.dataset,
+        release: result.release,
+      },
       message: 'api.responses.geography.subdistrictsFetched',
       fallbackMessage: 'Subdistricts fetched successfully',
     });
   }
 
   @Get(':subdistrictId')
-  @ApiParam({
-    name: 'subdistrictId',
-    description: 'Stable OpenSyria subdistrict ID.',
-    example: 'sy-al-hasakah-al-hasakah-al-hasakeh',
-  })
+  @ApiParamDto(SubdistrictParamsDto)
   @ApiPublic({
     type: SubdistrictDetailDto,
     tags: ['Geography'],
@@ -109,12 +80,12 @@ export class SubdistrictsController {
     example: subdistrictDetailResponseExample,
   })
   async getSubdistrict(
-    @Param('subdistrictId') subdistrictId: string,
+    @Param(new ZodValidationPipe(SubdistrictParamsDto)) params: SubdistrictParams,
     @I18n() i18n: I18nContext,
   ): Promise<ApiResponse<SubdistrictDetail>> {
     return buildResponse({
       i18n,
-      data: await this.subdistrictsService.getSubdistrict(subdistrictId),
+      data: await this.subdistrictsService.getSubdistrict(params.subdistrictId),
       message: 'api.responses.geography.subdistrictFetched',
       fallbackMessage: 'Subdistrict fetched successfully',
     });
