@@ -6,17 +6,17 @@ import {
 
 describe('dataset release source utils', () => {
   it('parses a pinned GitHub release source', () => {
-    expect(parseDatasetReleaseSource('Open-Syria/data-geography@v0.1.1')).toEqual({
+    expect(parseDatasetReleaseSource('Open-Syria/data-geography@v0.1.2')).toEqual({
       owner: 'Open-Syria',
       repository: 'data-geography',
-      tag: 'v0.1.1',
+      tag: 'v0.1.2',
     });
   });
 
   it('parses comma-separated sources', () => {
     expect(
       parseDatasetReleaseSources(
-        'Open-Syria/data-geography@v0.1.1, Open-Syria/data-universities@v0.1.0',
+        'Open-Syria/data-geography@v0.1.2, Open-Syria/data-universities@v0.1.0',
       ),
     ).toHaveLength(2);
   });
@@ -26,8 +26,8 @@ describe('dataset release source utils', () => {
       formatDatasetReleaseSource({
         owner: 'Open-Syria',
         repository: 'data-geography',
-        tag: 'v0.1.1',
+        tag: 'v0.1.2',
       }),
-    ).toBe('Open-Syria/data-geography@v0.1.1');
+    ).toBe('Open-Syria/data-geography@v0.1.2');
   });
 });
