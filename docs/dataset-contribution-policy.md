@@ -18,7 +18,7 @@ Community contributions should focus on improving the approved datasets, not cha
 - [Default Allowed Contributions](#default-allowed-contributions)
 - [Not Accepted as Normal Pull Requests](#not-accepted-as-normal-pull-requests)
 - [Schema Evolution](#schema-evolution)
-- [Example: University Coordinates](#example-university-coordinates)
+- [Example: Locality Coordinates](#example-locality-coordinates)
 - [Contribution Review Checklist](#contribution-review-checklist)
 - [AI Assistance](#ai-assistance)
 - [Recommended Dataset Repo Files](#recommended-dataset-repo-files)
@@ -39,9 +39,9 @@ Dataset repositories should accept pull requests for:
 
 Examples:
 
-- Add a missing public university to `data-universities`.
+- Add a missing locality to `data-geography`.
 - Correct the Arabic name of a city.
-- Add an official source URL for a faculty.
+- Add an official source URL for a geography record.
 - Fix a district relationship for a locality.
 - Add a known alias or alternate transliteration.
 
@@ -79,21 +79,21 @@ A schema proposal should answer:
 
 The maintainer decides whether to accept the proposal, revise it, postpone it, or reject it.
 
-## Example: University Coordinates
+## Example: Locality Coordinates
 
-If the first universities schema includes only `name`, `description`, and `image`, a contributor should not directly open a PR adding a `coordinates` field.
+If the current locality schema does not include a proposed field, a contributor should not directly open a PR adding that field to every record.
 
 The better process:
 
-1. Open a schema proposal explaining why coordinates are useful.
-2. Confirm reusable sources exist for most universities or campuses.
-3. Decide whether coordinates belong on `university`, `campus`, or both.
+1. Open a schema proposal explaining why the field is useful.
+2. Confirm reusable sources exist for most affected records.
+3. Decide whether the field belongs on `locality`, `subdistrict`, `district`, or another record type.
 4. Make the field optional first.
-5. Add validation rules for latitude and longitude.
-6. Add source attribution requirements for every coordinate.
+5. Add validation rules for the new value.
+6. Add source attribution requirements for every populated value.
 7. Update examples, docs, validation, and release artifacts.
 
-For universities, coordinates often belong on campuses because one university can have multiple campus locations. A root-level coordinate can be allowed only when it clearly represents the main campus or headquarters and the source supports that meaning.
+For geography data, fields should live at the lowest administrative level that the source actually supports. A governorate-level value should not be copied into districts, subdistricts, or localities unless the source publishes those lower-level values directly.
 
 ## Contribution Review Checklist
 

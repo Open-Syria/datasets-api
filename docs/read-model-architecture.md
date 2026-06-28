@@ -18,7 +18,7 @@ Release artifacts remain the public distribution contract. The database is an in
 - [Exports And Runtime Serving](#exports-and-runtime-serving)
 - [Why Use A Database](#why-use-a-database)
 - [Schema Changes](#schema-changes)
-- [Initial Serving Strategy](#initial-serving-strategy)
+- [Serving Strategy](#serving-strategy)
 - [Local Commands](#local-commands)
 
 ## Exports And Runtime Serving
@@ -65,9 +65,9 @@ Then the API should:
 
 The API response contract does not need to expose every raw dataset field immediately. Raw artifacts and generated exports can contain richer data while endpoints expose stable, documented DTOs.
 
-## Initial Serving Strategy
+## Serving Strategy
 
-During early seeding, endpoints may fall back to verified local artifacts while the database read model is optional. In production, a deployment should import the read model before marking the API ready.
+For local development, endpoints may fall back to verified local artifacts when the database read model is disabled. In production, a deployment should import the read model before marking the API ready.
 
 Production should run with:
 

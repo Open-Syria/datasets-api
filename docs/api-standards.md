@@ -188,7 +188,7 @@ export class GovernorateListQueryDto extends createZodDto(governorateListQuerySc
 
 ## Request DTOs
 
-Queries, route params, and future request bodies should all use Zod schemas wrapped with `createZodDto`.
+Queries, route params, and any request bodies should use Zod schemas wrapped with `createZodDto`.
 
 Rules:
 
