@@ -19,7 +19,7 @@ export class DatasetsController {
     tags: ['Dataset Discovery'],
     summary: 'List available datasets',
     description:
-      'Returns OpenSyria dataset metadata, repository names, release status, and planned public API paths.',
+      'Returns OpenSyria dataset metadata, repository names, release status, and currently available public API paths.',
     responseName: 'DatasetSummaryListResponse',
   })
   async listDatasets(@I18n() i18n: I18nContext): Promise<ApiResponse<DatasetSummaryList>> {

@@ -11,6 +11,7 @@ type DatasetListResponseBody = {
     items: Array<{
       slug: string;
       repository: string;
+      apiEndpoints: string[];
     }>;
     count: number;
   };
@@ -314,6 +315,21 @@ describe('AppController (e2e)', () => {
     expect(body.data.items[0]).toMatchObject({
       slug: 'geography',
       repository: 'data-geography',
+    });
+    expect(body.data.items[0]?.apiEndpoints).toEqual(
+      expect.arrayContaining([
+        '/api/v1/geography/governorates',
+        '/api/v1/geography/governorates/{governorateId}',
+        '/api/v1/geography/districts',
+        '/api/v1/geography/districts/{districtId}',
+        '/api/v1/geography/subdistricts',
+        '/api/v1/geography/subdistricts/{subdistrictId}',
+        '/api/v1/geography/localities',
+        '/api/v1/geography/localities/{localityId}',
+      ]),
+    );
+    expect(body.data.items.find((item) => item.slug === 'universities')).toMatchObject({
+      apiEndpoints: [],
     });
   });
 
