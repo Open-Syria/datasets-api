@@ -55,6 +55,9 @@ type ErrorResponseBody = {
 
 type OpenApiResponseBody = {
   paths: Record<string, unknown>;
+  tags?: Array<{
+    name: string;
+  }>;
 };
 
 type OpenApiParameterObject = {
@@ -406,10 +409,42 @@ describe('AppController (e2e)', () => {
     });
   });
 
+  it('accepts named source status options', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/geography/governorates?sourceStatus=RELEASED',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      success: true,
+      data: {
+        pagination: {
+          currentPage: 1,
+        },
+      },
+    });
+  });
+
   it('validates governorate list query parameters', async () => {
     const response = await app.inject({
       method: 'GET',
       url: '/api/v1/geography/governorates?limit=abc',
+    });
+    const body = response.json<ErrorResponseBody>();
+
+    expect(response.statusCode).toBe(400);
+    expect(body).toMatchObject({
+      success: false,
+      status: 400,
+      error: 'ValidationError',
+    });
+  });
+
+  it('rejects lower-case source status query values', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/geography/governorates?sourceStatus=released',
     });
     const body = response.json<ErrorResponseBody>();
 
@@ -561,16 +596,39 @@ describe('AppController (e2e)', () => {
 
     expect(defaultResponse.statusCode).toBe(200);
     expect(coreResponse.statusCode).toBe(200);
+    const defaultDocument = defaultResponse.json<OpenApiResponseBody>();
     const coreDocument = coreResponse.json<OpenApiResponseBody>();
     const geographyDocument = geographyResponse.json<OpenApiResponseBody>();
-    const educationDocument = educationResponse.json<OpenApiResponseBody>();
 
-    expect(defaultResponse.json<OpenApiResponseBody>().paths).toHaveProperty('/api/v1/datasets');
+    expect(defaultDocument.tags?.map((tag) => tag.name)).toEqual([
+      'Health',
+      'Dataset Discovery',
+      'Releases',
+      'Geography',
+    ]);
+    expect(defaultDocument.tags?.map((tag) => tag.name)).not.toEqual(
+      expect.arrayContaining(['Universities', 'Transport', 'Heritage', 'Telecom']),
+    );
+    expect(defaultDocument.paths).toHaveProperty('/health');
+    expect(defaultDocument.paths).toHaveProperty('/health/live');
+    expect(defaultDocument.paths).toHaveProperty('/health/ready');
+    expect(defaultDocument.paths).toHaveProperty('/api/v1/datasets');
+    expect(defaultDocument.paths).toHaveProperty('/api/v1/releases');
+    expect(defaultDocument.paths).toHaveProperty('/api/v1/geography/governorates');
+    expect(defaultDocument.paths).toHaveProperty('/api/v1/geography/districts');
+    expect(defaultDocument.paths).toHaveProperty('/api/v1/geography/subdistricts');
+    expect(defaultDocument.paths).toHaveProperty('/api/v1/geography/localities');
+    expect(coreDocument.tags?.map((tag) => tag.name)).toEqual([
+      'Health',
+      'Dataset Discovery',
+      'Releases',
+    ]);
     expect(coreDocument.paths).toHaveProperty('/api/v1/datasets');
     expect(coreDocument.paths).toHaveProperty('/api/v1/releases');
     expect(coreDocument.paths).toHaveProperty('/health/live');
     expect(coreDocument.paths).toHaveProperty('/health/ready');
     expect(geographyResponse.statusCode).toBe(200);
+    expect(geographyDocument.tags?.map((tag) => tag.name)).toEqual(['Health', 'Geography']);
     expect(geographyDocument.paths).toHaveProperty('/api/v1/geography/governorates');
     expect(geographyDocument.paths).toHaveProperty(
       '/api/v1/geography/governorates/{governorateId}',
@@ -618,6 +676,11 @@ describe('AppController (e2e)', () => {
       governorateQueryParameters.find((parameter) => parameter.name === 'order')?.schema,
     ).toMatchObject({
       enum: ['ASC', 'DESC'],
+    });
+    expect(
+      governorateQueryParameters.find((parameter) => parameter.name === 'sourceStatus')?.schema,
+    ).toMatchObject({
+      enum: ['PENDING_RELEASE', 'SEED', 'RELEASED', 'DEPRECATED'],
     });
     expect(
       getQueryParameters(geographyDocument.paths['/api/v1/geography/districts']).map(
@@ -677,8 +740,7 @@ describe('AppController (e2e)', () => {
       },
     });
     expect(geographyDocument.paths).not.toHaveProperty('/api/v1/datasets');
-    expect(educationResponse.statusCode).toBe(200);
-    expect(educationDocument.paths).toHaveProperty('/health');
+    expect(educationResponse.statusCode).toBe(404);
   });
 
   it('serves Scalar documentation', async () => {

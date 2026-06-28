@@ -30,7 +30,7 @@ Public read-only API for released OpenSyria datasets.
 - Stable record IDs and source attribution fields
 - Offset pagination, filtering, search, and parent-child geography relationships
 - Localized API response messages through `lang`, `x-lang`, or `Accept-Language`
-- Scalar API reference and OpenAPI JSON documents
+- Scalar API reference and machine-readable OpenAPI documents
 
 ## Data Flow
 
@@ -72,6 +72,10 @@ GET /openapi/core.json
 GET /openapi/geography.json
 ```
 
+`/docs` and `/swagger-ui` use the complete `/openapi.json` document. The filtered
+`/openapi/core.json` and `/openapi/geography.json` documents are available for tools
+that need a smaller machine-readable spec.
+
 ## Query Conventions
 
 List endpoints validate query parameters and path parameters before returning response envelopes.
@@ -84,7 +88,7 @@ Common list parameters:
 | `limit` | `TEN`, `THIRTY_FIVE`, or `FIFTY` |
 | `order` | `ASC` or `DESC` |
 | `q` | Search term |
-| `sourceStatus` | `pending_release`, `seed`, `released`, or `deprecated` |
+| `sourceStatus` | `PENDING_RELEASE`, `SEED`, `RELEASED`, or `DEPRECATED` |
 
 Geography filters:
 
@@ -97,7 +101,7 @@ Geography filters:
 Example:
 
 ```text
-GET /api/v1/geography/localities?q=damascus&limit=THIRTY_FIVE&order=ASC
+GET /api/v1/geography/localities?q=damascus&limit=THIRTY_FIVE&order=ASC&sourceStatus=RELEASED
 ```
 
 ## Local Development
