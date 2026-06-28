@@ -13,6 +13,19 @@ type OpenApiSource = {
   matchesPath: (path: string) => boolean;
 };
 
+type OpenApiParameter = {
+  name: string;
+  in: string;
+  required?: boolean;
+  description?: string;
+  schema?: Record<string, unknown>;
+};
+
+type OpenApiOperation = {
+  tags?: unknown;
+  parameters?: OpenApiParameter[];
+};
+
 const OPENAPI_TAGS = [
   {
     name: 'Health',
@@ -33,6 +46,19 @@ const OPENAPI_TAGS = [
 ] as const;
 
 const COMMON_PATHS = ['/health', '/health/live', '/health/ready'];
+
+const LOCALE_HEADER_PARAMETER = {
+  name: 'X-Lang',
+  in: 'header',
+  required: false,
+  description:
+    'Preferred locale for response messages. Supported values are en and ar. Multilingual data fields are still returned as locale-keyed objects.',
+  schema: {
+    type: 'string',
+    enum: ['en', 'ar'],
+    default: 'en',
+  },
+} as const satisfies OpenApiParameter;
 
 const FILTERED_OPENAPI_SOURCES: OpenApiSource[] = [
   {
@@ -59,13 +85,46 @@ function getOperationTags(operation: unknown): string[] {
     return [];
   }
 
-  const { tags } = operation as { tags?: unknown };
+  const { tags } = operation as OpenApiOperation;
 
   if (!Array.isArray(tags)) {
     return [];
   }
 
   return tags.filter((tag): tag is string => typeof tag === 'string');
+}
+
+function isOpenApiOperation(value: unknown): value is OpenApiOperation {
+  return typeof value === 'object' && value !== null;
+}
+
+function addLocaleHeaderParameter(document: OpenAPIObject): OpenAPIObject {
+  const updatedDocument = cloneOpenApiDocument(document);
+
+  for (const pathItem of Object.values(updatedDocument.paths)) {
+    if (!pathItem) {
+      continue;
+    }
+
+    for (const operation of Object.values(pathItem)) {
+      if (!isOpenApiOperation(operation)) {
+        continue;
+      }
+
+      const parameters = operation.parameters ?? [];
+      const hasLocaleHeader = parameters.some(
+        (parameter) =>
+          parameter.in === LOCALE_HEADER_PARAMETER.in &&
+          parameter.name.toLowerCase() === LOCALE_HEADER_PARAMETER.name.toLowerCase(),
+      );
+
+      if (!hasLocaleHeader) {
+        operation.parameters = [LOCALE_HEADER_PARAMETER, ...parameters];
+      }
+    }
+  }
+
+  return updatedDocument;
 }
 
 function getUsedOpenApiTags(paths: OpenAPIObject['paths']): Set<string> {
@@ -154,11 +213,13 @@ export async function setupSwagger(app: NestFastifyApplication, appConfig: AppCo
     documentConfig.addTag(tag.name, tag.description);
   }
 
-  const baseDocument = cleanupOpenApiDoc(
-    SwaggerModule.createDocument(app, documentConfig.build(), {
-      operationIdFactory: (_controllerKey, methodKey) => methodKey,
-    }),
-    { version: '3.1' },
+  const baseDocument = addLocaleHeaderParameter(
+    cleanupOpenApiDoc(
+      SwaggerModule.createDocument(app, documentConfig.build(), {
+        operationIdFactory: (_controllerKey, methodKey) => methodKey,
+      }),
+      { version: '3.1' },
+    ),
   );
 
   registerOpenApiRoute(app, '/openapi.json', baseDocument);

@@ -1,4 +1,6 @@
+import path from 'node:path';
 import fastifyHelmet from '@fastify/helmet';
+import fastifyStatic from '@fastify/static';
 import { RequestMethod, VersioningType } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
@@ -16,6 +18,17 @@ const DEFAULT_ALLOWED_METHODS = ALLOWED_CORS_METHODS.join(', ');
 const DEFAULT_ALLOWED_HEADERS = 'Content-Type, Authorization, X-Requested-With, X-Lang';
 const DEFAULT_EXPOSED_HEADERS = 'X-Request-Id';
 const CORS_PREFLIGHT_MAX_AGE_SECONDS = 600;
+const PUBLIC_ASSETS_DIRECTORY = path.join(process.cwd(), 'public');
+const PUBLIC_ASSET_ROUTES = [
+  'apple-touch-icon.png',
+  'favicon-96x96.png',
+  'favicon.ico',
+  'favicon.svg',
+  'robots.txt',
+  'site.webmanifest',
+  'web-app-manifest-192x192.png',
+  'web-app-manifest-512x512.png',
+] as const;
 
 function appendVaryHeader(reply: FastifyReply, value: string) {
   const currentValue = reply.getHeader('Vary');
@@ -124,6 +137,30 @@ function setupCors(app: NestFastifyApplication, appConfig: AppConfig) {
   });
 }
 
+function setupCrawlerHeaders(app: NestFastifyApplication) {
+  const fastify = app.getHttpAdapter().getInstance();
+
+  fastify.addHook('onRequest', (_request: FastifyRequest, reply: FastifyReply, done) => {
+    reply.header('X-Robots-Tag', 'noindex, nofollow');
+    done();
+  });
+}
+
+async function setupPublicAssets(app: NestFastifyApplication) {
+  const fastify = app.getHttpAdapter().getInstance();
+
+  await app.register(fastifyStatic, {
+    root: PUBLIC_ASSETS_DIRECTORY,
+    prefix: '/assets/',
+  });
+
+  for (const assetRoute of PUBLIC_ASSET_ROUTES) {
+    fastify.get(`/${assetRoute}`, (_request, reply) => {
+      reply.sendFile(assetRoute);
+    });
+  }
+}
+
 function getContentSecurityPolicy(appConfig: AppConfig) {
   const baseDirectives = {
     defaultSrc: ["'self'"],
@@ -192,6 +229,8 @@ export async function setupApp(
   });
 
   setupCors(app, appConfig);
+  setupCrawlerHeaders(app);
+  await setupPublicAssets(app);
 
   app.setGlobalPrefix(appConfig.apiPrefix, {
     exclude: [

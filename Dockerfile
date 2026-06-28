@@ -29,6 +29,7 @@ ENV NODE_ENV=production
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --prod --frozen-lockfile --ignore-scripts
 COPY --from=build /app/dist ./dist
+COPY public ./public
 
 EXPOSE 3000
 CMD ["node", "dist/main.js"]
