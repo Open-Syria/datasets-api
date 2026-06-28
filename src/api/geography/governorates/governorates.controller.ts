@@ -1,10 +1,9 @@
 import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
-import { ApiParam } from '@nestjs/swagger';
 import { I18n, type I18nContext } from 'nestjs-i18n';
 import { ZodValidationPipe } from 'nestjs-zod';
 import type { ApiResponse } from '../../../common/dto/api-response.dto';
 import { buildResponse } from '../../../common/helpers/build-response';
-import { ApiQueryDto } from '../../../decorators/api-query-dto';
+import { ApiParamDto, ApiQueryDto } from '../../../decorators/api-request-dto';
 import { ApiPublic } from '../../../decorators/http-decorators';
 import {
   governorateDetailResponseExample,
@@ -17,6 +16,8 @@ import {
   GovernorateListDto,
   type GovernorateListQuery,
   GovernorateListQueryDto,
+  type GovernorateParams,
+  GovernorateParamsDto,
 } from './governorates.dto';
 import { GovernoratesService } from './governorates.service';
 
@@ -51,11 +52,7 @@ export class GovernoratesController {
   }
 
   @Get(':governorateId')
-  @ApiParam({
-    name: 'governorateId',
-    description: 'Stable OpenSyria governorate ID.',
-    example: 'sy-damascus',
-  })
+  @ApiParamDto(GovernorateParamsDto)
   @ApiPublic({
     type: GovernorateDetailDto,
     tags: ['Geography'],
@@ -66,12 +63,12 @@ export class GovernoratesController {
     example: governorateDetailResponseExample,
   })
   async getGovernorate(
-    @Param('governorateId') governorateId: string,
+    @Param(new ZodValidationPipe(GovernorateParamsDto)) params: GovernorateParams,
     @I18n() i18n: I18nContext,
   ): Promise<ApiResponse<GovernorateDetail>> {
     return buildResponse({
       i18n,
-      data: await this.governoratesService.getGovernorate(governorateId),
+      data: await this.governoratesService.getGovernorate(params.governorateId),
       message: 'api.responses.geography.governorateFetched',
       fallbackMessage: 'Governorate fetched successfully',
     });

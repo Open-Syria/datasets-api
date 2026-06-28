@@ -5,7 +5,7 @@ import {
   DEFAULT_SORT_ORDER,
   SORT_ORDERS,
 } from '../../../constants/app.constants';
-import type { ApiQueryParameter } from '../../../decorators/api-query-dto';
+import type { ApiQueryParameter } from '../../../decorators/api-request-dto';
 import { offsetPaginationQuerySchema } from '../../schemas/pagination.schema';
 
 export const offsetPaginationQueryParameters = [

@@ -1,10 +1,9 @@
 import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
-import { ApiParam } from '@nestjs/swagger';
 import { I18n, type I18nContext } from 'nestjs-i18n';
 import { ZodValidationPipe } from 'nestjs-zod';
 import type { ApiResponse } from '../../../common/dto/api-response.dto';
 import { buildResponse } from '../../../common/helpers/build-response';
-import { ApiQueryDto } from '../../../decorators/api-query-dto';
+import { ApiParamDto, ApiQueryDto } from '../../../decorators/api-request-dto';
 import { ApiPublic } from '../../../decorators/http-decorators';
 import {
   subdistrictDetailResponseExample,
@@ -17,6 +16,8 @@ import {
   SubdistrictListDto,
   type SubdistrictListQuery,
   SubdistrictListQueryDto,
+  type SubdistrictParams,
+  SubdistrictParamsDto,
 } from './subdistricts.dto';
 import { SubdistrictsService } from './subdistricts.service';
 
@@ -51,11 +52,7 @@ export class SubdistrictsController {
   }
 
   @Get(':subdistrictId')
-  @ApiParam({
-    name: 'subdistrictId',
-    description: 'Stable OpenSyria subdistrict ID.',
-    example: 'sy-al-hasakah-al-hasakah-al-hasakeh',
-  })
+  @ApiParamDto(SubdistrictParamsDto)
   @ApiPublic({
     type: SubdistrictDetailDto,
     tags: ['Geography'],
@@ -66,12 +63,12 @@ export class SubdistrictsController {
     example: subdistrictDetailResponseExample,
   })
   async getSubdistrict(
-    @Param('subdistrictId') subdistrictId: string,
+    @Param(new ZodValidationPipe(SubdistrictParamsDto)) params: SubdistrictParams,
     @I18n() i18n: I18nContext,
   ): Promise<ApiResponse<SubdistrictDetail>> {
     return buildResponse({
       i18n,
-      data: await this.subdistrictsService.getSubdistrict(subdistrictId),
+      data: await this.subdistrictsService.getSubdistrict(params.subdistrictId),
       message: 'api.responses.geography.subdistrictFetched',
       fallbackMessage: 'Subdistrict fetched successfully',
     });
