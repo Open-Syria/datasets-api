@@ -181,9 +181,13 @@ pnpm run lint:fix
 pnpm run typecheck
 pnpm run test
 pnpm run test:e2e
+pnpm run test:integration:db
 pnpm run datasets:sync
+pnpm run datasets:sync:prod
 pnpm run read-model:import:geography
+pnpm run read-model:import:geography:prod
 pnpm run read-model:refresh:geography
+pnpm run read-model:refresh:geography:prod
 pnpm run smoke:geography
 pnpm run audit:prod
 pnpm run validate
@@ -211,6 +215,8 @@ Readiness includes Redis status, database read-model status, and dataset release
 GitHub Actions are configured for:
 
 - CI validation on pull requests and `main` pushes.
+- PostgreSQL read-model integration testing on pull requests and `main` pushes.
+- Docker image build verification.
 - CodeQL analysis for JavaScript and TypeScript.
 - dependency review on pull requests.
 - Dependabot updates for npm dependencies and GitHub Actions.

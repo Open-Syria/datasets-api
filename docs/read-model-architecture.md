@@ -89,3 +89,10 @@ For release-based deployments, sync and import can be chained:
 ```bash
 DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.0" DATABASE_ENABLED=true pnpm run read-model:refresh:geography
 ```
+
+For already-built Docker/runtime environments, use the `:prod` scripts so the container does not try to rebuild:
+
+```bash
+DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.0" pnpm run datasets:sync:prod
+DATABASE_ENABLED=true pnpm run read-model:import:geography:prod
+```
