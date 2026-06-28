@@ -1,10 +1,16 @@
 import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
-import { ApiParam, ApiQuery } from '@nestjs/swagger';
 import { I18n, type I18nContext } from 'nestjs-i18n';
 import { ZodValidationPipe } from 'nestjs-zod';
 import type { ApiResponse } from '../../../common/dto/api-response.dto';
+import type { ApiOffsetPaginatedResponse } from '../../../common/dto/offset-pagination/offset-paginated-response.dto';
+import { buildOffsetPaginatedResponse } from '../../../common/helpers/build-offset-paginated-response';
 import { buildResponse } from '../../../common/helpers/build-response';
+import { ApiParamDto, ApiQueryDto } from '../../../decorators/api-request-dto';
 import { ApiPublic } from '../../../decorators/http-decorators';
+import {
+  governorateDetailResponseExample,
+  governorateListResponseExample,
+} from '../geography.examples';
 import {
   type GovernorateDetail,
   GovernorateDetailDto,
@@ -12,8 +18,16 @@ import {
   GovernorateListDto,
   type GovernorateListQuery,
   GovernorateListQueryDto,
+  type GovernorateParams,
+  GovernorateParamsDto,
+  type GovernorateSummary,
 } from './governorates.dto';
 import { GovernoratesService } from './governorates.service';
+
+type GovernorateListResponse = ApiOffsetPaginatedResponse<
+  GovernorateSummary,
+  Omit<GovernorateList, 'items' | 'pagination'>
+>;
 
 @Controller('geography/governorates')
 export class GovernoratesController {
@@ -23,38 +37,7 @@ export class GovernoratesController {
   ) {}
 
   @Get()
-  @ApiQuery({
-    name: 'page',
-    required: false,
-    description: 'Page number for offset pagination.',
-    example: 1,
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-    description: 'Maximum number of records to return.',
-    example: 20,
-  })
-  @ApiQuery({
-    name: 'q',
-    required: false,
-    description: 'Search term matched against ID, names, ISO code, and source status.',
-    example: 'damascus',
-  })
-  @ApiQuery({
-    name: 'order',
-    required: false,
-    enum: ['asc', 'desc'],
-    description: 'Sort order by English display name.',
-    example: 'asc',
-  })
-  @ApiQuery({
-    name: 'sourceStatus',
-    required: false,
-    enum: ['pending_release', 'seed', 'released', 'deprecated'],
-    description: 'Filter records by source review or release status.',
-    example: 'released',
-  })
+  @ApiQueryDto(GovernorateListQueryDto)
   @ApiPublic({
     type: GovernorateListDto,
     tags: ['Geography'],
@@ -62,25 +45,31 @@ export class GovernoratesController {
     description:
       'Returns governorate records from the released geography dataset. The endpoint is available before the first data release and returns an empty list until a verified data-geography release is published.',
     responseName: 'GovernorateListResponse',
+    example: governorateListResponseExample,
   })
   async listGovernorates(
     @Query(new ZodValidationPipe(GovernorateListQueryDto)) query: GovernorateListQuery,
     @I18n() i18n: I18nContext,
-  ): Promise<ApiResponse<GovernorateList>> {
-    return buildResponse({
+  ): Promise<GovernorateListResponse> {
+    const result = await this.governoratesService.listGovernorates(query);
+
+    return buildOffsetPaginatedResponse({
       i18n,
-      data: await this.governoratesService.listGovernorates(query),
+      items: result.items,
+      totalRecords: result.pagination.totalRecords,
+      options: query,
+      extraData: {
+        count: result.count,
+        dataset: result.dataset,
+        release: result.release,
+      },
       message: 'api.responses.geography.governoratesFetched',
       fallbackMessage: 'Governorates fetched successfully',
     });
   }
 
   @Get(':governorateId')
-  @ApiParam({
-    name: 'governorateId',
-    description: 'Stable OpenSyria governorate ID.',
-    example: 'sy-damascus',
-  })
+  @ApiParamDto(GovernorateParamsDto)
   @ApiPublic({
     type: GovernorateDetailDto,
     tags: ['Geography'],
@@ -88,14 +77,15 @@ export class GovernoratesController {
     description:
       'Returns one released governorate record with its dataset release context and source attribution.',
     responseName: 'GovernorateDetailResponse',
+    example: governorateDetailResponseExample,
   })
   async getGovernorate(
-    @Param('governorateId') governorateId: string,
+    @Param(new ZodValidationPipe(GovernorateParamsDto)) params: GovernorateParams,
     @I18n() i18n: I18nContext,
   ): Promise<ApiResponse<GovernorateDetail>> {
     return buildResponse({
       i18n,
-      data: await this.governoratesService.getGovernorate(governorateId),
+      data: await this.governoratesService.getGovernorate(params.governorateId),
       message: 'api.responses.geography.governorateFetched',
       fallbackMessage: 'Governorate fetched successfully',
     });

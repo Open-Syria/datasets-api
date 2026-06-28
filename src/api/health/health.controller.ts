@@ -1,4 +1,5 @@
-import { Controller, Get, Inject, VERSION_NEUTRAL } from '@nestjs/common';
+import { Controller, Get, HttpStatus, Inject, Res, VERSION_NEUTRAL } from '@nestjs/common';
+import type { FastifyReply } from 'fastify';
 import { I18n, type I18nContext } from 'nestjs-i18n';
 import type { ApiResponse } from '../../common/dto/api-response.dto';
 import { buildResponse } from '../../common/helpers/build-response';
@@ -27,7 +28,7 @@ export class HealthController {
     tags: ['Health'],
     summary: 'Get API health',
     description:
-      'Returns the public API health status, current environment, uptime, and Redis availability.',
+      'Returns the public API health status, current environment, uptime, Redis availability, database read-model availability, and dataset release availability.',
     responseName: 'HealthResponse',
   })
   async getHealth(@I18n() i18n: I18nContext): Promise<ApiResponse<HealthResponseData>> {
@@ -63,13 +64,25 @@ export class HealthController {
     type: HealthResponseDataDto,
     tags: ['Health'],
     summary: 'Get readiness health',
-    description: 'Returns whether the API runtime dependencies and dataset releases are ready.',
+    description:
+      'Returns whether the API runtime dependencies, database read model, and dataset releases are ready.',
     responseName: 'ReadinessResponse',
   })
-  async getReadiness(@I18n() i18n: I18nContext): Promise<ApiResponse<HealthResponseData>> {
+  async getReadiness(
+    @I18n() i18n: I18nContext,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<ApiResponse<HealthResponseData>> {
+    const data = await this.healthService.getReadiness();
+    const status = this.healthService.isReady(data)
+      ? HttpStatus.OK
+      : HttpStatus.SERVICE_UNAVAILABLE;
+
+    reply.status(status);
+
     return buildResponse({
       i18n,
-      data: await this.healthService.getReadiness(),
+      data,
+      status,
       message: 'api.responses.health.ready',
       fallbackMessage: 'API readiness returned successfully',
     });
