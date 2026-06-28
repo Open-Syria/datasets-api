@@ -33,9 +33,16 @@ export const DEFAULT_PAGE_LIMIT_OPTION = 'TEN' satisfies PageLimitOption;
 export const DEFAULT_PAGE_LIMIT = PAGE_LIMIT_VALUES[DEFAULT_PAGE_LIMIT_OPTION];
 export const MAX_PAGE_LIMIT = PAGE_LIMIT_VALUES.FIFTY;
 
+export const SORT_ORDER_OPTIONS = ['ASC', 'DESC'] as const;
+export type SortOrderOption = (typeof SORT_ORDER_OPTIONS)[number];
+export const SORT_ORDER_VALUES = {
+  ASC: 'asc',
+  DESC: 'desc',
+} as const satisfies Record<SortOrderOption, string>;
 export const SORT_ORDERS = ['asc', 'desc'] as const;
 export type SortOrder = (typeof SORT_ORDERS)[number];
-export const DEFAULT_SORT_ORDER = 'asc' satisfies SortOrder;
+export const DEFAULT_SORT_ORDER_OPTION = 'ASC' satisfies SortOrderOption;
+export const DEFAULT_SORT_ORDER = SORT_ORDER_VALUES[DEFAULT_SORT_ORDER_OPTION];
 
 export const loggingRedactPaths = [
   'req.headers.authorization',

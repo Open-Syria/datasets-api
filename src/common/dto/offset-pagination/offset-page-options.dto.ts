@@ -2,9 +2,9 @@ import { createZodDto } from 'nestjs-zod';
 import {
   DEFAULT_CURRENT_PAGE,
   DEFAULT_PAGE_LIMIT_OPTION,
-  DEFAULT_SORT_ORDER,
+  DEFAULT_SORT_ORDER_OPTION,
   PAGE_LIMIT_OPTIONS,
-  SORT_ORDERS,
+  SORT_ORDER_OPTIONS,
 } from '../../../constants/app.constants';
 import type { ApiQueryParameter } from '../../../decorators/api-request-dto';
 import { offsetPaginationQuerySchema } from '../../schemas/pagination.schema';
@@ -32,9 +32,9 @@ export const offsetPaginationQueryParameters = [
   {
     name: 'order',
     required: false,
-    enum: SORT_ORDERS,
-    description: 'Sort order by English display name.',
-    example: DEFAULT_SORT_ORDER,
+    enum: SORT_ORDER_OPTIONS,
+    description: 'Sort order by English display name. ASC=ascending, DESC=descending.',
+    example: DEFAULT_SORT_ORDER_OPTION,
   },
 ] as const satisfies readonly ApiQueryParameter[];
 

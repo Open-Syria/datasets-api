@@ -389,6 +389,23 @@ describe('AppController (e2e)', () => {
     });
   });
 
+  it('accepts named sort order options', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/geography/governorates?order=DESC',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      success: true,
+      data: {
+        pagination: {
+          currentPage: 1,
+        },
+      },
+    });
+  });
+
   it('validates governorate list query parameters', async () => {
     const response = await app.inject({
       method: 'GET',
@@ -596,6 +613,11 @@ describe('AppController (e2e)', () => {
       governorateQueryParameters.find((parameter) => parameter.name === 'limit')?.schema,
     ).toMatchObject({
       enum: ['TEN', 'THIRTY_FIVE', 'FIFTY'],
+    });
+    expect(
+      governorateQueryParameters.find((parameter) => parameter.name === 'order')?.schema,
+    ).toMatchObject({
+      enum: ['ASC', 'DESC'],
     });
     expect(
       getQueryParameters(geographyDocument.paths['/api/v1/geography/districts']).map(
