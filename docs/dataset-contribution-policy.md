@@ -13,6 +13,17 @@ The maintainer owns:
 
 Community contributions should focus on improving the approved datasets, not changing the product direction of the data model.
 
+## Table of Contents
+
+- [Default Allowed Contributions](#default-allowed-contributions)
+- [Not Accepted as Normal Pull Requests](#not-accepted-as-normal-pull-requests)
+- [Schema Evolution](#schema-evolution)
+- [Example: University Coordinates](#example-university-coordinates)
+- [Contribution Review Checklist](#contribution-review-checklist)
+- [AI Assistance](#ai-assistance)
+- [Recommended Dataset Repo Files](#recommended-dataset-repo-files)
+- [Recommended Labels](#recommended-labels)
+
 ## Default Allowed Contributions
 
 Dataset repositories should accept pull requests for:
@@ -144,4 +155,3 @@ blocked
 ```
 
 The `schema-proposal` label should not imply acceptance. It only means the proposal is being evaluated.
-

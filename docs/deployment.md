@@ -2,6 +2,15 @@
 
 `datasets-api` is a standalone NestJS service. It serves a public read-only API and should be deployed separately from the OpenSyria website and any future admin or subscription backend.
 
+## Table of Contents
+
+- [Runtime Requirements](#runtime-requirements)
+- [Release Commands](#release-commands)
+- [Runtime Commands](#runtime-commands)
+- [Docker](#docker)
+- [Health Checks](#health-checks)
+- [Production Notes](#production-notes)
+
 ## Runtime Requirements
 
 - Node.js 24 or the provided Docker image

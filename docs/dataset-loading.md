@@ -6,6 +6,17 @@ Each dataset repository owns its source files, contribution workflow, validation
 
 The manifest contract is documented in [`release-manifest.md`](./release-manifest.md).
 
+## Table of Contents
+
+- [Recommended Flow](#recommended-flow)
+- [Generated Exports](#generated-exports)
+- [Current Loader](#current-loader)
+- [Syncing GitHub Releases](#syncing-github-releases)
+- [Local Geography Smoke Test](#local-geography-smoke-test)
+- [Initial Implementation](#initial-implementation)
+- [Why Not Read `main` Directly?](#why-not-read-main-directly)
+- [Future Runtime Options](#future-runtime-options)
+
 ## Recommended Flow
 
 1. A dataset repository stores canonical source data and source attribution.

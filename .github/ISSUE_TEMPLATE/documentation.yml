@@ -1,0 +1,33 @@
+name: Documentation Correction
+description: Report a typo, stale command, broken link, or unclear documentation.
+title: 'docs: '
+labels:
+  - documentation
+body:
+  - type: textarea
+    id: location
+    attributes:
+      label: Location
+      description: Which file, section, route, or page needs correction?
+      placeholder: README.md, docs/deployment.md, /docs, /openapi/geography.json
+    validations:
+      required: true
+  - type: textarea
+    id: issue
+    attributes:
+      label: Issue
+      description: What is wrong, stale, confusing, or missing?
+    validations:
+      required: true
+  - type: textarea
+    id: suggested
+    attributes:
+      label: Suggested Correction
+      description: Optional replacement text or suggested direction.
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: This is about repository/API documentation, not a dataset record correction.
+          required: true
