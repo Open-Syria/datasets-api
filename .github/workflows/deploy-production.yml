@@ -153,18 +153,18 @@ jobs:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           audience: ${{ secrets.TS_AUDIENCE }}
           tags: tag:ci
-          ping: ${{ vars.PROD_DEPLOY_HOST }}
+          ping: ${{ vars.DEPLOY_HOST }}
 
       - name: Validate deploy host variable
         shell: bash
         env:
-          DEPLOY_HOST: ${{ vars.PROD_DEPLOY_HOST }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
         run: test -n "$DEPLOY_HOST"
 
       - name: Validate deploy user variable
         shell: bash
         env:
-          DEPLOY_USER: ${{ vars.PROD_DEPLOY_USER }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
         run: test -n "$DEPLOY_USER"
 
       - name: Validate SSH private key secret
@@ -194,14 +194,14 @@ jobs:
       - name: Validate SSH known host entry
         shell: bash
         env:
-          DEPLOY_HOST: ${{ vars.PROD_DEPLOY_HOST }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
         run: ssh-keygen -F "$DEPLOY_HOST" -f ~/.ssh/known_hosts >/dev/null
 
       - name: Check SSH access
         shell: bash
         env:
-          DEPLOY_HOST: ${{ vars.PROD_DEPLOY_HOST }}
-          DEPLOY_USER: ${{ vars.PROD_DEPLOY_USER }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
         run: |
           ssh -i ~/.ssh/opensyria_deploy \
             -o BatchMode=yes \
@@ -213,8 +213,8 @@ jobs:
       - name: Copy deployment files
         shell: bash
         env:
-          DEPLOY_HOST: ${{ vars.PROD_DEPLOY_HOST }}
-          DEPLOY_USER: ${{ vars.PROD_DEPLOY_USER }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
         run: |
           tar -C deploy/datasets-api -czf - . \
             | ssh -i ~/.ssh/opensyria_deploy \
@@ -227,8 +227,8 @@ jobs:
       - name: Deploy image
         shell: bash
         env:
-          DEPLOY_HOST: ${{ vars.PROD_DEPLOY_HOST }}
-          DEPLOY_USER: ${{ vars.PROD_DEPLOY_USER }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
           GHCR_USERNAME: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUNTIME_IMAGE: ${{ needs.build.outputs.runtime-image }}
@@ -247,8 +247,8 @@ jobs:
       - name: Verify private health
         shell: bash
         env:
-          DEPLOY_HOST: ${{ vars.PROD_DEPLOY_HOST }}
-          DEPLOY_USER: ${{ vars.PROD_DEPLOY_USER }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
         run: |
           ssh -i ~/.ssh/opensyria_deploy \
             -o BatchMode=yes \

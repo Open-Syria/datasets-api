@@ -147,8 +147,8 @@ DEPLOY_SSH_KNOWN_HOSTS
 Required production environment variables:
 
 ```text
-PROD_DEPLOY_HOST
-PROD_DEPLOY_USER
+DEPLOY_HOST
+DEPLOY_USER
 ```
 
 Secret placement recommendation:
