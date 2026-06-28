@@ -48,7 +48,7 @@ services:
       - '127.0.0.1:${API_PROXY_PORT:-3000}:80'
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./state/nginx-upstream.conf:/etc/nginx/conf.d/upstream.conf:ro
+      - ./state/nginx-upstream.conf:/etc/nginx/api-upstream.inc:ro
     networks:
       - backend
     healthcheck:

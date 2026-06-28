@@ -48,7 +48,7 @@ set_env_var() {
 
 write_upstream() {
   slot="$1"
-  printf 'set $opensyria_api_upstream http://api-%s:3000;\n' "$slot" > state/nginx-upstream.conf
+  printf 'set $%s http://api-%s:3000;\n' opensyria_api_upstream "$slot" > state/nginx-upstream.conf
 }
 
 wait_for_service_health() {
@@ -110,9 +110,7 @@ target_key="$(printf '%s' "$target_slot" | tr '[:lower:]' '[:upper:]')"
 set_env_var "API_${target_key}_IMAGE" "$runtime_image"
 set_env_var "MIGRATIONS_IMAGE" "$migrations_image"
 
-if [ ! -f state/nginx-upstream.conf ]; then
-  write_upstream "${current_slot:-$target_slot}"
-fi
+write_upstream "${current_slot:-$target_slot}"
 
 if [ -n "${GHCR_USERNAME:-}" ] && [ -n "${GHCR_TOKEN:-}" ]; then
   printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
