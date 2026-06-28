@@ -1,10 +1,12 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
+import { buildOffsetPaginationQueryParameters } from '../../../common/dto/offset-pagination/offset-page-options.dto';
 import { sourceAttributionSchema } from '../../../common/dto/source-attribution.dto';
 import {
   offsetPaginationQuerySchema,
   offsetPaginationSchema,
 } from '../../../common/schemas/pagination.schema';
+import type { ApiParamParameter, ApiQueryParameter } from '../../../decorators/api-request-dto';
 
 export const localityKindSchema = z.enum(['city', 'town', 'locality']);
 
@@ -63,6 +65,10 @@ export const localityListQuerySchema = offsetPaginationQuerySchema.extend({
   sourceStatus: z.enum(['pending_release', 'seed', 'released', 'deprecated']).optional(),
 });
 
+export const localityParamsSchema = z.object({
+  localityId: z.string().trim().min(1),
+});
+
 export const localityDatasetContextSchema = z.object({
   id: z.literal('opensyria-geography'),
   repository: z.literal('data-geography'),
@@ -93,12 +99,62 @@ export const localityDetailSchema = z.object({
 
 export class LocalitySummaryDto extends createZodDto(localitySummarySchema) {}
 export class LocalityRecordDto extends createZodDto(localityRecordSchema) {}
-export class LocalityListQueryDto extends createZodDto(localityListQuerySchema) {}
+export class LocalityParamsDto extends createZodDto(localityParamsSchema) {
+  static readonly openApiParamParameters = [
+    {
+      name: 'localityId',
+      description: 'Stable OpenSyria locality ID.',
+      example: 'sy-al-hasakah-al-hasakah-al-hasakeh-abiad',
+    },
+  ] satisfies readonly ApiParamParameter[];
+}
+export class LocalityListQueryDto extends createZodDto(localityListQuerySchema) {
+  static readonly openApiQueryParameters = [
+    ...buildOffsetPaginationQueryParameters({
+      searchDescription:
+        'Search term matched against IDs, names, aliases, external IDs, source IDs, kind, and source status.',
+      searchExample: 'hasakeh',
+    }),
+    {
+      name: 'governorateId',
+      required: false,
+      description: 'Filter localities by stable OpenSyria governorate ID.',
+      example: 'sy-al-hasakah',
+    },
+    {
+      name: 'districtId',
+      required: false,
+      description: 'Filter localities by stable OpenSyria district ID.',
+      example: 'sy-al-hasakah-al-hasakah',
+    },
+    {
+      name: 'subdistrictId',
+      required: false,
+      description: 'Filter localities by stable OpenSyria subdistrict ID.',
+      example: 'sy-al-hasakah-al-hasakah-al-hasakeh',
+    },
+    {
+      name: 'kind',
+      required: false,
+      enum: ['city', 'town', 'locality'],
+      description: 'Filter records by locality kind.',
+      example: 'city',
+    },
+    {
+      name: 'sourceStatus',
+      required: false,
+      enum: ['pending_release', 'seed', 'released', 'deprecated'],
+      description: 'Filter records by source review or release status.',
+      example: 'released',
+    },
+  ] satisfies readonly ApiQueryParameter[];
+}
 export class LocalityListDto extends createZodDto(localityListSchema) {}
 export class LocalityDetailDto extends createZodDto(localityDetailSchema) {}
 
 export type LocalitySummary = z.infer<typeof localitySummarySchema>;
 export type LocalityRecord = z.infer<typeof localityRecordSchema>;
+export type LocalityParams = z.infer<typeof localityParamsSchema>;
 export type LocalityListQuery = z.infer<typeof localityListQuerySchema>;
 export type LocalityList = z.infer<typeof localityListSchema>;
 export type LocalityDetail = z.infer<typeof localityDetailSchema>;

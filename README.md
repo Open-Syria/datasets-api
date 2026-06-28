@@ -17,6 +17,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/dataset-contribution-policy.md]
 ```bash
 corepack enable pnpm
 pnpm install
+pnpm run db:generate
 ```
 
 ## Development
@@ -106,7 +107,9 @@ Datasets live in separate repositories. This API should consume versioned releas
 
 Local release manifests and artifacts are read from `DATASETS_RELEASES_DIR`, which defaults to `data/releases`.
 
-The first wired artifacts are the geography governorates, districts, subdistricts, and localities JSON files. When a synced `opensyria-geography` release includes matching artifacts, the matching geography endpoints read the local files after checksum and size verification.
+Dataset repositories can publish multiple generated formats, such as JSON, NDJSON, CSV, SQL, YAML, XML, and later GeoJSON or SQLite. JSON remains the primary API ingestion format. The other formats are public distribution artifacts for downloads, spreadsheets, database imports, review, and external tooling.
+
+The first wired artifacts are the geography governorates, districts, subdistricts, and localities JSON files. When a synced `opensyria-geography` release includes matching artifacts, the API verifies those files by checksum, size, and schema before using them.
 
 To sync pinned GitHub Release artifacts into the local release directory:
 
@@ -130,6 +133,36 @@ pnpm run smoke:geography
 
 The smoke command expects `../data-geography/dist/release` by default. Override it with `GEOGRAPHY_RELEASE_DIR` when needed.
 
+## Read Model
+
+Release artifacts are the public data contract. The API database is the internal serving layer for production filters, relationships, pagination, search, and future PostGIS queries.
+
+The intended production flow is:
+
+```text
+dataset repo canonical JSON -> generated release artifacts -> verified JSON artifacts -> PostgreSQL/PostGIS read model -> public API responses
+```
+
+Geography endpoints prefer the database read model when `DATABASE_ENABLED=true` and an imported geography release exists. During early seeding, endpoints can still fall back to verified JSON artifacts directly. Production should enable the database read model and require dataset releases:
+
+```text
+DATABASE_ENABLED=true
+DATABASE_REQUIRED=true
+DATASETS_REQUIRE_RELEASES=true
+REDIS_REQUIRED=true
+```
+
+Local database dependencies:
+
+```bash
+docker compose up -d postgres redis
+pnpm run db:generate
+pnpm run db:migrate
+DATASETS_RELEASES_DIR=../data-geography/dist/release DATABASE_ENABLED=true pnpm run read-model:import:geography
+```
+
+See [docs/read-model-architecture.md](docs/read-model-architecture.md).
+
 ## Scripts
 
 ```bash
@@ -138,12 +171,23 @@ pnpm run check:fix
 pnpm run format
 pnpm run format:check
 pnpm run build
+pnpm run db:generate
+pnpm run db:migrate
+pnpm run db:migrate:deploy
+pnpm run db:push
+pnpm run db:studio
 pnpm run lint
 pnpm run lint:fix
 pnpm run typecheck
 pnpm run test
 pnpm run test:e2e
+pnpm run test:integration:db
 pnpm run datasets:sync
+pnpm run datasets:sync:prod
+pnpm run read-model:import:geography
+pnpm run read-model:import:geography:prod
+pnpm run read-model:refresh:geography
+pnpm run read-model:refresh:geography:prod
 pnpm run smoke:geography
 pnpm run audit:prod
 pnpm run validate
@@ -155,7 +199,7 @@ pnpm run validate
 - `GET /health/ready` checks runtime dependencies and dataset release readiness.
 - `GET /health` returns the aggregate public health payload.
 
-Readiness includes Redis status and dataset release manifest status. Redis and dataset releases can be optional or required through environment variables.
+Readiness includes Redis status, database read-model status, and dataset release manifest status. Redis, database, and dataset releases can be optional or required through environment variables. `/health/ready` returns HTTP 503 when a required dependency is unavailable.
 
 ## Tooling
 
@@ -171,6 +215,8 @@ Readiness includes Redis status and dataset release manifest status. Redis and d
 GitHub Actions are configured for:
 
 - CI validation on pull requests and `main` pushes.
+- PostgreSQL read-model integration testing on pull requests and `main` pushes.
+- Docker image build verification.
 - CodeQL analysis for JavaScript and TypeScript.
 - dependency review on pull requests.
 - Dependabot updates for npm dependencies and GitHub Actions.

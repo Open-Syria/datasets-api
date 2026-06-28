@@ -1,10 +1,12 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
+import { buildOffsetPaginationQueryParameters } from '../../../common/dto/offset-pagination/offset-page-options.dto';
 import { sourceAttributionSchema } from '../../../common/dto/source-attribution.dto';
 import {
   offsetPaginationQuerySchema,
   offsetPaginationSchema,
 } from '../../../common/schemas/pagination.schema';
+import type { ApiParamParameter, ApiQueryParameter } from '../../../decorators/api-request-dto';
 
 export const districtGeographicPointSchema = z.object({
   latitude: z.number().min(-90).max(90),
@@ -36,6 +38,10 @@ export const districtListQuerySchema = offsetPaginationQuerySchema.extend({
   sourceStatus: z.enum(['pending_release', 'seed', 'released', 'deprecated']).optional(),
 });
 
+export const districtParamsSchema = z.object({
+  districtId: z.string().trim().min(1),
+});
+
 export const districtDatasetContextSchema = z.object({
   id: z.literal('opensyria-geography'),
   repository: z.literal('data-geography'),
@@ -65,11 +71,42 @@ export const districtDetailSchema = z.object({
 });
 
 export class DistrictSummaryDto extends createZodDto(districtSummarySchema) {}
-export class DistrictListQueryDto extends createZodDto(districtListQuerySchema) {}
+export class DistrictParamsDto extends createZodDto(districtParamsSchema) {
+  static readonly openApiParamParameters = [
+    {
+      name: 'districtId',
+      description: 'Stable OpenSyria district ID.',
+      example: 'sy-damascus-damascus',
+    },
+  ] satisfies readonly ApiParamParameter[];
+}
+export class DistrictListQueryDto extends createZodDto(districtListQuerySchema) {
+  static readonly openApiQueryParameters = [
+    ...buildOffsetPaginationQueryParameters({
+      searchDescription:
+        'Search term matched against ID, names, governorate ID, and source status.',
+      searchExample: 'damascus',
+    }),
+    {
+      name: 'governorateId',
+      required: false,
+      description: 'Filter districts by stable OpenSyria governorate ID.',
+      example: 'sy-damascus',
+    },
+    {
+      name: 'sourceStatus',
+      required: false,
+      enum: ['pending_release', 'seed', 'released', 'deprecated'],
+      description: 'Filter records by source review or release status.',
+      example: 'released',
+    },
+  ] satisfies readonly ApiQueryParameter[];
+}
 export class DistrictListDto extends createZodDto(districtListSchema) {}
 export class DistrictDetailDto extends createZodDto(districtDetailSchema) {}
 
 export type DistrictSummary = z.infer<typeof districtSummarySchema>;
+export type DistrictParams = z.infer<typeof districtParamsSchema>;
 export type DistrictListQuery = z.infer<typeof districtListQuerySchema>;
 export type DistrictList = z.infer<typeof districtListSchema>;
 export type DistrictDetail = z.infer<typeof districtDetailSchema>;
