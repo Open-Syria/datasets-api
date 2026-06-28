@@ -155,6 +155,30 @@ jobs:
           tags: tag:ci
           ping: ${{ vars.PROD_DEPLOY_HOST }}
 
+      - name: Validate deploy host variable
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ vars.PROD_DEPLOY_HOST }}
+        run: test -n "$DEPLOY_HOST"
+
+      - name: Validate deploy user variable
+        shell: bash
+        env:
+          DEPLOY_USER: ${{ vars.PROD_DEPLOY_USER }}
+        run: test -n "$DEPLOY_USER"
+
+      - name: Validate SSH private key secret
+        shell: bash
+        env:
+          DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+        run: test -n "$DEPLOY_SSH_PRIVATE_KEY"
+
+      - name: Validate SSH known hosts secret
+        shell: bash
+        env:
+          DEPLOY_SSH_KNOWN_HOSTS: ${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}
+        run: test -n "$DEPLOY_SSH_KNOWN_HOSTS"
+
       - name: Install SSH key
         shell: bash
         env:
@@ -167,6 +191,25 @@ jobs:
           printf '%s\n' "$DEPLOY_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
+      - name: Validate SSH known host entry
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ vars.PROD_DEPLOY_HOST }}
+        run: ssh-keygen -F "$DEPLOY_HOST" -f ~/.ssh/known_hosts >/dev/null
+
+      - name: Check SSH access
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ vars.PROD_DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.PROD_DEPLOY_USER }}
+        run: |
+          ssh -i ~/.ssh/opensyria_deploy \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            'test -w /srv/opensyria/datasets-api'
+
       - name: Copy deployment files
         shell: bash
         env:
@@ -174,7 +217,11 @@ jobs:
           DEPLOY_USER: ${{ vars.PROD_DEPLOY_USER }}
         run: |
           tar -C deploy/datasets-api -czf - . \
-            | ssh -i ~/.ssh/opensyria_deploy -o StrictHostKeyChecking=yes "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            | ssh -i ~/.ssh/opensyria_deploy \
+                -o BatchMode=yes \
+                -o IdentitiesOnly=yes \
+                -o StrictHostKeyChecking=yes \
+                "${DEPLOY_USER}@${DEPLOY_HOST}" \
                 'mkdir -p /srv/opensyria/datasets-api && tar -xzf - -C /srv/opensyria/datasets-api && chmod 700 /srv/opensyria/datasets-api/bin/*.sh'
 
       - name: Deploy image
@@ -190,7 +237,11 @@ jobs:
           printf -v ghcr_username_q '%q' "$GHCR_USERNAME"
           printf -v ghcr_token_q '%q' "$GHCR_TOKEN"
 
-          ssh -i ~/.ssh/opensyria_deploy -o StrictHostKeyChecking=yes "${DEPLOY_USER}@${DEPLOY_HOST}" \
+          ssh -i ~/.ssh/opensyria_deploy \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
             "cd /srv/opensyria/datasets-api && GHCR_USERNAME=${ghcr_username_q} GHCR_TOKEN=${ghcr_token_q} bin/deploy-blue-green.sh '${RUNTIME_IMAGE}' '${MIGRATIONS_IMAGE}'"
 
       - name: Verify private health
@@ -199,5 +250,9 @@ jobs:
           DEPLOY_HOST: ${{ vars.PROD_DEPLOY_HOST }}
           DEPLOY_USER: ${{ vars.PROD_DEPLOY_USER }}
         run: |
-          ssh -i ~/.ssh/opensyria_deploy -o StrictHostKeyChecking=yes "${DEPLOY_USER}@${DEPLOY_HOST}" \
+          ssh -i ~/.ssh/opensyria_deploy \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
             'cd /srv/opensyria/datasets-api && bin/check.sh'
