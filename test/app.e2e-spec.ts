@@ -83,6 +83,7 @@ type OpenApiParameterObject = {
 
 type OpenApiPathItem = {
   get?: {
+    tags?: string[];
     parameters?: OpenApiParameterObject[];
     responses?: Record<
       string,
@@ -108,6 +109,10 @@ function getHeaderParameters(pathItem: unknown): OpenApiParameterObject[] {
   return ((pathItem as OpenApiPathItem).get?.parameters ?? []).filter(
     (parameter) => parameter.in === 'header',
   );
+}
+
+function getOperationTags(pathItem: unknown): string[] {
+  return (pathItem as OpenApiPathItem).get?.tags ?? [];
 }
 
 function getPathParameters(pathItem: unknown): OpenApiParameterObject[] {
@@ -664,6 +669,25 @@ describe('AppController (e2e)', () => {
     expect(defaultDocument.tags?.map((tag) => tag.name)).not.toEqual(
       expect.arrayContaining(['Universities', 'Transport', 'Heritage', 'Telecom']),
     );
+    for (const pathItem of Object.values(defaultDocument.paths)) {
+      const operationTags = getOperationTags(pathItem);
+
+      expect(operationTags).toEqual([...new Set(operationTags)]);
+      expect(operationTags).not.toEqual(
+        expect.arrayContaining([
+          'Datasets',
+          'Governorates',
+          'Districts',
+          'Subdistricts',
+          'Localities',
+        ]),
+      );
+    }
+    expect(getOperationTags(defaultDocument.paths['/health'])).toEqual(['Health']);
+    expect(getOperationTags(defaultDocument.paths['/api/v1/releases'])).toEqual(['Releases']);
+    expect(getOperationTags(defaultDocument.paths['/api/v1/geography/governorates'])).toEqual([
+      'Geography',
+    ]);
     expect(defaultDocument.paths).toHaveProperty('/health');
     expect(defaultDocument.paths).toHaveProperty('/health/live');
     expect(defaultDocument.paths).toHaveProperty('/health/ready');

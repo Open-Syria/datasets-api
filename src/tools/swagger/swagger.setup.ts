@@ -216,6 +216,7 @@ export async function setupSwagger(app: NestFastifyApplication, appConfig: AppCo
   const baseDocument = addLocaleHeaderParameter(
     cleanupOpenApiDoc(
       SwaggerModule.createDocument(app, documentConfig.build(), {
+        autoTagControllers: false,
         operationIdFactory: (_controllerKey, methodKey) => methodKey,
       }),
       { version: '3.1' },
