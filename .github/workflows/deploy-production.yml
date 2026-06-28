@@ -46,7 +46,7 @@ jobs:
         run: pnpm run validate
 
       - name: Check release readiness
-        run: pnpm run release:check -- --geography-release "$GEOGRAPHY_RELEASE" --skip-build
+        run: pnpm run release:check -- --geography-release "$GEOGRAPHY_RELEASE"
 
   build:
     name: Build And Push Images
