@@ -23,7 +23,7 @@ export const datasetSummarySchema = z.object({
   category: datasetCategorySchema,
   repository: z.string().min(1),
   status: datasetStatusSchema,
-  plannedEndpoints: z.array(z.string().min(1)),
+  apiEndpoints: z.array(z.string().min(1)),
   version: z.string().nullable(),
   updatedAt: z.string().datetime().nullable(),
 });

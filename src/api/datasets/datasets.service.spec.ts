@@ -67,6 +67,16 @@ describe('DatasetsService', () => {
       version: null,
       updatedAt: null,
     });
+    expect(result.items[0]?.apiEndpoints).toEqual(
+      expect.arrayContaining([
+        '/api/v1/geography/governorates',
+        '/api/v1/geography/governorates/{governorateId}',
+      ]),
+    );
+    expect(result.items[1]).toMatchObject({
+      id: 'opensyria-universities',
+      apiEndpoints: [],
+    });
   });
 
   it('enriches released datasets from loaded release manifests', async () => {

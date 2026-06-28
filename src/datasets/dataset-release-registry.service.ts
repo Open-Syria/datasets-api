@@ -11,6 +11,64 @@ export type DatasetReleaseRegistryHealth = {
   count: number;
 };
 
+type SemverParts = {
+  major: number;
+  minor: number;
+  patch: number;
+};
+
+function parseSemverTag(version: string): SemverParts | undefined {
+  const match = /^v?(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/.exec(version);
+
+  if (!match) {
+    return undefined;
+  }
+
+  return {
+    major: Number(match[1]),
+    minor: Number(match[2]),
+    patch: Number(match[3]),
+  };
+}
+
+function compareSemver(first: SemverParts, second: SemverParts) {
+  return first.major - second.major || first.minor - second.minor || first.patch - second.patch;
+}
+
+function getManifestTimestamp(manifest: DatasetReleaseManifest) {
+  return Date.parse(manifest.release.publishedAt ?? manifest.generatedAt);
+}
+
+function compareManifests(first: DatasetReleaseManifest, second: DatasetReleaseManifest) {
+  const firstSemver = parseSemverTag(first.release.version);
+  const secondSemver = parseSemverTag(second.release.version);
+
+  if (firstSemver && secondSemver) {
+    const semverComparison = compareSemver(firstSemver, secondSemver);
+
+    if (semverComparison !== 0) {
+      return semverComparison;
+    }
+  }
+
+  return getManifestTimestamp(first) - getManifestTimestamp(second);
+}
+
+function selectLatestManifestRegistrations(registrations: LoadedDatasetReleaseManifest[]) {
+  const latestByDataset = new Map<string, LoadedDatasetReleaseManifest>();
+
+  for (const registration of registrations) {
+    const datasetId = registration.manifest.dataset.id;
+    const current = latestByDataset.get(datasetId);
+
+    if (!current || compareManifests(current.manifest, registration.manifest) < 0) {
+      latestByDataset.set(datasetId, registration);
+    }
+  }
+
+  return [...latestByDataset.values()];
+}
+
 @Injectable()
 export class DatasetReleaseRegistryService implements OnModuleInit {
   private manifests: LoadedDatasetReleaseManifest[] = [];
@@ -23,7 +81,9 @@ export class DatasetReleaseRegistryService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    this.manifests = await this.localDatasetManifestLoader.listManifests();
+    this.manifests = selectLatestManifestRegistrations(
+      await this.localDatasetManifestLoader.listManifests(),
+    );
 
     const datasetsConfig = this.configService.getOrThrow('datasets', { infer: true });
 
