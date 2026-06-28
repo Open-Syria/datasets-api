@@ -1,10 +1,12 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
+import { buildOffsetPaginationQueryParameters } from '../../../common/dto/offset-pagination/offset-page-options.dto';
 import { sourceAttributionSchema } from '../../../common/dto/source-attribution.dto';
 import {
   offsetPaginationQuerySchema,
   offsetPaginationSchema,
 } from '../../../common/schemas/pagination.schema';
+import type { ApiQueryParameter } from '../../../decorators/api-query-dto';
 
 export const districtGeographicPointSchema = z.object({
   latitude: z.number().min(-90).max(90),
@@ -65,7 +67,28 @@ export const districtDetailSchema = z.object({
 });
 
 export class DistrictSummaryDto extends createZodDto(districtSummarySchema) {}
-export class DistrictListQueryDto extends createZodDto(districtListQuerySchema) {}
+export class DistrictListQueryDto extends createZodDto(districtListQuerySchema) {
+  static readonly openApiQueryParameters = [
+    ...buildOffsetPaginationQueryParameters({
+      searchDescription:
+        'Search term matched against ID, names, governorate ID, and source status.',
+      searchExample: 'damascus',
+    }),
+    {
+      name: 'governorateId',
+      required: false,
+      description: 'Filter districts by stable OpenSyria governorate ID.',
+      example: 'sy-damascus',
+    },
+    {
+      name: 'sourceStatus',
+      required: false,
+      enum: ['pending_release', 'seed', 'released', 'deprecated'],
+      description: 'Filter records by source review or release status.',
+      example: 'released',
+    },
+  ] satisfies readonly ApiQueryParameter[];
+}
 export class DistrictListDto extends createZodDto(districtListSchema) {}
 export class DistrictDetailDto extends createZodDto(districtDetailSchema) {}
 

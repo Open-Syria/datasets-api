@@ -132,7 +132,29 @@ Rules:
 - `order` is `asc` or `desc`.
 - Resource-specific filters should use explicit names such as `sourceStatus`, `governorateId`, or `datasetId`.
 - Avoid ambiguous filter names such as `id`, `type`, or `status` when more specific terms exist.
-- Document query parameters with `@ApiQuery` when Swagger cannot infer them from Zod DTOs.
+- Query DTOs should expose their OpenAPI query metadata through `static readonly openApiQueryParameters`.
+- Controllers should use `@ApiQueryDto(QueryDto)` instead of repeating raw `@ApiQuery()` decorators.
+- Use raw `@ApiQuery()` only for a truly one-off case that cannot be expressed through the shared DTO metadata helper.
+
+Example:
+
+```ts
+export class GovernorateListQueryDto extends createZodDto(governorateListQuerySchema) {
+  static readonly openApiQueryParameters = [
+    ...buildOffsetPaginationQueryParameters({
+      searchDescription: 'Search term matched against ID, names, ISO code, and source status.',
+      searchExample: 'damascus',
+    }),
+    {
+      name: 'sourceStatus',
+      required: false,
+      enum: ['pending_release', 'seed', 'released', 'deprecated'],
+      description: 'Filter records by source review or release status.',
+      example: 'released',
+    },
+  ] satisfies readonly ApiQueryParameter[];
+}
+```
 
 ## OpenAPI Tags
 
@@ -424,6 +446,7 @@ Required:
 ```text
 decorators/api-response.ts
 decorators/api-paginated-response.ts
+decorators/api-query-dto.ts
 decorators/http-decorators.ts
 ```
 
@@ -602,6 +625,7 @@ export class GovernoratesController {
   constructor(private readonly governoratesService: GovernoratesService) {}
 
   @Get()
+  @ApiQueryDto(GovernorateListQueryDto)
   @ApiPublic({
     type: GovernorateSummaryDto,
     tags: [GEOGRAPHY_TAG],
@@ -611,7 +635,7 @@ export class GovernoratesController {
     isPaginated: true,
   })
   async listGovernorates(
-    @Query() query: GovernorateListQueryDto,
+    @Query(new ZodValidationPipe(GovernorateListQueryDto)) query: GovernorateListQuery,
   ): Promise<ApiOffsetPaginatedResponse<GovernorateSummaryDto>> {
     const result = await this.governoratesService.listGovernorates(query);
 

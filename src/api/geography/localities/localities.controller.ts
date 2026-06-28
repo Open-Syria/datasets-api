@@ -1,9 +1,10 @@
 import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
-import { ApiParam, ApiQuery } from '@nestjs/swagger';
+import { ApiParam } from '@nestjs/swagger';
 import { I18n, type I18nContext } from 'nestjs-i18n';
 import { ZodValidationPipe } from 'nestjs-zod';
 import type { ApiResponse } from '../../../common/dto/api-response.dto';
 import { buildResponse } from '../../../common/helpers/build-response';
+import { ApiQueryDto } from '../../../decorators/api-query-dto';
 import { ApiPublic } from '../../../decorators/http-decorators';
 import { localityDetailResponseExample, localityListResponseExample } from '../geography.examples';
 import {
@@ -24,64 +25,7 @@ export class LocalitiesController {
   ) {}
 
   @Get()
-  @ApiQuery({
-    name: 'page',
-    required: false,
-    description: 'Page number for offset pagination.',
-    example: 1,
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-    description: 'Maximum number of records to return.',
-    example: 20,
-  })
-  @ApiQuery({
-    name: 'q',
-    required: false,
-    description:
-      'Search term matched against IDs, names, aliases, external IDs, source IDs, kind, and source status.',
-    example: 'hasakeh',
-  })
-  @ApiQuery({
-    name: 'order',
-    required: false,
-    enum: ['asc', 'desc'],
-    description: 'Sort order by English display name.',
-    example: 'asc',
-  })
-  @ApiQuery({
-    name: 'governorateId',
-    required: false,
-    description: 'Filter localities by stable OpenSyria governorate ID.',
-    example: 'sy-al-hasakah',
-  })
-  @ApiQuery({
-    name: 'districtId',
-    required: false,
-    description: 'Filter localities by stable OpenSyria district ID.',
-    example: 'sy-al-hasakah-al-hasakah',
-  })
-  @ApiQuery({
-    name: 'subdistrictId',
-    required: false,
-    description: 'Filter localities by stable OpenSyria subdistrict ID.',
-    example: 'sy-al-hasakah-al-hasakah-al-hasakeh',
-  })
-  @ApiQuery({
-    name: 'kind',
-    required: false,
-    enum: ['city', 'town', 'locality'],
-    description: 'Filter records by locality kind.',
-    example: 'city',
-  })
-  @ApiQuery({
-    name: 'sourceStatus',
-    required: false,
-    enum: ['pending_release', 'seed', 'released', 'deprecated'],
-    description: 'Filter records by source review or release status.',
-    example: 'released',
-  })
+  @ApiQueryDto(LocalityListQueryDto)
   @ApiPublic({
     type: LocalityListDto,
     tags: ['Geography'],

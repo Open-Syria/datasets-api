@@ -1,10 +1,12 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
+import { buildOffsetPaginationQueryParameters } from '../../../common/dto/offset-pagination/offset-page-options.dto';
 import { sourceAttributionSchema } from '../../../common/dto/source-attribution.dto';
 import {
   offsetPaginationQuerySchema,
   offsetPaginationSchema,
 } from '../../../common/schemas/pagination.schema';
+import type { ApiQueryParameter } from '../../../decorators/api-query-dto';
 
 export const subdistrictGeographicPointSchema = z.object({
   latitude: z.number().min(-90).max(90),
@@ -67,7 +69,34 @@ export const subdistrictDetailSchema = z.object({
 });
 
 export class SubdistrictSummaryDto extends createZodDto(subdistrictSummarySchema) {}
-export class SubdistrictListQueryDto extends createZodDto(subdistrictListQuerySchema) {}
+export class SubdistrictListQueryDto extends createZodDto(subdistrictListQuerySchema) {
+  static readonly openApiQueryParameters = [
+    ...buildOffsetPaginationQueryParameters({
+      searchDescription:
+        'Search term matched against ID, names, governorate ID, district ID, and source status.',
+      searchExample: 'hasakeh',
+    }),
+    {
+      name: 'governorateId',
+      required: false,
+      description: 'Filter subdistricts by stable OpenSyria governorate ID.',
+      example: 'sy-al-hasakah',
+    },
+    {
+      name: 'districtId',
+      required: false,
+      description: 'Filter subdistricts by stable OpenSyria district ID.',
+      example: 'sy-al-hasakah-al-hasakah',
+    },
+    {
+      name: 'sourceStatus',
+      required: false,
+      enum: ['pending_release', 'seed', 'released', 'deprecated'],
+      description: 'Filter records by source review or release status.',
+      example: 'released',
+    },
+  ] satisfies readonly ApiQueryParameter[];
+}
 export class SubdistrictListDto extends createZodDto(subdistrictListSchema) {}
 export class SubdistrictDetailDto extends createZodDto(subdistrictDetailSchema) {}
 
