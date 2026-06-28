@@ -33,22 +33,22 @@ type HealthResponseBody = {
 const expectedTotals = [
   {
     label: 'governorates',
-    url: '/api/v1/geography/governorates?limit=1',
+    url: '/api/v1/geography/governorates?limit=TEN',
     totalRecords: 14,
   },
   {
     label: 'districts',
-    url: '/api/v1/geography/districts?limit=1',
+    url: '/api/v1/geography/districts?limit=TEN',
     totalRecords: 62,
   },
   {
     label: 'subdistricts',
-    url: '/api/v1/geography/subdistricts?limit=1',
+    url: '/api/v1/geography/subdistricts?limit=TEN',
     totalRecords: 272,
   },
   {
     label: 'localities',
-    url: '/api/v1/geography/localities?limit=1',
+    url: '/api/v1/geography/localities?limit=TEN',
     totalRecords: 7605,
   },
 ];

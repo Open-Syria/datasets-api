@@ -1,15 +1,19 @@
 import { z } from 'zod';
 import {
   DEFAULT_CURRENT_PAGE,
-  DEFAULT_PAGE_LIMIT,
+  DEFAULT_PAGE_LIMIT_OPTION,
   DEFAULT_SORT_ORDER,
-  MAX_PAGE_LIMIT,
+  PAGE_LIMIT_OPTIONS,
+  PAGE_LIMIT_VALUES,
   SORT_ORDERS,
 } from '../../constants/app.constants';
 
 export const offsetPaginationQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(DEFAULT_CURRENT_PAGE),
-  limit: z.coerce.number().int().positive().max(MAX_PAGE_LIMIT).default(DEFAULT_PAGE_LIMIT),
+  limit: z
+    .enum(PAGE_LIMIT_OPTIONS)
+    .default(DEFAULT_PAGE_LIMIT_OPTION)
+    .transform((limit) => PAGE_LIMIT_VALUES[limit]),
   q: z.string().trim().min(1).optional(),
   order: z.enum(SORT_ORDERS).default(DEFAULT_SORT_ORDER),
 });
