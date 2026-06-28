@@ -10,32 +10,39 @@
 - Synced dataset release artifacts when public dataset endpoints should serve real records
 - PostgreSQL/PostGIS when `DATABASE_ENABLED=true`
 
-## Required Runtime Commands
+## Release Commands
 
-Build:
+Run these from a full checkout or CI release job with dev dependencies installed:
 
 ```bash
 pnpm install --frozen-lockfile
 pnpm run build
+pnpm run db:migrate:deploy
+DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.0" pnpm run datasets:sync
+DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.0" DATABASE_ENABLED=true pnpm run read-model:import:geography
 ```
 
-Start:
+The import step must finish before a production instance is marked ready.
+
+For local or CI verification against PostgreSQL:
+
+```bash
+DATABASE_URL="postgresql://opensyria:opensyria@localhost:5432/opensyria_datasets?schema=public" pnpm run test:integration:db
+```
+
+## Runtime Commands
+
+Start an already-built app:
 
 ```bash
 pnpm run start:prod
 ```
 
-Sync pinned dataset releases before starting the app:
+If the Docker/runtime image is used for release sync or read-model import, use the production scripts. They run compiled `dist` files and do not rebuild the app:
 
 ```bash
-DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.0" pnpm run datasets:sync
-```
-
-Apply database migrations and import the read model before serving production traffic:
-
-```bash
-pnpm run db:migrate:deploy
-DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.0" DATABASE_ENABLED=true pnpm run read-model:refresh:geography
+DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.0" pnpm run datasets:sync:prod
+DATABASE_ENABLED=true pnpm run read-model:import:geography:prod
 ```
 
 ## Docker
@@ -56,6 +63,18 @@ Mount synced release artifacts:
 
 ```bash
 docker run --rm -p 3000:3000 --env-file .env -v "$(pwd)/data/releases:/app/data/releases:ro" opensyria/datasets-api
+```
+
+Run a one-off import job from the built image after migrations have already been applied:
+
+```bash
+docker run --rm --env-file .env -v "$(pwd)/data/releases:/app/data/releases:ro" opensyria/datasets-api pnpm run read-model:import:geography:prod
+```
+
+Run a one-off sync job into a writable release volume:
+
+```bash
+docker run --rm --env-file .env -v "$(pwd)/data/releases:/app/data/releases" opensyria/datasets-api pnpm run datasets:sync:prod
 ```
 
 ## Health Checks

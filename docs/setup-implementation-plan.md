@@ -77,6 +77,7 @@ The foundation pass is implemented:
 - PostgreSQL/PostGIS read-model foundation with Prisma.
 - Geography read-model import command for verified release artifacts.
 - DB-first geography endpoints with verified JSON artifact fallback for early seeding.
+- PostgreSQL integration test that imports a verified geography fixture and serves endpoints from the DB read model without artifacts.
 
 Next implementation phase:
 
