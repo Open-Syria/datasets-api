@@ -28,6 +28,10 @@ function parseArgs(argv) {
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
 
+    if (arg === '--') {
+      continue;
+    }
+
     if (!arg.startsWith('--')) {
       throw new Error(`Unexpected argument: ${arg}`);
     }
