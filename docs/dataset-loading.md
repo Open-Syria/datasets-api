@@ -89,13 +89,13 @@ Before parsing an artifact, the API verifies:
 Pinned GitHub Releases can be synced into the local release directory with:
 
 ```bash
-DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.2" pnpm run datasets:sync
+DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.3" pnpm run datasets:sync
 ```
 
 Use a comma-separated list for multiple sources:
 
 ```text
-Open-Syria/data-geography@v0.1.2,Open-Syria/another-dataset@v0.1.0
+Open-Syria/data-geography@v0.1.3,Open-Syria/another-dataset@v0.1.0
 ```
 
 The sync command:
@@ -137,7 +137,7 @@ Production deployments should sync pinned release artifacts, import them into th
 The current production geography release is:
 
 ```text
-Open-Syria/data-geography@v0.1.2
+Open-Syria/data-geography@v0.1.3
 ```
 
 The API should expose the active dataset versions through `/api/v1/releases`.
