@@ -162,7 +162,9 @@ For production serving:
 - verify checksums, sizes, and schemas,
 - import the verified artifacts into read tables,
 - keep generated exports available through release metadata,
-- use Redis for hot cache and throttling.
+- use Redis for hot cache and throttling,
+- let read-model imports clear the application cache after a successful import,
+- rely on release-aware cache keys and artifact checksums to avoid stale data when a new release becomes active.
 
 If exports become large:
 

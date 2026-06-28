@@ -22,10 +22,10 @@ export class DatasetsController {
       'Returns OpenSyria dataset metadata, repository names, release status, and planned public API paths.',
     responseName: 'DatasetSummaryListResponse',
   })
-  listDatasets(@I18n() i18n: I18nContext): ApiResponse<DatasetSummaryList> {
+  async listDatasets(@I18n() i18n: I18nContext): Promise<ApiResponse<DatasetSummaryList>> {
     return buildResponse({
       i18n,
-      data: this.datasetsService.listDatasets(),
+      data: await this.datasetsService.listDatasets(),
       message: 'api.responses.datasets.listFetched',
       fallbackMessage: 'Datasets fetched successfully',
     });

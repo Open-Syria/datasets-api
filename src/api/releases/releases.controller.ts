@@ -22,10 +22,10 @@ export class ReleasesController {
       'Returns dataset release metadata, source repositories, planned manifest paths, and artifact information when published.',
     responseName: 'ReleaseSummaryListResponse',
   })
-  listReleases(@I18n() i18n: I18nContext): ApiResponse<ReleaseSummaryList> {
+  async listReleases(@I18n() i18n: I18nContext): Promise<ApiResponse<ReleaseSummaryList>> {
     return buildResponse({
       i18n,
-      data: this.releasesService.listReleases(),
+      data: await this.releasesService.listReleases(),
       message: 'api.responses.releases.listFetched',
       fallbackMessage: 'Releases fetched successfully',
     });

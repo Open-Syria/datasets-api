@@ -20,6 +20,7 @@ import { PrismaService } from '../../database/prisma.service';
 import type { DatasetReleaseManifest } from '../../datasets/contracts/dataset-release-manifest.schema';
 import { LocalDatasetArtifactReaderService } from '../../datasets/loaders/local-dataset-artifact-reader.service';
 import type { Prisma } from '../../generated/prisma/client';
+import { PublicDataCacheService } from '../../shared/cache/public-data-cache.service';
 
 const GOVERNORATES_ARTIFACT_NAME = 'governorates';
 const DISTRICTS_ARTIFACT_NAME = 'districts';
@@ -102,6 +103,8 @@ export class GeographyReadModelImportService {
     private readonly localDatasetArtifactReaderService: LocalDatasetArtifactReaderService,
     @Inject(PrismaService)
     private readonly prismaService: PrismaService,
+    @Inject(PublicDataCacheService)
+    private readonly publicDataCacheService: PublicDataCacheService,
   ) {}
 
   async importLatestRelease(): Promise<GeographyReadModelImportSummary> {
@@ -203,6 +206,8 @@ export class GeographyReadModelImportService {
         });
       }
     });
+
+    await this.publicDataCacheService.clearAll();
 
     return {
       releaseId,

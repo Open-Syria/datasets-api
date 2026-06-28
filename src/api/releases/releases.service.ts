@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { DatasetReleaseManifest } from '../../datasets/contracts/dataset-release-manifest.schema';
 import { DatasetReleaseRegistryService } from '../../datasets/dataset-release-registry.service';
+import { PublicDataCacheService } from '../../shared/cache/public-data-cache.service';
 import type { ReleaseSummaryList } from './releases.dto';
 
 const RELEASES: ReleaseSummaryList['items'] = [
@@ -57,11 +58,21 @@ export class ReleasesService {
   constructor(
     @Inject(DatasetReleaseRegistryService)
     private readonly datasetReleaseRegistryService: DatasetReleaseRegistryService,
+    @Inject(PublicDataCacheService)
+    private readonly publicDataCacheService: PublicDataCacheService,
   ) {}
 
-  listReleases(): ReleaseSummaryList {
+  async listReleases(): Promise<ReleaseSummaryList> {
     const manifests = this.datasetReleaseRegistryService.listManifests();
 
+    return this.publicDataCacheService.getOrSet(
+      'releases:list',
+      this.buildReleaseCachePayload(manifests),
+      () => this.buildReleaseSummaryList(manifests),
+    );
+  }
+
+  private buildReleaseSummaryList(manifests: DatasetReleaseManifest[]): ReleaseSummaryList {
     if (manifests.length > 0) {
       const items = manifests.map((manifest) => this.mapManifestToReleaseSummary(manifest));
 
@@ -75,6 +86,26 @@ export class ReleasesService {
       items: RELEASES,
       count: RELEASES.length,
     };
+  }
+
+  private buildReleaseCachePayload(manifests: DatasetReleaseManifest[]) {
+    if (manifests.length === 0) {
+      return {
+        source: 'seed-releases',
+        version: 1,
+      };
+    }
+
+    return manifests.map((manifest) => ({
+      datasetId: manifest.dataset.id,
+      generatedAt: manifest.generatedAt,
+      releaseStatus: manifest.release.status,
+      releaseVersion: manifest.release.version,
+      artifacts: manifest.artifacts.map((artifact) => ({
+        name: artifact.name,
+        sha256: artifact.sha256,
+      })),
+    }));
   }
 
   private mapManifestToReleaseSummary(

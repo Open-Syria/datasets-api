@@ -1,5 +1,11 @@
 import type { PrismaService } from '../../database/prisma.service';
+import type { PublicDataCacheService } from '../../shared/cache/public-data-cache.service';
 import { GeographyReadModelQueryService } from './geography-read-model-query.service';
+
+type PublicDataCacheServiceMock = {
+  getOrSet: jest.Mock<Promise<unknown>, [string, unknown, () => Promise<unknown>]>;
+  clearAll: jest.Mock<Promise<void>, []>;
+};
 
 const releasedAt = new Date('2026-06-27T00:00:00.000Z');
 
@@ -61,6 +67,26 @@ const locality = {
   sourceStatus: 'released',
 } as const;
 
+function createPublicDataCacheService(): PublicDataCacheServiceMock {
+  const cache = new Map<string, unknown>();
+
+  return {
+    getOrSet: jest.fn(async (scope: string, payload: unknown, loader: () => Promise<unknown>) => {
+      const key = `${scope}:${JSON.stringify(payload)}`;
+
+      if (cache.has(key)) {
+        return cache.get(key);
+      }
+
+      const value = await loader();
+
+      cache.set(key, value);
+      return value;
+    }),
+    clearAll: jest.fn(() => Promise.resolve()),
+  };
+}
+
 function createService() {
   const countLocalities = jest.fn().mockResolvedValue(1);
   const findLocalities = jest.fn().mockResolvedValue([
@@ -103,12 +129,17 @@ function createService() {
     isEnabled: jest.fn().mockReturnValue(true),
     getClient: jest.fn().mockReturnValue(client),
   } as unknown as PrismaService;
+  const publicDataCacheService = createPublicDataCacheService();
 
   return {
-    service: new GeographyReadModelQueryService(prismaService),
+    service: new GeographyReadModelQueryService(
+      prismaService,
+      publicDataCacheService as unknown as PublicDataCacheService,
+    ),
     client,
     countLocalities,
     findLocalities,
+    publicDataCacheService,
     prismaService,
   };
 }
@@ -120,7 +151,10 @@ describe('GeographyReadModelQueryService', () => {
       isEnabled: jest.fn().mockReturnValue(false),
       getClient,
     } as unknown as PrismaService;
-    const service = new GeographyReadModelQueryService(prismaService);
+    const service = new GeographyReadModelQueryService(
+      prismaService,
+      createPublicDataCacheService() as unknown as PublicDataCacheService,
+    );
 
     await expect(
       service.listLocalities({
@@ -193,5 +227,22 @@ describe('GeographyReadModelQueryService', () => {
       skip: 10,
       take: 10,
     });
+  });
+
+  it('reuses cached database list payloads for the same release and query', async () => {
+    const { service, countLocalities, findLocalities, publicDataCacheService } = createService();
+    const query = {
+      page: 1,
+      limit: 10,
+      order: 'asc',
+      kind: 'city',
+    } as const;
+
+    await service.listLocalities(query);
+    await service.listLocalities(query);
+
+    expect(publicDataCacheService.getOrSet).toHaveBeenCalledTimes(2);
+    expect(countLocalities).toHaveBeenCalledTimes(1);
+    expect(findLocalities).toHaveBeenCalledTimes(1);
   });
 });
