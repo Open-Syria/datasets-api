@@ -6,6 +6,11 @@ import {
   offsetPaginationQuerySchema,
   offsetPaginationSchema,
 } from '../../../common/schemas/pagination.schema';
+import {
+  RECORD_SOURCE_STATUS_OPTIONS,
+  RECORD_SOURCE_STATUS_VALUES,
+  RECORD_SOURCE_STATUSES,
+} from '../../../constants/app.constants';
 import type { ApiParamParameter, ApiQueryParameter } from '../../../decorators/api-request-dto';
 
 export const localityKindSchema = z.enum(['city', 'town', 'locality']);
@@ -39,7 +44,7 @@ export const localitySummarySchema = z.object({
     ar: z.string().min(1).optional(),
   }),
   centroid: localityGeographicPointSchema.nullable(),
-  sourceStatus: z.enum(['pending_release', 'seed', 'released', 'deprecated']),
+  sourceStatus: z.enum(RECORD_SOURCE_STATUSES),
 });
 
 export const localityRecordSchema = localitySummarySchema.extend({
@@ -62,7 +67,10 @@ export const localityListQuerySchema = offsetPaginationQuerySchema.extend({
   districtId: z.string().trim().min(1).optional(),
   subdistrictId: z.string().trim().min(1).optional(),
   kind: localityKindSchema.optional(),
-  sourceStatus: z.enum(['pending_release', 'seed', 'released', 'deprecated']).optional(),
+  sourceStatus: z
+    .enum(RECORD_SOURCE_STATUS_OPTIONS)
+    .transform((sourceStatus) => RECORD_SOURCE_STATUS_VALUES[sourceStatus])
+    .optional(),
 });
 
 export const localityParamsSchema = z.object({
@@ -109,7 +117,7 @@ export class LocalityParamsDto extends createZodDto(localityParamsSchema) {
   ] satisfies readonly ApiParamParameter[];
 }
 export class LocalityListQueryDto extends createZodDto(localityListQuerySchema) {
-  static readonly openApiQueryParameters = [
+  static readonly openApiQueryParameters: readonly ApiQueryParameter[] = [
     ...buildOffsetPaginationQueryParameters({
       searchDescription:
         'Search term matched against IDs, names, aliases, external IDs, source IDs, kind, and source status.',
@@ -143,11 +151,12 @@ export class LocalityListQueryDto extends createZodDto(localityListQuerySchema) 
     {
       name: 'sourceStatus',
       required: false,
-      enum: ['pending_release', 'seed', 'released', 'deprecated'],
-      description: 'Filter records by source review or release status.',
-      example: 'released',
+      enum: RECORD_SOURCE_STATUS_OPTIONS,
+      description:
+        'Filter records by source review or release status. PENDING_RELEASE=pending release, SEED=seed data, RELEASED=released data, DEPRECATED=deprecated data.',
+      example: 'RELEASED',
     },
-  ] satisfies readonly ApiQueryParameter[];
+  ];
 }
 export class LocalityListDto extends createZodDto(localityListSchema) {}
 export class LocalityDetailDto extends createZodDto(localityDetailSchema) {}

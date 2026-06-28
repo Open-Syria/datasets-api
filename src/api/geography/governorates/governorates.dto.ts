@@ -6,6 +6,11 @@ import {
   offsetPaginationQuerySchema,
   offsetPaginationSchema,
 } from '../../../common/schemas/pagination.schema';
+import {
+  RECORD_SOURCE_STATUS_OPTIONS,
+  RECORD_SOURCE_STATUS_VALUES,
+  RECORD_SOURCE_STATUSES,
+} from '../../../constants/app.constants';
 import type { ApiParamParameter, ApiQueryParameter } from '../../../decorators/api-request-dto';
 
 export const geographicPointSchema = z.object({
@@ -21,7 +26,7 @@ export const governorateSummarySchema = z.object({
   }),
   iso31662: z.string().nullable(),
   centroid: geographicPointSchema.nullable(),
-  sourceStatus: z.enum(['pending_release', 'seed', 'released', 'deprecated']),
+  sourceStatus: z.enum(RECORD_SOURCE_STATUSES),
 });
 
 export const governoratesArtifactSchema = z
@@ -34,7 +39,10 @@ export const governoratesArtifactSchema = z
   .transform((value) => (Array.isArray(value) ? value : value.items));
 
 export const governorateListQuerySchema = offsetPaginationQuerySchema.extend({
-  sourceStatus: z.enum(['pending_release', 'seed', 'released', 'deprecated']).optional(),
+  sourceStatus: z
+    .enum(RECORD_SOURCE_STATUS_OPTIONS)
+    .transform((sourceStatus) => RECORD_SOURCE_STATUS_VALUES[sourceStatus])
+    .optional(),
 });
 
 export const governorateParamsSchema = z.object({
@@ -80,7 +88,7 @@ export class GovernorateParamsDto extends createZodDto(governorateParamsSchema) 
   ] satisfies readonly ApiParamParameter[];
 }
 export class GovernorateListQueryDto extends createZodDto(governorateListQuerySchema) {
-  static readonly openApiQueryParameters = [
+  static readonly openApiQueryParameters: readonly ApiQueryParameter[] = [
     ...buildOffsetPaginationQueryParameters({
       searchDescription: 'Search term matched against ID, names, ISO code, and source status.',
       searchExample: 'damascus',
@@ -88,11 +96,12 @@ export class GovernorateListQueryDto extends createZodDto(governorateListQuerySc
     {
       name: 'sourceStatus',
       required: false,
-      enum: ['pending_release', 'seed', 'released', 'deprecated'],
-      description: 'Filter records by source review or release status.',
-      example: 'released',
+      enum: RECORD_SOURCE_STATUS_OPTIONS,
+      description:
+        'Filter records by source review or release status. PENDING_RELEASE=pending release, SEED=seed data, RELEASED=released data, DEPRECATED=deprecated data.',
+      example: 'RELEASED',
     },
-  ] satisfies readonly ApiQueryParameter[];
+  ];
 }
 export class GovernorateListDto extends createZodDto(governorateListSchema) {}
 export class GovernorateDetailDto extends createZodDto(governorateDetailSchema) {}

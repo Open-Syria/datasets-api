@@ -44,6 +44,27 @@ export type SortOrder = (typeof SORT_ORDERS)[number];
 export const DEFAULT_SORT_ORDER_OPTION = 'ASC' satisfies SortOrderOption;
 export const DEFAULT_SORT_ORDER = SORT_ORDER_VALUES[DEFAULT_SORT_ORDER_OPTION];
 
+export const RECORD_SOURCE_STATUSES = [
+  'pending_release',
+  'seed',
+  'released',
+  'deprecated',
+] as const;
+export type RecordSourceStatus = (typeof RECORD_SOURCE_STATUSES)[number];
+export const RECORD_SOURCE_STATUS_OPTIONS = [
+  'PENDING_RELEASE',
+  'SEED',
+  'RELEASED',
+  'DEPRECATED',
+] as const;
+export type RecordSourceStatusOption = (typeof RECORD_SOURCE_STATUS_OPTIONS)[number];
+export const RECORD_SOURCE_STATUS_VALUES = {
+  PENDING_RELEASE: 'pending_release',
+  SEED: 'seed',
+  RELEASED: 'released',
+  DEPRECATED: 'deprecated',
+} as const satisfies Record<RecordSourceStatusOption, RecordSourceStatus>;
+
 export const loggingRedactPaths = [
   'req.headers.authorization',
   'req.headers.cookie',

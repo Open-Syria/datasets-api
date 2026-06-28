@@ -160,6 +160,9 @@ Rules:
 - `order` is a named enum, not a free string.
 - Allowed order values are `ASC` and `DESC`.
 - The API transforms order names into internal sort values: `ASC=asc` and `DESC=desc`.
+- `sourceStatus` is a named enum for public query filters.
+- Allowed source status values are `PENDING_RELEASE`, `SEED`, `RELEASED`, and `DEPRECATED`.
+- The API transforms source status names into internal record values: `PENDING_RELEASE=pending_release`, `SEED=seed`, `RELEASED=released`, and `DEPRECATED=deprecated`.
 - Resource-specific filters should use explicit names such as `sourceStatus`, `governorateId`, or `datasetId`.
 - Avoid ambiguous filter names such as `id`, `type`, or `status` when more specific terms exist.
 - Query DTOs should expose their OpenAPI query metadata through `static readonly openApiQueryParameters`.
@@ -178,9 +181,10 @@ export class GovernorateListQueryDto extends createZodDto(governorateListQuerySc
     {
       name: 'sourceStatus',
       required: false,
-      enum: ['pending_release', 'seed', 'released', 'deprecated'],
-      description: 'Filter records by source review or release status.',
-      example: 'released',
+      enum: ['PENDING_RELEASE', 'SEED', 'RELEASED', 'DEPRECATED'],
+      description:
+        'Filter records by source review or release status. PENDING_RELEASE=pending release, SEED=seed data, RELEASED=released data, DEPRECATED=deprecated data.',
+      example: 'RELEASED',
     },
   ] satisfies readonly ApiQueryParameter[];
 }
@@ -239,13 +243,18 @@ export class GovernorateParamsDto extends createZodDto(governorateParamsSchema) 
 
 Tags should be Title Case and stable. Use one primary tag per controller.
 
-Initial tags:
+Current tags:
 
 ```text
 Health
 Dataset Discovery
 Releases
 Geography
+```
+
+Reserved future tags:
+
+```text
 Universities
 Transport
 Heritage
@@ -259,6 +268,7 @@ Rules:
 - Do not include version numbers in tags.
 - Do not include implementation details such as `Redis`, `Fastify`, `Zod`, or `Internal`.
 - Do not use audience tags such as `Admin`, `Mobile`, or `Website` in `datasets-api`.
+- Do not add reserved future tags to the served OpenAPI document until matching endpoints exist.
 
 ## Operation Summaries
 
@@ -371,6 +381,18 @@ export const listQuerySchema = z.object({
     .enum(['ASC', 'DESC'])
     .default('ASC')
     .transform((order) => ({ ASC: 'asc', DESC: 'desc' })[order]),
+  sourceStatus: z
+    .enum(['PENDING_RELEASE', 'SEED', 'RELEASED', 'DEPRECATED'])
+    .transform(
+      (sourceStatus) =>
+        ({
+          PENDING_RELEASE: 'pending_release',
+          SEED: 'seed',
+          RELEASED: 'released',
+          DEPRECATED: 'deprecated',
+        })[sourceStatus],
+    )
+    .optional(),
   q: z.string().trim().min(1).optional(),
 });
 ```
@@ -652,29 +674,28 @@ return buildResponse(GovernorateDetailDto, {
 
 Scalar and Swagger should use generated OpenAPI documents. Do not maintain separate manual docs for endpoint schemas.
 
-Initial document sources:
+Current documents:
+
+```text
+OpenSyria Datasets API   /openapi.json
+```
+
+Filtered machine-readable documents:
 
 ```text
 Core API        /openapi/core.json
 Geography API   /openapi/geography.json
-Education API   /openapi/education.json
-```
-
-Future document sources:
-
-```text
-Transport API   /openapi/transport.json
-Heritage API    /openapi/heritage.json
-Telecom API     /openapi/telecom.json
 ```
 
 Rules:
 
 - `/openapi.json` should remain available for tooling compatibility.
-- `/docs` should use Scalar and expose all OpenAPI sources.
-- `/swagger-ui` can remain as a fallback for tools that prefer Swagger UI.
+- `/docs` should use Scalar and expose the complete `/openapi.json` document.
+- `/swagger-ui` can remain as a fallback for tools that prefer Swagger UI and should use the complete `/openapi.json` document.
 - Use `cleanupOpenApiDoc` from `nestjs-zod` before serving documents.
-- Domain documents are filtered from one base document, not generated from separate app instances.
+- Filtered domain documents are optional machine-readable specs. They are filtered from one base document, not generated from separate app instances.
+- Do not expose empty domain documents in Scalar. Add a filtered domain document only after the domain has public endpoints.
+- Filtered documents should remove unused tags so clients do not see empty future sections.
 
 ## Security Headers and CORS
 
