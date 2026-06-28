@@ -1,6 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
+import type { DatasetReleaseManifest } from '../../datasets/contracts/dataset-release-manifest.schema';
+import { DatasetReleaseRegistryService } from '../../datasets/dataset-release-registry.service';
 import { PublicDataCacheService } from '../../shared/cache/public-data-cache.service';
-import type { DatasetSummaryList } from './datasets.dto';
+import type { DatasetSummary, DatasetSummaryList } from './datasets.dto';
 
 const DATASETS: DatasetSummaryList['items'] = [
   {
@@ -105,19 +107,55 @@ export class DatasetsService {
   constructor(
     @Inject(PublicDataCacheService)
     private readonly publicDataCacheService: PublicDataCacheService,
+    @Inject(DatasetReleaseRegistryService)
+    private readonly datasetReleaseRegistryService: DatasetReleaseRegistryService,
   ) {}
 
   async listDatasets(): Promise<DatasetSummaryList> {
+    const manifests = this.datasetReleaseRegistryService.listManifests();
+
     return this.publicDataCacheService.getOrSet(
       'datasets:list',
-      {
-        source: 'seed-metadata',
-        version: 1,
-      },
+      this.buildDatasetCachePayload(manifests),
       () => ({
-        items: DATASETS,
+        items: DATASETS.map((dataset) => this.enrichDatasetFromManifest(dataset, manifests)),
         count: DATASETS.length,
       }),
     );
+  }
+
+  private buildDatasetCachePayload(manifests: DatasetReleaseManifest[]) {
+    if (manifests.length === 0) {
+      return {
+        source: 'seed-metadata',
+        version: 1,
+      };
+    }
+
+    return manifests.map((manifest) => ({
+      datasetId: manifest.dataset.id,
+      generatedAt: manifest.generatedAt,
+      releaseStatus: manifest.release.status,
+      releaseVersion: manifest.release.version,
+      publishedAt: manifest.release.publishedAt,
+    }));
+  }
+
+  private enrichDatasetFromManifest(
+    dataset: DatasetSummary,
+    manifests: DatasetReleaseManifest[],
+  ): DatasetSummary {
+    const manifest = manifests.find((candidate) => candidate.dataset.id === dataset.id);
+
+    if (!manifest) {
+      return dataset;
+    }
+
+    return {
+      ...dataset,
+      status: manifest.release.status,
+      version: manifest.release.version,
+      updatedAt: manifest.release.publishedAt ?? manifest.generatedAt,
+    };
   }
 }
