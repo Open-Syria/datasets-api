@@ -7,7 +7,7 @@ const exampleDataset = {
 };
 
 const exampleRelease = {
-  version: 'v0.1.2',
+  version: 'v0.1.3',
   releasedAt: '2026-06-28T00:00:00.000Z',
 };
 
