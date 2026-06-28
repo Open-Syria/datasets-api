@@ -33,8 +33,8 @@ The API repository is public but maintainer-led. Community contribution should b
 
 ## Non-Goals
 
-- No database yet.
-- No Prisma yet.
+- No write-side application database.
+- No user-generated records inside `datasets-api`.
 - No auth.
 - No admin API.
 - No API key management.
@@ -74,11 +74,14 @@ The foundation pass is implemented:
 - `CONTRIBUTING.md`.
 - Dataset contribution policy for future data repositories.
 - Dockerfile, `.dockerignore`, and deployment notes.
+- PostgreSQL/PostGIS read-model foundation with Prisma.
+- Geography read-model import command for verified release artifacts.
+- DB-first geography endpoints with verified JSON artifact fallback for early seeding.
 
 Next implementation phase:
 
-- Add generated dataset artifact schema packages after the first data repository is created.
-- Add more geography endpoints once `data-geography` publishes its first release shape.
+- Add generated dataset artifact schema packages after dataset release shapes stabilize.
+- Expand read-model imports as additional dataset repositories publish releases.
 
 ## Target Dependencies
 

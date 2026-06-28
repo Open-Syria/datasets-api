@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import {
   Inject,
   Injectable,
@@ -8,6 +9,11 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { GlobalConfig } from '../config/config.type';
 import type { PrismaClient } from '../generated/prisma/client';
+
+const requireFromPrismaService = createRequire(__filename);
+
+type PrismaClientModule = typeof import('../generated/prisma/client');
+type PrismaPgModule = typeof import('@prisma/adapter-pg');
 
 export type DatabaseHealthCheck =
   | {
@@ -56,7 +62,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async getClient() {
+  getClient() {
     if (!this.databaseConfig.enabled || !this.databaseConfig.url) {
       throw new Error('Database read model is disabled.');
     }
@@ -80,7 +86,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     const startedAt = Date.now();
 
     try {
-      const client = await this.getOrCreateClient();
+      const client = this.getOrCreateClient();
 
       await client.$queryRaw`SELECT 1`;
 
@@ -111,7 +117,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     await this.client?.$disconnect();
   }
 
-  private async getOrCreateClient(): Promise<PrismaClient> {
+  private getOrCreateClient(): PrismaClient {
     if (this.client) {
       return this.client;
     }
@@ -120,10 +126,10 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
       throw new Error('DATABASE_URL is required when the database read model is enabled.');
     }
 
-    const [{ PrismaClient }, { PrismaPg }] = await Promise.all([
-      import('../generated/prisma/client.js'),
-      import('@prisma/adapter-pg'),
-    ]);
+    const { PrismaClient } = requireFromPrismaService(
+      '../generated/prisma/client',
+    ) as PrismaClientModule;
+    const { PrismaPg } = requireFromPrismaService('@prisma/adapter-pg') as PrismaPgModule;
 
     const client = new PrismaClient({
       adapter: new PrismaPg({

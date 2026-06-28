@@ -8,6 +8,7 @@
 - pnpm 11 for local builds
 - Redis when `REDIS_ENABLED=true`
 - Synced dataset release artifacts when public dataset endpoints should serve real records
+- PostgreSQL/PostGIS when `DATABASE_ENABLED=true`
 
 ## Required Runtime Commands
 
@@ -28,6 +29,13 @@ Sync pinned dataset releases before starting the app:
 
 ```bash
 DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.0" pnpm run datasets:sync
+```
+
+Apply database migrations and import the read model before serving production traffic:
+
+```bash
+pnpm run db:migrate:deploy
+DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.0" DATABASE_ENABLED=true pnpm run read-model:refresh:geography
 ```
 
 ## Docker
@@ -59,8 +67,8 @@ docker run --rm -p 3000:3000 --env-file .env -v "$(pwd)/data/releases:/app/data/
 ## Production Notes
 
 - Keep `APP_DOCS_ENABLED=true` only if public API documentation should be exposed by that environment.
-- Set `APP_CORS_ORIGINS` to the exact frontend origins that should call the API from browsers.
-- Set `REDIS_REQUIRED=true` only when the deployment must fail closed if Redis is unavailable.
+- Set `APP_CORS_ORIGIN` to the exact frontend origins that should call the API from browsers.
+- Set `REDIS_REQUIRED=true` when the deployment must fail closed if Redis is unavailable.
+- Set `DATABASE_ENABLED=true` and `DATABASE_REQUIRED=true` when endpoints should serve from the database read model.
 - Keep `DATASETS_REQUIRE_RELEASES=true` for environments that must not boot without synced dataset manifests.
 - Do not bake private tokens into the Docker image. Use runtime environment variables such as `GITHUB_TOKEN` only during controlled sync steps.
-

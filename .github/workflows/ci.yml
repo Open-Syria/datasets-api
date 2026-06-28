@@ -40,3 +40,6 @@ jobs:
 
       - name: Validate
         run: pnpm run validate
+
+      - name: Build Docker image
+        run: docker build -t opensyria/datasets-api:ci .

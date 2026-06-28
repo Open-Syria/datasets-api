@@ -1,6 +1,8 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+  importFileExtension = ""
 }
 
 datasource db {
@@ -95,6 +97,7 @@ model GeographyGovernorate {
   longitude    Float?
   areaKm2      Float?
   population   Json?
+  searchText   String
   sourceStatus RecordSourceStatus
   sourceIds    Json?
   raw          Json?
@@ -110,6 +113,7 @@ model GeographyGovernorate {
   @@index([releaseId])
   @@index([id])
   @@index([nameEn])
+  @@index([searchText])
   @@index([sourceStatus])
 }
 
@@ -123,6 +127,7 @@ model GeographyDistrict {
   longitude     Float?
   areaKm2       Float?
   population    Json?
+  searchText    String
   sourceStatus  RecordSourceStatus
   sourceIds     Json?
   raw           Json?
@@ -139,6 +144,7 @@ model GeographyDistrict {
   @@index([id])
   @@index([governorateId])
   @@index([nameEn])
+  @@index([searchText])
   @@index([sourceStatus])
 }
 
@@ -153,6 +159,7 @@ model GeographySubdistrict {
   longitude     Float?
   areaKm2       Float?
   population    Json?
+  searchText    String
   sourceStatus  RecordSourceStatus
   sourceIds     Json?
   raw           Json?
@@ -170,6 +177,7 @@ model GeographySubdistrict {
   @@index([governorateId])
   @@index([districtId])
   @@index([nameEn])
+  @@index([searchText])
   @@index([sourceStatus])
 }
 
@@ -187,6 +195,7 @@ model GeographyLocality {
   population    Json?
   aliases       Json?
   externalIds   Json?
+  searchText    String
   sourceStatus  RecordSourceStatus
   sourceIds     Json?
   raw           Json?
@@ -206,5 +215,6 @@ model GeographyLocality {
   @@index([subdistrictId])
   @@index([kind])
   @@index([nameEn])
+  @@index([searchText])
   @@index([sourceStatus])
 }
