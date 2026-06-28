@@ -1,6 +1,6 @@
 # Deployment
 
-`datasets-api` is a standalone NestJS service. It serves a public read-only API and should be deployed separately from the OpenSyria website and any future admin or subscription backend.
+`datasets-api` serves the public read-only OpenSyria dataset API and is deployed separately from website and administrative services.
 
 ## Table of Contents
 
@@ -25,11 +25,13 @@ Run these from a full checkout or CI release job with dev dependencies installed
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm run build
+pnpm run release:check -- --geography-release v0.1.0
 pnpm run db:migrate:deploy
 DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.0" pnpm run datasets:sync
 DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.0" DATABASE_ENABLED=true pnpm run read-model:import:geography
 ```
+
+Use `pnpm run release:check:docker -- --geography-release v0.1.0` when Docker is available and the release job should also build the runtime image locally.
 
 The import step must finish before a production instance is marked ready.
 

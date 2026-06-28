@@ -1,24 +1,13 @@
 # OpenSyria Datasets API
 
 [![CI](https://github.com/Open-Syria/datasets-api/actions/workflows/ci.yml/badge.svg)](https://github.com/Open-Syria/datasets-api/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/Open-Syria/datasets-api/actions/workflows/codeql.yml/badge.svg)](https://github.com/Open-Syria/datasets-api/actions/workflows/codeql.yml)
-[![Release](https://img.shields.io/github/v/release/Open-Syria/datasets-api?include_prereleases&label=release)](https://github.com/Open-Syria/datasets-api/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node.js 24+](https://img.shields.io/badge/node-%3E%3D24-339933?logo=node.js&logoColor=white)](package.json)
 [![pnpm 11](https://img.shields.io/badge/pnpm-11-F69220?logo=pnpm&logoColor=white)](package.json)
-[![Stars](https://img.shields.io/github/stars/Open-Syria/datasets-api?style=flat&logo=github&label=stars)](https://github.com/Open-Syria/datasets-api/stargazers)
-[![Forks](https://img.shields.io/github/forks/Open-Syria/datasets-api?style=flat&logo=github&label=forks)](https://github.com/Open-Syria/datasets-api/forks)
-[![Issues](https://img.shields.io/github/issues/Open-Syria/datasets-api?style=flat&logo=github&label=issues)](https://github.com/Open-Syria/datasets-api/issues)
-[![Pull Requests](https://img.shields.io/github/issues-pr/Open-Syria/datasets-api?style=flat&logo=github&label=PRs)](https://github.com/Open-Syria/datasets-api/pulls)
-[![Contributors](https://img.shields.io/github/contributors/Open-Syria/datasets-api?style=flat&logo=github&label=contributors)](https://github.com/Open-Syria/datasets-api/graphs/contributors)
-[![Last Commit](https://img.shields.io/github/last-commit/Open-Syria/datasets-api?style=flat&logo=github&label=last%20commit)](https://github.com/Open-Syria/datasets-api/commits/main)
-[![Sponsor](https://img.shields.io/badge/sponsor-OpenSyria-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/Open-Syria)
 
 Public read-only API for released OpenSyria datasets.
 
-`datasets-api` serves stable, versioned reference data for Syria through documented HTTP endpoints. The service is built with NestJS, Fastify, PostgreSQL/PostGIS, Redis, Prisma, Zod, and OpenAPI.
-
-This repository is intentionally a standalone application. It is not a monorepo, and the package is marked private only to prevent accidental npm publication.
+`datasets-api` serves stable, versioned reference data for Syria through documented HTTP endpoints. It exposes released dataset metadata, geography records, source attribution, and machine-readable API documentation.
 
 ## Table of Contents
 
@@ -42,8 +31,6 @@ This repository is intentionally a standalone application. It is not a monorepo,
 - Offset pagination, filtering, search, and parent-child geography relationships
 - Localized API response messages through `lang`, `x-lang`, or `Accept-Language`
 - Scalar API reference and OpenAPI JSON documents
-- A production read model backed by PostgreSQL/PostGIS
-- Redis-backed caching and throttling infrastructure
 
 ## Data Flow
 
@@ -52,7 +39,7 @@ OpenSyria datasets live in separate repositories. This API does not read live `m
 The production flow is:
 
 ```text
-dataset repositories -> versioned release artifacts -> verified JSON imports -> PostgreSQL/PostGIS read model -> public API responses
+dataset repositories -> versioned release artifacts -> verified JSON imports -> API read model -> public API responses
 ```
 
 Dataset repositories own canonical JSON data, source attribution, validation rules, generated export files, and release manifests. `datasets-api` consumes pinned releases, verifies checksums and schemas, imports the data into read tables, then serves the public endpoints.
@@ -83,12 +70,11 @@ GET /swagger-ui
 GET /openapi.json
 GET /openapi/core.json
 GET /openapi/geography.json
-GET /openapi/education.json
 ```
 
 ## Query Conventions
 
-List endpoints use Zod-validated DTOs for query parameters, path parameters, and future request bodies.
+List endpoints validate query parameters and path parameters before returning response envelopes.
 
 Common list parameters:
 

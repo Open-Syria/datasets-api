@@ -13,9 +13,9 @@ The manifest contract is documented in [`release-manifest.md`](./release-manifes
 - [Current Loader](#current-loader)
 - [Syncing GitHub Releases](#syncing-github-releases)
 - [Local Geography Smoke Test](#local-geography-smoke-test)
-- [Initial Implementation](#initial-implementation)
+- [Production Runtime](#production-runtime)
 - [Why Not Read `main` Directly?](#why-not-read-main-directly)
-- [Future Runtime Options](#future-runtime-options)
+- [Operational Notes](#operational-notes)
 
 ## Recommended Flow
 
@@ -30,7 +30,7 @@ The manifest contract is documented in [`release-manifest.md`](./release-manifes
    - source attribution summary
 5. `datasets-api` is configured to consume specific release versions.
 6. During build, deploy, or a controlled sync step, the API downloads the manifests and artifacts, verifies checksums and schema versions, then imports the primary JSON artifacts into the local read model.
-7. Runtime requests read from the database-backed read model, with verified JSON artifact fallback allowed only for early seeding or local development. They should not call GitHub for every request.
+7. Runtime requests read from the database-backed read model, with verified JSON artifact fallback available for local development. They should not call GitHub for every request.
 
 ## Generated Exports
 
@@ -95,7 +95,7 @@ DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.0" pnpm run datasets:sy
 Use a comma-separated list for multiple sources:
 
 ```text
-Open-Syria/data-geography@v0.1.0,Open-Syria/data-universities@v0.1.0
+Open-Syria/data-geography@v0.1.0,Open-Syria/another-dataset@v0.1.0
 ```
 
 The sync command:
@@ -130,18 +130,14 @@ localities: 7605
 
 Set `GEOGRAPHY_RELEASE_DIR` to use a different local release directory.
 
-## Initial Implementation
+## Production Runtime
 
-For the first public API foundation, endpoints can return empty lists while dataset repositories are being prepared. Once release artifacts are synced locally, endpoints should read from the database read model when `DATABASE_ENABLED=true`, with verified local JSON artifact fallback available during early seeding.
+Production deployments should sync pinned release artifacts, import them into the database read model, and require release manifests before marking the API ready.
 
-The first real loading implementation should use pinned GitHub Release artifacts:
+The first production geography release is:
 
 ```text
-data-geography@v0.1.0
-data-universities@v0.1.0
-data-transport@v0.1.0
-data-heritage@v0.1.0
-data-telecom@v0.1.0
+Open-Syria/data-geography@v0.1.0
 ```
 
 The API should expose the active dataset versions through `/api/v1/releases`.
@@ -158,9 +154,9 @@ Reading another repository's `main` branch at runtime creates unstable API behav
 
 Versioned release artifacts make the API predictable and easier to audit.
 
-## Future Runtime Options
+## Operational Notes
 
-Start with the PostgreSQL/PostGIS read model for production serving:
+For production serving:
 
 - download released JSON artifacts during deployment,
 - verify checksums, sizes, and schemas,
@@ -168,7 +164,7 @@ Start with the PostgreSQL/PostGIS read model for production serving:
 - keep generated exports available through release metadata,
 - use Redis for hot cache and throttling.
 
-Later, if exports become large:
+If exports become large:
 
 - store generated artifacts in object storage,
 - add signed or proxied download URLs if needed,
