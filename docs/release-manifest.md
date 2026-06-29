@@ -2,7 +2,7 @@
 
 Each data repository should publish a `release-manifest.json` with every versioned release.
 
-The manifest is the contract between a dataset repository and `datasets-api`. It tells the API which dataset was released, which artifacts are available, how to verify them, and which sources support the release.
+The manifest is the contract between a dataset repository and `datasets-api`. It tells the API which dataset was released, which artifacts are available, how to verify them, which sources support the release, and whether the release is approved for public API exposure.
 
 Dataset repositories may publish several generated formats in the same release. JSON artifacts are the primary API ingestion format. Other formats such as NDJSON, CSV, SQL, YAML, XML, GeoJSON, and SQLite are distribution artifacts that the API can expose as release metadata or download links.
 
@@ -72,7 +72,32 @@ The current manifest schema version is:
       "accessedAt": "2026-06-27T00:00:00.000Z",
       "fields": ["name", "coordinates"]
     }
-  ]
+  ],
+  "readiness": {
+    "level": "public_directory_ready",
+    "publicApi": {
+      "status": "approved",
+      "minimumLevel": "public_directory_ready",
+      "reason": "Directory endpoints may expose this release."
+    },
+    "checks": [
+      {
+        "name": "canonical_record_count",
+        "status": "passed",
+        "expected": 14,
+        "actual": 14
+      }
+    ],
+    "domains": [
+      {
+        "name": "governorates",
+        "status": "ready",
+        "recordCount": 14,
+        "notes": "Governorate records are ready for public directory use."
+      }
+    ],
+    "blockers": []
+  }
 }
 ```
 
@@ -84,6 +109,8 @@ The current manifest schema version is:
 - Artifact `sha256` must be the lowercase 64-character hex checksum of the file.
 - Artifact `url` should point to an immutable release asset, not a branch file.
 - `sources` must describe the reusable sources behind the release.
+- `readiness`, when present, must distinguish sync readiness from public API approval.
+- Public endpoint work must not treat a synced release as exposed unless `readiness.publicApi.status` is `approved`.
 - AI output must never appear as a source. AI may assist cleaning or matching, but released records need reviewable sources.
 
 ## API Consumption
@@ -129,6 +156,23 @@ pnpm run datasets:sync
 The command reads pinned release sources from `dataset-releases.json`. For a
 deliberate one-off override, set `DATASETS_RELEASE_SOURCES_OVERRIDE=true` and
 provide `DATASETS_RELEASE_SOURCES`.
+
+Lock-file entries may include `requiredReadiness`, for example:
+
+```json
+{
+  "owner": "Open-Syria",
+  "repository": "data-universities",
+  "tag": "v0.1.12",
+  "requiredReadiness": {
+    "minimumLevel": "identity_seed_ready",
+    "publicApi": "not_approved"
+  }
+}
+```
+
+When present, sync fails if the manifest omits readiness metadata, has a lower
+readiness level, or declares a different public API status.
 
 The command expects every pinned release to include `release-manifest.json` as a release asset. Artifact files listed in the manifest are matched by the basename of `artifacts[].path`.
 

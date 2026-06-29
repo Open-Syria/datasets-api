@@ -15,7 +15,7 @@ concurrency:
 
 env:
   GEOGRAPHY_RELEASE: v0.1.3
-  UNIVERSITIES_RELEASE: v0.1.11
+  UNIVERSITIES_RELEASE: v0.1.12
 
 jobs:
   verify:

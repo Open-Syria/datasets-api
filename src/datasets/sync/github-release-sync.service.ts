@@ -3,6 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
 import {
+  type DatasetReadinessLevel,
   type DatasetReleaseArtifact,
   type DatasetReleaseManifest,
   datasetReleaseManifestSchema,
@@ -30,6 +31,13 @@ const githubReleaseSchema = z.object({
 
 type GitHubReleaseAsset = z.infer<typeof githubReleaseAssetSchema>;
 type GitHubRelease = z.infer<typeof githubReleaseSchema>;
+
+const readinessLevelOrder: Record<DatasetReadinessLevel, number> = {
+  raw_seed: 0,
+  identity_seed_ready: 1,
+  public_directory_ready: 2,
+  profile_ready: 3,
+};
 
 export type GitHubReleaseSyncOptions = {
   releasesDirectory: string;
@@ -72,6 +80,9 @@ export class GitHubReleaseSyncService {
     const manifest = datasetReleaseManifestSchema.parse(
       JSON.parse(manifestBuffer.toString('utf8')),
     );
+
+    this.assertReadiness(source, manifest);
+
     const releaseDirectory = resolveDatasetReleaseDirectory(
       this.options.releasesDirectory,
       manifest,
@@ -137,6 +148,41 @@ export class GitHubReleaseSyncService {
     }
 
     return downloaded;
+  }
+
+  private assertReadiness(source: DatasetReleaseSource, manifest: DatasetReleaseManifest) {
+    const requiredReadiness = source.requiredReadiness;
+
+    if (!requiredReadiness) {
+      return;
+    }
+
+    const manifestReadiness = manifest.readiness;
+
+    if (!manifestReadiness) {
+      throw new Error(
+        `${formatDatasetReleaseSource(source)} does not declare release readiness metadata`,
+      );
+    }
+
+    if (
+      requiredReadiness.minimumLevel &&
+      readinessLevelOrder[manifestReadiness.level] <
+        readinessLevelOrder[requiredReadiness.minimumLevel]
+    ) {
+      throw new Error(
+        `${formatDatasetReleaseSource(source)} readiness level is ${manifestReadiness.level}, expected at least ${requiredReadiness.minimumLevel}`,
+      );
+    }
+
+    if (
+      requiredReadiness.publicApi &&
+      manifestReadiness.publicApi.status !== requiredReadiness.publicApi
+    ) {
+      throw new Error(
+        `${formatDatasetReleaseSource(source)} public API readiness is ${manifestReadiness.publicApi.status}, expected ${requiredReadiness.publicApi}`,
+      );
+    }
   }
 
   private async fetchRelease(source: DatasetReleaseSource): Promise<GitHubRelease> {

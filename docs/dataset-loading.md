@@ -106,7 +106,11 @@ The lock file uses this shape:
     {
       "owner": "Open-Syria",
       "repository": "data-universities",
-      "tag": "v0.1.11"
+      "tag": "v0.1.12",
+      "requiredReadiness": {
+        "minimumLevel": "identity_seed_ready",
+        "publicApi": "not_approved"
+      }
     }
   ]
 }
@@ -156,11 +160,17 @@ The current production dataset releases are:
 
 ```text
 Open-Syria/data-geography@v0.1.3
-Open-Syria/data-universities@v0.1.11
+Open-Syria/data-universities@v0.1.12
 ```
 
 The source of truth for this pin is `dataset-releases.json`; CI release checks
 verify that the lock file, docs, and deployment expectations stay aligned.
+
+Pinned sources may also declare `requiredReadiness`. During sync, the API fails
+before writing artifacts if the release manifest does not declare the expected
+readiness level and public API status. This lets production download a dataset
+for discovery while still blocking endpoint/docs exposure until the dataset
+release explicitly approves public API use.
 
 The API should expose the active dataset versions and public artifact metadata through
 `/api/v1/releases`, including artifact names, formats, paths, checksums, sizes,

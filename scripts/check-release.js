@@ -5,6 +5,13 @@ const path = require('node:path');
 const root = process.cwd();
 const semverPattern =
   /^(?:v)?(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
+const readinessLevels = new Set([
+  'raw_seed',
+  'identity_seed_ready',
+  'public_directory_ready',
+  'profile_ready',
+]);
+const publicApiReadinessStatuses = new Set(['not_approved', 'approved']);
 const booleanOptions = new Set([
   'docker-build',
   'help',
@@ -189,10 +196,33 @@ function readDatasetReleaseLockSources() {
       fail('dataset-releases.json sources must include owner, repository, and tag strings');
     }
 
+    const requiredReadiness = source.requiredReadiness;
+
+    if (requiredReadiness !== undefined) {
+      if (!requiredReadiness || typeof requiredReadiness !== 'object') {
+        fail('dataset-releases.json requiredReadiness must be an object');
+      }
+
+      if (
+        requiredReadiness.minimumLevel !== undefined &&
+        !readinessLevels.has(requiredReadiness.minimumLevel)
+      ) {
+        fail(`Unsupported requiredReadiness.minimumLevel: ${requiredReadiness.minimumLevel}`);
+      }
+
+      if (
+        requiredReadiness.publicApi !== undefined &&
+        !publicApiReadinessStatuses.has(requiredReadiness.publicApi)
+      ) {
+        fail(`Unsupported requiredReadiness.publicApi: ${requiredReadiness.publicApi}`);
+      }
+    }
+
     return {
       owner: source.owner,
       repository: source.repository,
       tag: normalizeReleaseTag(source.tag),
+      requiredReadiness,
       value: `${source.owner}/${source.repository}@${normalizeReleaseTag(source.tag)}`,
     };
   });
@@ -260,6 +290,26 @@ function assertDatasetSourcesMatchReleaseLock(
 
     if (!datasetSource) {
       fail(`Configured dataset sources must include ${lockSource.value}`);
+    }
+  }
+}
+
+function assertDatasetReleaseGates(releaseLockSources) {
+  for (const lockSource of releaseLockSources) {
+    if (lockSource.repository === 'data-geography') {
+      continue;
+    }
+
+    if (!lockSource.requiredReadiness) {
+      fail(`${lockSource.value} must declare requiredReadiness in dataset-releases.json`);
+    }
+
+    if (!lockSource.requiredReadiness.minimumLevel) {
+      fail(`${lockSource.value} requiredReadiness must include minimumLevel`);
+    }
+
+    if (!lockSource.requiredReadiness.publicApi) {
+      fail(`${lockSource.value} requiredReadiness must include publicApi`);
     }
   }
 }
@@ -384,6 +434,7 @@ function main() {
     releaseLockSources,
     requireAllDatasetSources,
   );
+  assertDatasetReleaseGates(releaseLockSources);
 
   const configuredGeographySource = findDatasetSource(
     datasetSources,
