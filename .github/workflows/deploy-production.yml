@@ -108,7 +108,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push runtime image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           target: runtime
@@ -119,7 +119,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=datasets-api-runtime
 
       - name: Build and push migrations image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           target: migrations
