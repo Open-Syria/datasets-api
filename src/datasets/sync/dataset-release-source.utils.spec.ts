@@ -41,6 +41,11 @@ describe('dataset release source utils', () => {
             repository: 'data-geography',
             tag: 'v0.1.3',
           },
+          {
+            owner: 'Open-Syria',
+            repository: 'data-universities',
+            tag: 'v0.1.2',
+          },
         ],
       }),
     ).toEqual([
@@ -48,6 +53,11 @@ describe('dataset release source utils', () => {
         owner: 'Open-Syria',
         repository: 'data-geography',
         tag: 'v0.1.3',
+      },
+      {
+        owner: 'Open-Syria',
+        repository: 'data-universities',
+        tag: 'v0.1.2',
       },
     ]);
   });

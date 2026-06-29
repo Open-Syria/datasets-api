@@ -102,6 +102,11 @@ The lock file uses this shape:
       "owner": "Open-Syria",
       "repository": "data-geography",
       "tag": "v0.1.3"
+    },
+    {
+      "owner": "Open-Syria",
+      "repository": "data-universities",
+      "tag": "v0.1.2"
     }
   ]
 }
@@ -147,10 +152,11 @@ Set `GEOGRAPHY_RELEASE_DIR` to use a different local release directory.
 
 Production deployments should sync pinned release artifacts, import them into the database read model, and require release manifests before marking the API ready.
 
-The current production geography release is:
+The current production dataset releases are:
 
 ```text
 Open-Syria/data-geography@v0.1.3
+Open-Syria/data-universities@v0.1.2
 ```
 
 The source of truth for this pin is `dataset-releases.json`; CI release checks

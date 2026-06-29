@@ -69,6 +69,8 @@ Dataset release pins still come from `dataset-releases.json` in the runtime
 image. `DATASETS_RELEASE_SOURCES_OVERRIDE` remains `false` unless a deliberate
 one-off operational override is needed.
 
+Set `GITHUB_TOKEN` when pinned dataset releases live in private repositories or when higher GitHub API limits are needed.
+
 ## Runtime Commands
 
 Start an already-built app:
