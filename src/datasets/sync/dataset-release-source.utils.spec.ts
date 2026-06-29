@@ -44,7 +44,7 @@ describe('dataset release source utils', () => {
           {
             owner: 'Open-Syria',
             repository: 'data-universities',
-            tag: 'v0.1.9',
+            tag: 'v0.1.10',
           },
         ],
       }),
@@ -57,7 +57,7 @@ describe('dataset release source utils', () => {
       {
         owner: 'Open-Syria',
         repository: 'data-universities',
-        tag: 'v0.1.9',
+        tag: 'v0.1.10',
       },
     ]);
   });
