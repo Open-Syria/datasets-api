@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  buildOffsetPagination,
   matchesSearchValues,
   paginateOffsetItems,
   sortByString,
@@ -85,10 +86,7 @@ const RELEASES: ReleaseSummaryList['items'] = [
   },
 ];
 
-type ReleaseSummaryListResult = {
-  items: ReleaseSummary[];
-  totalRecords: number;
-};
+type ReleaseSummaryListResult = ReleaseSummaryList;
 
 @Injectable()
 export class ReleasesService {
@@ -124,10 +122,11 @@ export class ReleasesService {
       this.matchesReleaseSearch(release, query.q),
     );
     const sortedItems = sortByString(filteredItems, (release) => release.id, query.order);
+    const items = paginateOffsetItems(sortedItems, query);
 
     return {
-      items: paginateOffsetItems(sortedItems, query),
-      totalRecords: sortedItems.length,
+      items,
+      pagination: buildOffsetPagination(sortedItems.length, query, items.length),
     };
   }
 

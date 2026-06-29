@@ -42,7 +42,7 @@ export class DatasetsController {
     return buildOffsetPaginatedResponse({
       i18n,
       items: result.items,
-      totalRecords: result.totalRecords,
+      totalRecords: result.pagination.totalRecords,
       options: query,
       message: 'api.responses.datasets.listFetched',
       fallbackMessage: 'Datasets fetched successfully',

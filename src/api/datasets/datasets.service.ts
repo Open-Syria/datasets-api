@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  buildOffsetPagination,
   matchesSearchValues,
   paginateOffsetItems,
   sortByString,
@@ -8,12 +9,9 @@ import type { OffsetPaginationQuery } from '../../common/schemas/pagination.sche
 import type { DatasetReleaseManifest } from '../../datasets/contracts/dataset-release-manifest.schema';
 import { DatasetReleaseRegistryService } from '../../datasets/dataset-release-registry.service';
 import { PublicDataCacheService } from '../../shared/cache/public-data-cache.service';
-import type { DatasetSummary } from './datasets.dto';
+import type { DatasetSummary, DatasetSummaryList } from './datasets.dto';
 
-type DatasetSummaryListResult = {
-  items: DatasetSummary[];
-  totalRecords: number;
-};
+type DatasetSummaryListResult = DatasetSummaryList;
 
 const DATASETS: DatasetSummary[] = [
   {
@@ -147,10 +145,11 @@ export class DatasetsService {
       this.enrichDatasetFromManifest(dataset, manifests),
     ).filter((dataset) => this.matchesDatasetSearch(dataset, query.q));
     const sortedItems = sortByString(filteredItems, (dataset) => dataset.name.en, query.order);
+    const items = paginateOffsetItems(sortedItems, query);
 
     return {
-      items: paginateOffsetItems(sortedItems, query),
-      totalRecords: sortedItems.length,
+      items,
+      pagination: buildOffsetPagination(sortedItems.length, query, items.length),
     };
   }
 

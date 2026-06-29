@@ -1,4 +1,5 @@
 import { Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { buildOffsetPagination } from '../../../common/helpers/list-query.helpers';
 import type { DatasetReleaseManifest } from '../../../datasets/contracts/dataset-release-manifest.schema';
 import { DatasetReleaseRegistryService } from '../../../datasets/dataset-release-registry.service';
 import { LocalDatasetArtifactReaderService } from '../../../datasets/loaders/local-dataset-artifact-reader.service';
@@ -6,7 +7,6 @@ import { GeographyReadModelQueryService } from '../../../read-model/geography/ge
 import {
   buildGeographyDatasetContext,
   buildGeographyReleaseContext,
-  buildOffsetPagination,
   GEOGRAPHY_DATASET_ID,
   mapGeographySources,
   matchesSearch,
