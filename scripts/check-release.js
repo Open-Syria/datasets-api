@@ -166,6 +166,32 @@ function parseDatasetSources(value) {
     .map(parseDatasetSource);
 }
 
+function readDatasetReleaseLockSources() {
+  const config = readJson('dataset-releases.json');
+
+  if (!Array.isArray(config.sources)) {
+    fail('dataset-releases.json must include a sources array');
+  }
+
+  return config.sources.map((source) => {
+    if (
+      !source ||
+      typeof source.owner !== 'string' ||
+      typeof source.repository !== 'string' ||
+      typeof source.tag !== 'string'
+    ) {
+      fail('dataset-releases.json sources must include owner, repository, and tag strings');
+    }
+
+    return {
+      owner: source.owner,
+      repository: source.repository,
+      tag: normalizeReleaseTag(source.tag),
+      value: `${source.owner}/${source.repository}@${normalizeReleaseTag(source.tag)}`,
+    };
+  });
+}
+
 function assertFilesContain(files, expectedText) {
   for (const file of files) {
     const text = readText(file);
@@ -176,19 +202,31 @@ function assertFilesContain(files, expectedText) {
   }
 }
 
-function assertGeographyReleaseReferences(geographyReleaseTag, datasetSources) {
+function assertGeographyReleaseReferences(geographyReleaseTag, datasetSources, releaseLockSources) {
   const expectedSource = `Open-Syria/data-geography@${geographyReleaseTag}`;
 
   assertFilesContain(
-    [
-      'docs/deployment.md',
-      'docs/dataset-loading.md',
-      'docs/release-manifest.md',
-      'src/cli/sync-dataset-releases.ts',
-      'src/datasets/sync/dataset-release-source.utils.spec.ts',
-    ],
+    ['docs/dataset-loading.md', 'src/datasets/sync/dataset-release-source.utils.spec.ts'],
     expectedSource,
   );
+  assertFilesContain(
+    ['.github/workflows/deploy-production.yml'],
+    `GEOGRAPHY_RELEASE: ${geographyReleaseTag}`,
+  );
+
+  const lockSource = releaseLockSources.find(
+    (source) => source.owner === 'Open-Syria' && source.repository === 'data-geography',
+  );
+
+  if (!lockSource) {
+    fail(`dataset-releases.json must include ${expectedSource}`);
+  }
+
+  if (lockSource.tag !== geographyReleaseTag) {
+    fail(
+      `dataset-releases.json pins Open-Syria/data-geography@${lockSource.tag}, expected ${geographyReleaseTag}`,
+    );
+  }
 
   if (
     datasetSources.length > 0 &&
@@ -214,6 +252,7 @@ function assertDockerfileReadiness() {
     'FROM node:24',
     'RUN pnpm run build',
     'COPY --from=build /app/dist ./dist',
+    'COPY dataset-releases.json ./',
     'CMD ["node", "dist/main.js"]',
   ];
 
@@ -275,6 +314,7 @@ function main() {
   assertSwaggerVersion(expectedVersion);
   assertProductionScripts(packageJson);
   assertDockerfileReadiness();
+  const releaseLockSources = readDatasetReleaseLockSources();
 
   const datasetSources = parseDatasetSources(
     options.get('dataset-sources') ?? process.env.DATASETS_RELEASE_SOURCES,
@@ -287,7 +327,7 @@ function main() {
     : configuredGeographySource?.tag;
 
   if (geographyReleaseTag) {
-    assertGeographyReleaseReferences(geographyReleaseTag, datasetSources);
+    assertGeographyReleaseReferences(geographyReleaseTag, datasetSources, releaseLockSources);
   }
 
   if (!options.get('skip-build')) {

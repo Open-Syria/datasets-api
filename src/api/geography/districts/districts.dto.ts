@@ -9,34 +9,13 @@ import {
 import {
   RECORD_SOURCE_STATUS_OPTIONS,
   RECORD_SOURCE_STATUS_VALUES,
-  RECORD_SOURCE_STATUSES,
 } from '../../../constants/app.constants';
 import type { ApiParamParameter, ApiQueryParameter } from '../../../decorators/api-request-dto';
+import { geographyArtifactSchema, geographyDistrictRecordSchema } from '../geography-records.dto';
 
-export const districtGeographicPointSchema = z.object({
-  latitude: z.number().min(-90).max(90),
-  longitude: z.number().min(-180).max(180),
-});
+export const districtSummarySchema = geographyDistrictRecordSchema;
 
-export const districtSummarySchema = z.object({
-  id: z.string().min(1),
-  governorateId: z.string().min(1),
-  name: z.object({
-    en: z.string().min(1),
-    ar: z.string().min(1).optional(),
-  }),
-  centroid: districtGeographicPointSchema.nullable(),
-  sourceStatus: z.enum(RECORD_SOURCE_STATUSES),
-});
-
-export const districtsArtifactSchema = z
-  .union([
-    z.array(districtSummarySchema),
-    z.object({
-      items: z.array(districtSummarySchema),
-    }),
-  ])
-  .transform((value) => (Array.isArray(value) ? value : value.items));
+export const districtsArtifactSchema = geographyArtifactSchema(districtSummarySchema);
 
 export const districtListQuerySchema = offsetPaginationQuerySchema.extend({
   governorateId: z.string().trim().min(1).optional(),
@@ -91,7 +70,7 @@ export class DistrictListQueryDto extends createZodDto(districtListQuerySchema) 
   static readonly openApiQueryParameters: readonly ApiQueryParameter[] = [
     ...buildOffsetPaginationQueryParameters({
       searchDescription:
-        'Search term matched against ID, names, governorate ID, and source status.',
+        'Search term matched against ID, names, aliases, governorate ID, external IDs, source IDs, and source status.',
       searchExample: 'damascus',
     }),
     {
@@ -105,8 +84,8 @@ export class DistrictListQueryDto extends createZodDto(districtListQuerySchema) 
       required: false,
       enum: RECORD_SOURCE_STATUS_OPTIONS,
       description:
-        'Filter records by source review or release status. PENDING_RELEASE=pending release, SEED=seed data, RELEASED=released data, DEPRECATED=deprecated data.',
-      example: 'RELEASED',
+        'Filter records by source review or release status. pending_release=pending release, seed=seed data, released=released data, deprecated=deprecated data.',
+      example: 'released',
     },
   ];
 }

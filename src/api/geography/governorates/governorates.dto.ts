@@ -9,34 +9,16 @@ import {
 import {
   RECORD_SOURCE_STATUS_OPTIONS,
   RECORD_SOURCE_STATUS_VALUES,
-  RECORD_SOURCE_STATUSES,
 } from '../../../constants/app.constants';
 import type { ApiParamParameter, ApiQueryParameter } from '../../../decorators/api-request-dto';
+import {
+  geographyArtifactSchema,
+  geographyGovernorateRecordSchema,
+} from '../geography-records.dto';
 
-export const geographicPointSchema = z.object({
-  latitude: z.number().min(-90).max(90),
-  longitude: z.number().min(-180).max(180),
-});
+export const governorateSummarySchema = geographyGovernorateRecordSchema;
 
-export const governorateSummarySchema = z.object({
-  id: z.string().min(1),
-  name: z.object({
-    en: z.string().min(1),
-    ar: z.string().min(1).optional(),
-  }),
-  iso31662: z.string().nullable(),
-  centroid: geographicPointSchema.nullable(),
-  sourceStatus: z.enum(RECORD_SOURCE_STATUSES),
-});
-
-export const governoratesArtifactSchema = z
-  .union([
-    z.array(governorateSummarySchema),
-    z.object({
-      items: z.array(governorateSummarySchema),
-    }),
-  ])
-  .transform((value) => (Array.isArray(value) ? value : value.items));
+export const governoratesArtifactSchema = geographyArtifactSchema(governorateSummarySchema);
 
 export const governorateListQuerySchema = offsetPaginationQuerySchema.extend({
   sourceStatus: z
@@ -89,7 +71,8 @@ export class GovernorateParamsDto extends createZodDto(governorateParamsSchema) 
 export class GovernorateListQueryDto extends createZodDto(governorateListQuerySchema) {
   static readonly openApiQueryParameters: readonly ApiQueryParameter[] = [
     ...buildOffsetPaginationQueryParameters({
-      searchDescription: 'Search term matched against ID, names, ISO code, and source status.',
+      searchDescription:
+        'Search term matched against ID, names, aliases, ISO code, external IDs, source IDs, and source status.',
       searchExample: 'damascus',
     }),
     {
@@ -97,8 +80,8 @@ export class GovernorateListQueryDto extends createZodDto(governorateListQuerySc
       required: false,
       enum: RECORD_SOURCE_STATUS_OPTIONS,
       description:
-        'Filter records by source review or release status. PENDING_RELEASE=pending release, SEED=seed data, RELEASED=released data, DEPRECATED=deprecated data.',
-      example: 'RELEASED',
+        'Filter records by source review or release status. pending_release=pending release, seed=seed data, released=released data, deprecated=deprecated data.',
+      example: 'released',
     },
   ];
 }

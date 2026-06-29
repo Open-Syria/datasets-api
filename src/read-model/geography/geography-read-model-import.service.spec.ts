@@ -15,8 +15,13 @@ const governorate: GovernorateSummary = {
   name: {
     en: 'Damascus',
   },
+  aliases: [],
   iso31662: 'SY-DI',
   centroid: null,
+  area: null,
+  population: null,
+  externalIds: {},
+  sourceIds: ['source-1'],
   sourceStatus: 'released',
 };
 
@@ -26,7 +31,12 @@ const district: DistrictSummary = {
   name: {
     en: 'Damascus',
   },
+  aliases: [],
   centroid: null,
+  area: null,
+  population: null,
+  externalIds: {},
+  sourceIds: ['source-1'],
   sourceStatus: 'released',
 };
 
@@ -37,7 +47,12 @@ const subdistrict: SubdistrictSummary = {
   name: {
     en: 'Damascus',
   },
+  aliases: [],
   centroid: null,
+  area: null,
+  population: null,
+  externalIds: {},
+  sourceIds: ['source-1'],
   sourceStatus: 'released',
 };
 

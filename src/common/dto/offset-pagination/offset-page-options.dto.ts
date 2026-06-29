@@ -20,7 +20,7 @@ export const offsetPaginationQueryParameters = [
     name: 'limit',
     required: false,
     enum: PAGE_LIMIT_OPTIONS,
-    description: 'Maximum number of records to return. TEN=10, THIRTY_FIVE=35, FIFTY=50.',
+    description: 'Maximum number of records to return. ten=10, thirty_five=35, fifty=50.',
     example: DEFAULT_PAGE_LIMIT_OPTION,
   },
   {
@@ -33,7 +33,7 @@ export const offsetPaginationQueryParameters = [
     name: 'order',
     required: false,
     enum: SORT_ORDER_OPTIONS,
-    description: 'Sort order by English display name. ASC=ascending, DESC=descending.',
+    description: 'Sort order by English display name. asc=ascending, desc=descending.',
     example: DEFAULT_SORT_ORDER_OPTION,
   },
 ] as const satisfies readonly ApiQueryParameter[];

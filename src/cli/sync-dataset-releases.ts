@@ -7,7 +7,7 @@ async function main() {
 
   if (datasetsConfig.releaseSources.length === 0) {
     console.log('No dataset release sources configured.');
-    console.log('Set DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.3".');
+    console.log('Update dataset-releases.json or set DATASETS_RELEASE_SOURCES as a fallback.');
     return;
   }
 

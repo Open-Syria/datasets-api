@@ -9,35 +9,16 @@ import {
 import {
   RECORD_SOURCE_STATUS_OPTIONS,
   RECORD_SOURCE_STATUS_VALUES,
-  RECORD_SOURCE_STATUSES,
 } from '../../../constants/app.constants';
 import type { ApiParamParameter, ApiQueryParameter } from '../../../decorators/api-request-dto';
+import {
+  geographyArtifactSchema,
+  geographySubdistrictRecordSchema,
+} from '../geography-records.dto';
 
-export const subdistrictGeographicPointSchema = z.object({
-  latitude: z.number().min(-90).max(90),
-  longitude: z.number().min(-180).max(180),
-});
+export const subdistrictSummarySchema = geographySubdistrictRecordSchema;
 
-export const subdistrictSummarySchema = z.object({
-  id: z.string().min(1),
-  governorateId: z.string().min(1),
-  districtId: z.string().min(1),
-  name: z.object({
-    en: z.string().min(1),
-    ar: z.string().min(1).optional(),
-  }),
-  centroid: subdistrictGeographicPointSchema.nullable(),
-  sourceStatus: z.enum(RECORD_SOURCE_STATUSES),
-});
-
-export const subdistrictsArtifactSchema = z
-  .union([
-    z.array(subdistrictSummarySchema),
-    z.object({
-      items: z.array(subdistrictSummarySchema),
-    }),
-  ])
-  .transform((value) => (Array.isArray(value) ? value : value.items));
+export const subdistrictsArtifactSchema = geographyArtifactSchema(subdistrictSummarySchema);
 
 export const subdistrictListQuerySchema = offsetPaginationQuerySchema.extend({
   governorateId: z.string().trim().min(1).optional(),
@@ -93,7 +74,7 @@ export class SubdistrictListQueryDto extends createZodDto(subdistrictListQuerySc
   static readonly openApiQueryParameters: readonly ApiQueryParameter[] = [
     ...buildOffsetPaginationQueryParameters({
       searchDescription:
-        'Search term matched against ID, names, governorate ID, district ID, and source status.',
+        'Search term matched against ID, names, aliases, governorate ID, district ID, external IDs, source IDs, and source status.',
       searchExample: 'hasakeh',
     }),
     {
@@ -113,8 +94,8 @@ export class SubdistrictListQueryDto extends createZodDto(subdistrictListQuerySc
       required: false,
       enum: RECORD_SOURCE_STATUS_OPTIONS,
       description:
-        'Filter records by source review or release status. PENDING_RELEASE=pending release, SEED=seed data, RELEASED=released data, DEPRECATED=deprecated data.',
-      example: 'RELEASED',
+        'Filter records by source review or release status. pending_release=pending release, seed=seed data, released=released data, deprecated=deprecated data.',
+      example: 'released',
     },
   ];
 }

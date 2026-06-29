@@ -9,6 +9,7 @@ import {
   buildOffsetPagination,
   GEOGRAPHY_DATASET_ID,
   mapGeographySources,
+  matchesSearch,
   paginateRecords,
   sortByEnglishName,
 } from '../geography.helpers';
@@ -116,8 +117,6 @@ export class DistrictsService {
   }
 
   private filterDistricts(items: DistrictSummary[], query: DistrictListQuery) {
-    const search = query.q?.toLowerCase();
-
     return items.filter((item) => {
       if (query.governorateId && item.governorateId !== query.governorateId) {
         return false;
@@ -127,12 +126,17 @@ export class DistrictsService {
         return false;
       }
 
-      if (!search) {
-        return true;
-      }
-
-      return [item.id, item.governorateId, item.name.en, item.name.ar, item.sourceStatus].some(
-        (value) => value?.toLowerCase().includes(search),
+      return matchesSearch(
+        [
+          item.id,
+          item.governorateId,
+          item.name,
+          item.aliases,
+          item.externalIds,
+          item.sourceIds,
+          item.sourceStatus,
+        ],
+        query.q,
       );
     });
   }

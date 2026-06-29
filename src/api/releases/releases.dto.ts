@@ -1,29 +1,42 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import { datasetArtifactFormatSchema } from '../../datasets/contracts/dataset-release-manifest.schema';
+import {
+  datasetArtifactFormatSchema,
+  datasetCategorySchema,
+  datasetReleaseStatusSchema,
+  localizedTextSchema,
+} from '../../datasets/contracts/dataset-release-manifest.schema';
 
-export const releaseStatusSchema = z.enum(['planned', 'seed', 'released', 'deprecated']);
+export const releaseStatusSchema = datasetReleaseStatusSchema;
 export const releaseArtifactFormatSchema = datasetArtifactFormatSchema;
 
 export const releaseDatasetSchema = z.object({
   datasetId: z.string().min(1),
+  slug: z.string().min(1),
   repository: z.string().min(1),
+  category: datasetCategorySchema,
+  title: localizedTextSchema,
   status: releaseStatusSchema,
   releaseVersion: z.string().nullable(),
   manifestPath: z.string().nullable(),
 });
 
 export const releaseArtifactSchema = z.object({
+  name: z.string().min(1),
   format: releaseArtifactFormatSchema,
+  path: z.string().min(1),
   url: z.string().url().nullable(),
   sha256: z.string().nullable(),
   sizeBytes: z.number().int().nonnegative().nullable(),
+  recordCount: z.number().int().nonnegative().nullable(),
+  mediaType: z.string().min(1).nullable(),
 });
 
 export const releaseSummarySchema = z.object({
   id: z.string().min(1),
   version: z.string().nullable(),
   status: releaseStatusSchema,
+  generatedAt: z.string().datetime().nullable(),
   publishedAt: z.string().datetime().nullable(),
   datasets: z.array(releaseDatasetSchema),
   artifacts: z.array(releaseArtifactSchema),

@@ -9,6 +9,7 @@ import {
   buildOffsetPagination,
   GEOGRAPHY_DATASET_ID,
   mapGeographySources,
+  matchesSearch,
   paginateRecords,
   sortByEnglishName,
 } from '../geography.helpers';
@@ -17,7 +18,6 @@ import {
   type LocalityList,
   type LocalityListQuery,
   type LocalityRecord,
-  type LocalitySummary,
   localitiesArtifactSchema,
 } from './localities.dto';
 
@@ -59,8 +59,7 @@ export class LocalitiesService {
     const readModel = await this.readLocalities();
     const filteredItems = this.filterLocalities(readModel.items, query);
     const sortedItems = this.sortLocalities(filteredItems, query.order);
-    const pageItems = this.paginateLocalities(sortedItems, query);
-    const items = pageItems.map((item) => this.toSummary(item));
+    const items = this.paginateLocalities(sortedItems, query);
 
     return {
       items,
@@ -117,22 +116,7 @@ export class LocalitiesService {
     };
   }
 
-  private toSummary(item: LocalityRecord): LocalitySummary {
-    return {
-      id: item.id,
-      governorateId: item.governorateId,
-      districtId: item.districtId,
-      subdistrictId: item.subdistrictId,
-      kind: item.kind,
-      name: item.name,
-      centroid: item.centroid,
-      sourceStatus: item.sourceStatus,
-    };
-  }
-
   private filterLocalities(items: LocalityRecord[], query: LocalityListQuery) {
-    const search = query.q?.toLowerCase();
-
     return items.filter((item) => {
       if (query.governorateId && item.governorateId !== query.governorateId) {
         return false;
@@ -154,23 +138,21 @@ export class LocalitiesService {
         return false;
       }
 
-      if (!search) {
-        return true;
-      }
-
-      return [
-        item.id,
-        item.governorateId,
-        item.districtId,
-        item.subdistrictId,
-        item.kind,
-        item.name.en,
-        item.name.ar,
-        item.sourceStatus,
-        ...item.aliases.map((alias) => alias.value),
-        ...Object.values(item.externalIds),
-        ...item.sourceIds,
-      ].some((value) => value?.toLowerCase().includes(search));
+      return matchesSearch(
+        [
+          item.id,
+          item.governorateId,
+          item.districtId,
+          item.subdistrictId,
+          item.kind,
+          item.name,
+          item.aliases,
+          item.externalIds,
+          item.sourceIds,
+          item.sourceStatus,
+        ],
+        query.q,
+      );
     });
   }
 

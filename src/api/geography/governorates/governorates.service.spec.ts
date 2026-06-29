@@ -16,11 +16,32 @@ const governorate: GovernorateSummary = {
   name: {
     en: 'Damascus',
   },
+  aliases: [
+    {
+      value: 'Dimashq',
+      language: 'en',
+      type: 'alternate_spelling',
+    },
+  ],
   iso31662: 'SY-DI',
   centroid: {
     latitude: 33.5138,
     longitude: 36.2765,
   },
+  area: {
+    value: 105,
+    unit: 'km2',
+    sourceIds: ['source-1'],
+  },
+  population: {
+    value: 1796000,
+    year: 2016,
+    sourceIds: ['source-1'],
+  },
+  externalIds: {
+    geonames: '170654',
+  },
+  sourceIds: ['source-1'],
   sourceStatus: 'released',
 };
 

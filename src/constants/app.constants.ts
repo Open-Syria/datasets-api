@@ -22,26 +22,26 @@ export const APP_LOG_LEVELS = [
 export type AppLogLevel = (typeof APP_LOG_LEVELS)[number];
 
 export const DEFAULT_CURRENT_PAGE = 1;
-export const PAGE_LIMIT_OPTIONS = ['TEN', 'THIRTY_FIVE', 'FIFTY'] as const;
+export const PAGE_LIMIT_OPTIONS = ['ten', 'thirty_five', 'fifty'] as const;
 export type PageLimitOption = (typeof PAGE_LIMIT_OPTIONS)[number];
 export const PAGE_LIMIT_VALUES = {
-  TEN: 10,
-  THIRTY_FIVE: 35,
-  FIFTY: 50,
+  ten: 10,
+  thirty_five: 35,
+  fifty: 50,
 } as const satisfies Record<PageLimitOption, number>;
-export const DEFAULT_PAGE_LIMIT_OPTION = 'TEN' satisfies PageLimitOption;
+export const DEFAULT_PAGE_LIMIT_OPTION = 'ten' satisfies PageLimitOption;
 export const DEFAULT_PAGE_LIMIT = PAGE_LIMIT_VALUES[DEFAULT_PAGE_LIMIT_OPTION];
-export const MAX_PAGE_LIMIT = PAGE_LIMIT_VALUES.FIFTY;
+export const MAX_PAGE_LIMIT = PAGE_LIMIT_VALUES.fifty;
 
-export const SORT_ORDER_OPTIONS = ['ASC', 'DESC'] as const;
+export const SORT_ORDER_OPTIONS = ['asc', 'desc'] as const;
 export type SortOrderOption = (typeof SORT_ORDER_OPTIONS)[number];
 export const SORT_ORDER_VALUES = {
-  ASC: 'asc',
-  DESC: 'desc',
+  asc: 'asc',
+  desc: 'desc',
 } as const satisfies Record<SortOrderOption, string>;
 export const SORT_ORDERS = ['asc', 'desc'] as const;
 export type SortOrder = (typeof SORT_ORDERS)[number];
-export const DEFAULT_SORT_ORDER_OPTION = 'ASC' satisfies SortOrderOption;
+export const DEFAULT_SORT_ORDER_OPTION = 'asc' satisfies SortOrderOption;
 export const DEFAULT_SORT_ORDER = SORT_ORDER_VALUES[DEFAULT_SORT_ORDER_OPTION];
 
 export const RECORD_SOURCE_STATUSES = [
@@ -52,17 +52,17 @@ export const RECORD_SOURCE_STATUSES = [
 ] as const;
 export type RecordSourceStatus = (typeof RECORD_SOURCE_STATUSES)[number];
 export const RECORD_SOURCE_STATUS_OPTIONS = [
-  'PENDING_RELEASE',
-  'SEED',
-  'RELEASED',
-  'DEPRECATED',
+  'pending_release',
+  'seed',
+  'released',
+  'deprecated',
 ] as const;
 export type RecordSourceStatusOption = (typeof RECORD_SOURCE_STATUS_OPTIONS)[number];
 export const RECORD_SOURCE_STATUS_VALUES = {
-  PENDING_RELEASE: 'pending_release',
-  SEED: 'seed',
-  RELEASED: 'released',
-  DEPRECATED: 'deprecated',
+  pending_release: 'pending_release',
+  seed: 'seed',
+  released: 'released',
+  deprecated: 'deprecated',
 } as const satisfies Record<RecordSourceStatusOption, RecordSourceStatus>;
 
 export const loggingRedactPaths = [

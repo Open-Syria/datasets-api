@@ -18,10 +18,31 @@ const subdistrict: SubdistrictSummary = {
   name: {
     en: 'Damascus',
   },
+  aliases: [
+    {
+      value: 'Dimashq Subdistrict',
+      language: 'en',
+      type: 'alternate_spelling',
+    },
+  ],
   centroid: {
     latitude: 33.5138,
     longitude: 36.2765,
   },
+  area: {
+    value: 105,
+    unit: 'km2',
+    sourceIds: ['source-1'],
+  },
+  population: {
+    value: 1552161,
+    year: 2004,
+    sourceIds: ['source-1'],
+  },
+  externalIds: {
+    geonames: '170654',
+  },
+  sourceIds: ['source-1'],
   sourceStatus: 'released',
 };
 

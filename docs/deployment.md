@@ -6,6 +6,7 @@
 
 - [Runtime Requirements](#runtime-requirements)
 - [Release Commands](#release-commands)
+- [Runtime Environment](#runtime-environment)
 - [Runtime Commands](#runtime-commands)
 - [Docker](#docker)
 - [GitHub Actions Deployment](#github-actions-deployment)
@@ -29,8 +30,8 @@ Run these from a full checkout or CI release job with dev dependencies installed
 pnpm install --frozen-lockfile
 pnpm run release:check -- --geography-release v0.1.3
 pnpm run db:migrate:deploy
-DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.3" pnpm run datasets:sync
-DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.3" DATABASE_ENABLED=true pnpm run read-model:import:geography
+pnpm run datasets:sync
+DATABASE_ENABLED=true pnpm run read-model:import:geography
 ```
 
 Use `pnpm run release:check:docker -- --geography-release v0.1.3` when Docker is available and the release job should also build the runtime image locally.
@@ -43,6 +44,31 @@ For local or CI verification against PostgreSQL:
 DATABASE_URL="postgresql://opensyria:opensyria@localhost:5432/opensyria_datasets?schema=public" pnpm run test:integration:db
 ```
 
+## Runtime Environment
+
+The GitHub production deployment writes `/srv/opensyria/datasets-api/.env` on
+the server before running the blue/green deployment script. Do not hand-edit the
+server `.env` for normal production changes; update GitHub production
+environment variables/secrets instead.
+
+The generated runtime `.env` enables:
+
+```text
+NODE_ENV=production
+APP_URL=https://api.opensyria.org
+APP_TRUST_PROXY=true
+IS_HTTPS=true
+DATASETS_REQUIRE_RELEASES=true
+DATABASE_ENABLED=true
+DATABASE_REQUIRED=true
+REDIS_ENABLED=true
+REDIS_REQUIRED=true
+```
+
+Dataset release pins still come from `dataset-releases.json` in the runtime
+image. `DATASETS_RELEASE_SOURCES_OVERRIDE` remains `false` unless a deliberate
+one-off operational override is needed.
+
 ## Runtime Commands
 
 Start an already-built app:
@@ -54,7 +80,7 @@ pnpm run start:prod
 If the Docker/runtime image is used for release sync or read-model import, use the production scripts. They run compiled `dist` files and do not rebuild the app:
 
 ```bash
-DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.3" pnpm run datasets:sync:prod
+pnpm run datasets:sync:prod
 DATABASE_ENABLED=true pnpm run read-model:import:geography:prod
 ```
 
@@ -118,6 +144,10 @@ The workflow:
 6. Copies `deploy/datasets-api` to `/srv/opensyria/datasets-api`.
 7. Runs the blue/green deployment script on the server.
 
+Dataset release pins are stored in `dataset-releases.json` and copied into the
+runtime image. Server `.env` values can only override the lock file when
+`DATASETS_RELEASE_SOURCES_OVERRIDE=true` is set deliberately.
+
 Images are pushed to GHCR using the built-in `GITHUB_TOKEN` with `packages: write`.
 
 Runtime image tags:
@@ -143,6 +173,7 @@ TS_OAUTH_CLIENT_ID
 TS_AUDIENCE
 DEPLOY_SSH_PRIVATE_KEY
 DEPLOY_SSH_KNOWN_HOSTS
+POSTGRES_PASSWORD
 ```
 
 Required production environment variables:
@@ -151,6 +182,27 @@ Required production environment variables:
 DEPLOY_HOST
 DEPLOY_USER
 ```
+
+Optional production environment variables:
+
+```text
+POSTGRES_DB=opensyria_datasets
+POSTGRES_USER=opensyria
+APP_URL=https://api.opensyria.org
+APP_CORS_ORIGIN=*
+APP_DOCS_ENABLED=true
+THROTTLE_FREE_TIER_DAILY_LIMIT=500
+THROTTLE_FREE_TIER_DAILY_TTL_SECONDS=86400
+```
+
+Optional production environment secrets:
+
+```text
+DATASETS_GITHUB_TOKEN
+```
+
+`DATASETS_GITHUB_TOKEN` is only needed when syncing private dataset releases or
+when GitHub API rate limits become a problem.
 
 Secret placement recommendation:
 

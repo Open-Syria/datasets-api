@@ -95,22 +95,11 @@ function createService(items: LocalityRecord[]) {
 }
 
 describe('LocalitiesService', () => {
-  it('lists compact localities from the local artifact reader', async () => {
+  it('lists full localities from the local artifact reader', async () => {
     const service = createService([locality]);
 
     await expect(service.listLocalities(defaultListQuery)).resolves.toMatchObject({
-      items: [
-        {
-          id: locality.id,
-          governorateId: locality.governorateId,
-          districtId: locality.districtId,
-          subdistrictId: locality.subdistrictId,
-          kind: locality.kind,
-          name: locality.name,
-          centroid: locality.centroid,
-          sourceStatus: locality.sourceStatus,
-        },
-      ],
+      items: [locality],
       pagination: {
         currentPage: 1,
         pageRecords: 1,

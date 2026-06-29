@@ -6,6 +6,10 @@ export const datasetReleaseSourceSchema = z.object({
   tag: z.string().min(1),
 });
 
+export const datasetReleaseSourcesConfigSchema = z.object({
+  sources: z.array(datasetReleaseSourceSchema),
+});
+
 export type DatasetReleaseSource = z.infer<typeof datasetReleaseSourceSchema>;
 
 export function parseDatasetReleaseSource(value: string): DatasetReleaseSource {
@@ -29,6 +33,10 @@ export function parseDatasetReleaseSources(value?: string): DatasetReleaseSource
     .map((source) => source.trim())
     .filter(Boolean)
     .map(parseDatasetReleaseSource);
+}
+
+export function parseDatasetReleaseSourcesConfig(value: unknown): DatasetReleaseSource[] {
+  return datasetReleaseSourcesConfigSchema.parse(value).sources;
 }
 
 export function formatDatasetReleaseSource(source: DatasetReleaseSource) {

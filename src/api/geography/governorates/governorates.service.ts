@@ -9,6 +9,7 @@ import {
   buildOffsetPagination,
   GEOGRAPHY_DATASET_ID,
   mapGeographySources,
+  matchesSearch,
   paginateRecords,
   sortByEnglishName,
 } from '../geography.helpers';
@@ -117,19 +118,22 @@ export class GovernoratesService {
   }
 
   private filterGovernorates(items: GovernorateSummary[], query: GovernorateListQuery) {
-    const search = query.q?.toLowerCase();
-
     return items.filter((item) => {
       if (query.sourceStatus && item.sourceStatus !== query.sourceStatus) {
         return false;
       }
 
-      if (!search) {
-        return true;
-      }
-
-      return [item.id, item.name.en, item.name.ar, item.iso31662, item.sourceStatus].some((value) =>
-        value?.toLowerCase().includes(search),
+      return matchesSearch(
+        [
+          item.id,
+          item.name,
+          item.aliases,
+          item.iso31662,
+          item.externalIds,
+          item.sourceIds,
+          item.sourceStatus,
+        ],
+        query.q,
       );
     });
   }

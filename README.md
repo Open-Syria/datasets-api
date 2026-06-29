@@ -46,6 +46,8 @@ dataset repositories -> versioned release artifacts -> verified JSON imports -> 
 
 Dataset repositories own canonical JSON data, source attribution, validation rules, generated export files, and release manifests. `datasets-api` consumes pinned releases, verifies checksums and schemas, imports the data into read tables, then serves the public endpoints.
 
+The pinned dataset release sources live in [`dataset-releases.json`](dataset-releases.json). Production does not automatically follow the latest GitHub release; changing the served dataset version is a reviewed code change plus a sync/import step.
+
 See [docs/dataset-loading.md](docs/dataset-loading.md), [docs/release-manifest.md](docs/release-manifest.md), and [docs/read-model-architecture.md](docs/read-model-architecture.md).
 
 ## Public Routes
@@ -88,10 +90,10 @@ Common list parameters:
 | Parameter | Values |
 | --- | --- |
 | `page` | Positive page number, default `1` |
-| `limit` | `TEN`, `THIRTY_FIVE`, or `FIFTY` |
-| `order` | `ASC` or `DESC` |
+| `limit` | `ten`, `thirty_five`, or `fifty` |
+| `order` | `asc` or `desc` |
 | `q` | Search term |
-| `sourceStatus` | `PENDING_RELEASE`, `SEED`, `RELEASED`, or `DEPRECATED` |
+| `sourceStatus` | `pending_release`, `seed`, `released`, or `deprecated` |
 
 Geography filters:
 
@@ -104,7 +106,7 @@ Geography filters:
 Example:
 
 ```text
-GET /api/v1/geography/localities?q=damascus&limit=THIRTY_FIVE&order=ASC&sourceStatus=RELEASED
+GET /api/v1/geography/localities?q=damascus&limit=thirty_five&order=asc&sourceStatus=released
 ```
 
 ## Localization

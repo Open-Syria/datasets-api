@@ -224,6 +224,73 @@ jobs:
                 "${DEPLOY_USER}@${DEPLOY_HOST}" \
                 'mkdir -p /srv/opensyria/datasets-api && tar -xzf - -C /srv/opensyria/datasets-api && chmod 700 /srv/opensyria/datasets-api/bin/*.sh'
 
+      - name: Write runtime environment
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          POSTGRES_DB: ${{ vars.POSTGRES_DB }}
+          POSTGRES_USER: ${{ vars.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          APP_URL: ${{ vars.APP_URL }}
+          APP_CORS_ORIGIN: ${{ vars.APP_CORS_ORIGIN }}
+          APP_DOCS_ENABLED: ${{ vars.APP_DOCS_ENABLED }}
+          THROTTLE_FREE_TIER_DAILY_LIMIT: ${{ vars.THROTTLE_FREE_TIER_DAILY_LIMIT }}
+          THROTTLE_FREE_TIER_DAILY_TTL_SECONDS: ${{ vars.THROTTLE_FREE_TIER_DAILY_TTL_SECONDS }}
+          GITHUB_TOKEN_FOR_DATASETS: ${{ secrets.DATASETS_GITHUB_TOKEN }}
+        run: |
+          test -n "$POSTGRES_PASSWORD"
+
+          write_env() {
+            printf '%s=%s\n' "$1" "$2"
+          }
+
+          {
+            write_env POSTGRES_DB "${POSTGRES_DB:-opensyria_datasets}"
+            write_env POSTGRES_USER "${POSTGRES_USER:-opensyria}"
+            write_env POSTGRES_PASSWORD "$POSTGRES_PASSWORD"
+            write_env NODE_ENV production
+            write_env APP_NAME opensyria-datasets-api
+            write_env APP_PORT 3000
+            write_env APP_URL "${APP_URL:-https://api.opensyria.org}"
+            write_env APP_API_PREFIX api
+            write_env APP_API_VERSION 1
+            write_env APP_BODY_LIMIT_BYTES 65536
+            write_env APP_CORS_ORIGIN "${APP_CORS_ORIGIN:-*}"
+            write_env APP_DOCS_ENABLED "${APP_DOCS_ENABLED:-true}"
+            write_env APP_LOG_LEVEL info
+            write_env APP_LOG_PRETTY false
+            write_env APP_TRUST_PROXY true
+            write_env IS_HTTPS true
+            write_env APP_FALLBACK_LANGUAGE en
+            write_env DATASETS_RELEASES_DIR data/releases
+            write_env DATASETS_REQUIRE_RELEASES true
+            write_env DATASETS_RELEASE_SOURCES_FILE dataset-releases.json
+            write_env DATASETS_RELEASE_SOURCES ''
+            write_env DATASETS_RELEASE_SOURCES_OVERRIDE false
+            write_env DATASETS_SYNC_DOWNLOAD_ARTIFACTS true
+            write_env DATABASE_ENABLED true
+            write_env DATABASE_REQUIRED true
+            write_env DATABASE_LOG_QUERIES false
+            write_env REDIS_ENABLED true
+            write_env REDIS_REQUIRED true
+            write_env CACHE_TTL_SECONDS 300
+            write_env CACHE_MAX_ITEMS 1000
+            write_env THROTTLE_FREE_TIER_DAILY_LIMIT "${THROTTLE_FREE_TIER_DAILY_LIMIT:-500}"
+            write_env THROTTLE_FREE_TIER_DAILY_TTL_SECONDS "${THROTTLE_FREE_TIER_DAILY_TTL_SECONDS:-86400}"
+            write_env API_PROXY_PORT 3000
+            write_env API_BLUE_HOST_PORT 3001
+            write_env API_GREEN_HOST_PORT 3002
+            if [ -n "${GITHUB_TOKEN_FOR_DATASETS:-}" ]; then
+              write_env GITHUB_TOKEN "$GITHUB_TOKEN_FOR_DATASETS"
+            fi
+          } | ssh -i ~/.ssh/opensyria_deploy \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            'cd /srv/opensyria/datasets-api && umask 077 && tmp="$(mktemp .env.XXXXXX)" && cat > "$tmp" && chmod 600 "$tmp" && mv "$tmp" .env'
+
       - name: Deploy image
         shell: bash
         env:

@@ -21,8 +21,16 @@ type ReleaseListResponseBody = {
   data: {
     items: Array<{
       id: string;
+      generatedAt: string | null;
+      artifacts: unknown[];
       datasets: Array<{
+        slug: string;
         repository: string;
+        category: string;
+        title: {
+          en: string;
+          ar?: string;
+        };
       }>;
     }>;
     count: number;
@@ -357,11 +365,18 @@ describe('AppController (e2e)', () => {
     expect(body.data.count).toBe(1);
     expect(body.data.items[0]).toMatchObject({
       id: 'opensyria-seed-planning',
+      generatedAt: null,
+      artifacts: [],
     });
     expect(body.data.items[0]?.datasets).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
+          slug: 'geography',
           repository: 'data-geography',
+          category: 'geography',
+          title: {
+            en: 'Administrative Geography',
+          },
         }),
       ]),
     );
@@ -462,7 +477,7 @@ describe('AppController (e2e)', () => {
   it('maps named page limit options to numeric pagination limits', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/api/v1/geography/governorates?limit=THIRTY_FIVE',
+      url: '/api/v1/geography/governorates?limit=thirty_five',
     });
 
     expect(response.statusCode).toBe(200);
@@ -478,7 +493,7 @@ describe('AppController (e2e)', () => {
   it('accepts named sort order options', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/api/v1/geography/governorates?order=DESC',
+      url: '/api/v1/geography/governorates?order=desc',
     });
 
     expect(response.statusCode).toBe(200);
@@ -495,7 +510,7 @@ describe('AppController (e2e)', () => {
   it('accepts named source status options', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/api/v1/geography/governorates?sourceStatus=RELEASED',
+      url: '/api/v1/geography/governorates?sourceStatus=released',
     });
 
     expect(response.statusCode).toBe(200);
@@ -524,10 +539,10 @@ describe('AppController (e2e)', () => {
     });
   });
 
-  it('rejects lower-case source status query values', async () => {
+  it('rejects upper-case source status query values', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/api/v1/geography/governorates?sourceStatus=released',
+      url: '/api/v1/geography/governorates?sourceStatus=RELEASED',
     });
     const body = response.json<ErrorResponseBody>();
 
@@ -791,17 +806,17 @@ describe('AppController (e2e)', () => {
     expect(
       governorateQueryParameters.find((parameter) => parameter.name === 'limit')?.schema,
     ).toMatchObject({
-      enum: ['TEN', 'THIRTY_FIVE', 'FIFTY'],
+      enum: ['ten', 'thirty_five', 'fifty'],
     });
     expect(
       governorateQueryParameters.find((parameter) => parameter.name === 'order')?.schema,
     ).toMatchObject({
-      enum: ['ASC', 'DESC'],
+      enum: ['asc', 'desc'],
     });
     expect(
       governorateQueryParameters.find((parameter) => parameter.name === 'sourceStatus')?.schema,
     ).toMatchObject({
-      enum: ['PENDING_RELEASE', 'SEED', 'RELEASED', 'DEPRECATED'],
+      enum: ['pending_release', 'seed', 'released', 'deprecated'],
     });
     expect(
       getQueryParameters(geographyDocument.paths['/api/v1/geography/districts']).map(
@@ -844,7 +859,7 @@ describe('AppController (e2e)', () => {
     expect(
       localityQueryParameters.find((parameter) => parameter.name === 'kind')?.schema,
     ).toMatchObject({
-      enum: ['city', 'town', 'locality'],
+      enum: ['city', 'town', 'village', 'locality'],
     });
     expect(
       (geographyDocument.paths['/api/v1/geography/localities'] as OpenApiPathItem).get?.responses?.[

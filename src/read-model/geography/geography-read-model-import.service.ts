@@ -60,6 +60,10 @@ function mapCentroid(centroid: { latitude: number; longitude: number } | null) {
   };
 }
 
+function mapAreaKm2(area: { value: number; unit: 'km2' } | null) {
+  return area?.unit === 'km2' ? area.value : null;
+}
+
 function flattenSearchValues(value: unknown): unknown[] {
   if (!value) {
     return [];
@@ -234,14 +238,22 @@ export class GeographyReadModelImportService {
       iso31662: governorate.iso31662,
       latitude: centroid.latitude,
       longitude: centroid.longitude,
+      areaKm2: mapAreaKm2(governorate.area),
+      population: governorate.population ? toJson(governorate.population) : undefined,
       searchText: buildSearchText([
         governorate.id,
-        governorate.name.en,
-        governorate.name.ar,
+        governorate.name,
+        governorate.aliases,
         governorate.iso31662,
+        governorate.area,
+        governorate.population,
+        governorate.populationHistory,
+        governorate.externalIds,
+        governorate.sourceIds,
         governorate.sourceStatus,
       ]),
       sourceStatus: governorate.sourceStatus,
+      sourceIds: toJson(governorate.sourceIds),
       raw: toJson(governorate),
     };
   }
@@ -257,14 +269,22 @@ export class GeographyReadModelImportService {
       nameAr: district.name.ar ?? null,
       latitude: centroid.latitude,
       longitude: centroid.longitude,
+      areaKm2: mapAreaKm2(district.area),
+      population: district.population ? toJson(district.population) : undefined,
       searchText: buildSearchText([
         district.id,
         district.governorateId,
-        district.name.en,
-        district.name.ar,
+        district.name,
+        district.aliases,
+        district.area,
+        district.population,
+        district.populationHistory,
+        district.externalIds,
+        district.sourceIds,
         district.sourceStatus,
       ]),
       sourceStatus: district.sourceStatus,
+      sourceIds: toJson(district.sourceIds),
       raw: toJson(district),
     };
   }
@@ -281,15 +301,23 @@ export class GeographyReadModelImportService {
       nameAr: subdistrict.name.ar ?? null,
       latitude: centroid.latitude,
       longitude: centroid.longitude,
+      areaKm2: mapAreaKm2(subdistrict.area),
+      population: subdistrict.population ? toJson(subdistrict.population) : undefined,
       searchText: buildSearchText([
         subdistrict.id,
         subdistrict.governorateId,
         subdistrict.districtId,
-        subdistrict.name.en,
-        subdistrict.name.ar,
+        subdistrict.name,
+        subdistrict.aliases,
+        subdistrict.area,
+        subdistrict.population,
+        subdistrict.populationHistory,
+        subdistrict.externalIds,
+        subdistrict.sourceIds,
         subdistrict.sourceStatus,
       ]),
       sourceStatus: subdistrict.sourceStatus,
+      sourceIds: toJson(subdistrict.sourceIds),
       raw: toJson(subdistrict),
     };
   }

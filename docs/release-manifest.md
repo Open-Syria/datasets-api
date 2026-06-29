@@ -123,8 +123,12 @@ The API should not parse CSV, SQL, YAML, XML, GeoJSON, or SQLite artifacts for r
 `datasets-api` includes a GitHub Release sync command:
 
 ```bash
-DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.3" pnpm run datasets:sync
+pnpm run datasets:sync
 ```
+
+The command reads pinned release sources from `dataset-releases.json`. For a
+deliberate one-off override, set `DATASETS_RELEASE_SOURCES_OVERRIDE=true` and
+provide `DATASETS_RELEASE_SOURCES`.
 
 The command expects every pinned release to include `release-manifest.json` as a release asset. Artifact files listed in the manifest are matched by the basename of `artifacts[].path`.
 
