@@ -30,7 +30,7 @@ Run these from a full checkout or CI release job with dev dependencies installed
 pnpm install --frozen-lockfile
 pnpm run release:check -- \
   --geography-release v0.1.3 \
-  --dataset-sources Open-Syria/data-geography@v0.1.3,Open-Syria/data-universities@v0.1.12 \
+  --dataset-sources Open-Syria/data-geography@v0.1.3,Open-Syria/data-universities@v0.1.13 \
   --require-all-dataset-sources
 pnpm run db:migrate:deploy
 pnpm run datasets:sync
