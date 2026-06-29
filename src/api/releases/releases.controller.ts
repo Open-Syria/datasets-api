@@ -1,10 +1,19 @@
-import { Controller, Get, Inject } from '@nestjs/common';
+import { Controller, Get, Inject, Query } from '@nestjs/common';
 import { I18n, type I18nContext } from 'nestjs-i18n';
-import type { ApiResponse } from '../../common/dto/api-response.dto';
-import { buildResponse } from '../../common/helpers/build-response';
+import { ZodValidationPipe } from 'nestjs-zod';
+import type { ApiOffsetPaginatedResponse } from '../../common/dto/offset-pagination/offset-paginated-response.dto';
+import { buildOffsetPaginatedResponse } from '../../common/helpers/build-offset-paginated-response';
+import { ApiQueryDto } from '../../decorators/api-request-dto';
 import { ApiPublic } from '../../decorators/http-decorators';
-import { type ReleaseSummaryList, ReleaseSummaryListDto } from './releases.dto';
+import {
+  type ReleaseSummary,
+  ReleaseSummaryDto,
+  type ReleaseSummaryListQuery,
+  ReleaseSummaryListQueryDto,
+} from './releases.dto';
 import { ReleasesService } from './releases.service';
+
+type ReleaseSummaryListResponse = ApiOffsetPaginatedResponse<ReleaseSummary>;
 
 @Controller('releases')
 export class ReleasesController {
@@ -14,18 +23,27 @@ export class ReleasesController {
   ) {}
 
   @Get()
+  @ApiQueryDto(ReleaseSummaryListQueryDto)
   @ApiPublic({
-    type: ReleaseSummaryListDto,
+    isPaginated: true,
+    type: ReleaseSummaryDto,
     tags: ['Releases'],
     summary: 'List dataset releases',
     description:
       'Returns dataset release metadata, source repositories, planned manifest paths, and artifact information when published.',
     responseName: 'ReleaseSummaryListResponse',
   })
-  async listReleases(@I18n() i18n: I18nContext): Promise<ApiResponse<ReleaseSummaryList>> {
-    return buildResponse({
+  async listReleases(
+    @Query(new ZodValidationPipe(ReleaseSummaryListQueryDto)) query: ReleaseSummaryListQuery,
+    @I18n() i18n: I18nContext,
+  ): Promise<ReleaseSummaryListResponse> {
+    const result = await this.releasesService.listReleases(query);
+
+    return buildOffsetPaginatedResponse({
       i18n,
-      data: await this.releasesService.listReleases(),
+      items: result.items,
+      totalRecords: result.totalRecords,
+      options: query,
       message: 'api.responses.releases.listFetched',
       fallbackMessage: 'Releases fetched successfully',
     });

@@ -1,10 +1,19 @@
-import { Controller, Get, Inject } from '@nestjs/common';
+import { Controller, Get, Inject, Query } from '@nestjs/common';
 import { I18n, type I18nContext } from 'nestjs-i18n';
-import type { ApiResponse } from '../../common/dto/api-response.dto';
-import { buildResponse } from '../../common/helpers/build-response';
+import { ZodValidationPipe } from 'nestjs-zod';
+import type { ApiOffsetPaginatedResponse } from '../../common/dto/offset-pagination/offset-paginated-response.dto';
+import { buildOffsetPaginatedResponse } from '../../common/helpers/build-offset-paginated-response';
+import { ApiQueryDto } from '../../decorators/api-request-dto';
 import { ApiPublic } from '../../decorators/http-decorators';
-import { type DatasetSummaryList, DatasetSummaryListDto } from './datasets.dto';
+import {
+  type DatasetSummary,
+  DatasetSummaryDto,
+  type DatasetSummaryListQuery,
+  DatasetSummaryListQueryDto,
+} from './datasets.dto';
 import { DatasetsService } from './datasets.service';
+
+type DatasetSummaryListResponse = ApiOffsetPaginatedResponse<DatasetSummary>;
 
 @Controller('datasets')
 export class DatasetsController {
@@ -14,18 +23,27 @@ export class DatasetsController {
   ) {}
 
   @Get()
+  @ApiQueryDto(DatasetSummaryListQueryDto)
   @ApiPublic({
-    type: DatasetSummaryListDto,
+    isPaginated: true,
+    type: DatasetSummaryDto,
     tags: ['Dataset Discovery'],
     summary: 'List available datasets',
     description:
       'Returns OpenSyria dataset metadata, repository names, release status, and currently available public API paths.',
     responseName: 'DatasetSummaryListResponse',
   })
-  async listDatasets(@I18n() i18n: I18nContext): Promise<ApiResponse<DatasetSummaryList>> {
-    return buildResponse({
+  async listDatasets(
+    @Query(new ZodValidationPipe(DatasetSummaryListQueryDto)) query: DatasetSummaryListQuery,
+    @I18n() i18n: I18nContext,
+  ): Promise<DatasetSummaryListResponse> {
+    const result = await this.datasetsService.listDatasets(query);
+
+    return buildOffsetPaginatedResponse({
       i18n,
-      data: await this.datasetsService.listDatasets(),
+      items: result.items,
+      totalRecords: result.totalRecords,
+      options: query,
       message: 'api.responses.datasets.listFetched',
       fallbackMessage: 'Datasets fetched successfully',
     });
