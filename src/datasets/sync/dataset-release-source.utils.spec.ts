@@ -17,7 +17,7 @@ describe('dataset release source utils', () => {
   it('parses comma-separated sources', () => {
     expect(
       parseDatasetReleaseSources(
-        'Open-Syria/data-geography@v0.1.3, Open-Syria/data-universities@v0.1.0',
+        'Open-Syria/data-geography@v0.1.3, Open-Syria/data-universities@v0.1.11',
       ),
     ).toHaveLength(2);
   });
@@ -44,7 +44,7 @@ describe('dataset release source utils', () => {
           {
             owner: 'Open-Syria',
             repository: 'data-universities',
-            tag: 'v0.1.10',
+            tag: 'v0.1.11',
           },
         ],
       }),
@@ -57,7 +57,7 @@ describe('dataset release source utils', () => {
       {
         owner: 'Open-Syria',
         repository: 'data-universities',
-        tag: 'v0.1.10',
+        tag: 'v0.1.11',
       },
     ]);
   });

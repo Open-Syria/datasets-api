@@ -5,7 +5,12 @@ const path = require('node:path');
 const root = process.cwd();
 const semverPattern =
   /^(?:v)?(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
-const booleanOptions = new Set(['docker-build', 'help', 'skip-build']);
+const booleanOptions = new Set([
+  'docker-build',
+  'help',
+  'require-all-dataset-sources',
+  'skip-build',
+]);
 
 function usage() {
   return `
@@ -17,6 +22,7 @@ Options:
   --version <version>             Expected API package/OpenAPI version.
   --geography-release <tag>       Expected data-geography tag in docs and examples.
   --dataset-sources <sources>     Comma-separated owner/repo@tag sources to validate.
+  --require-all-dataset-sources   Require --dataset-sources to cover every pinned dataset.
   --skip-build                    Do not run pnpm run build before checking dist files.
   --docker-build                  Also run docker build. Requires a running Docker daemon.
 `.trim();
@@ -202,6 +208,62 @@ function assertFilesContain(files, expectedText) {
   }
 }
 
+function findDatasetSource(sources, owner, repository) {
+  return sources.find((source) => source.owner === owner && source.repository === repository);
+}
+
+function assertDatasetSourcesMatchReleaseLock(
+  datasetSources,
+  releaseLockSources,
+  requireAllDatasetSources,
+) {
+  if (datasetSources.length === 0) {
+    return;
+  }
+
+  const configuredKeys = new Set();
+
+  for (const datasetSource of datasetSources) {
+    const key = `${datasetSource.owner}/${datasetSource.repository}`;
+
+    if (configuredKeys.has(key)) {
+      fail(`Configured dataset sources include ${key} more than once`);
+    }
+
+    configuredKeys.add(key);
+
+    const lockSource = findDatasetSource(
+      releaseLockSources,
+      datasetSource.owner,
+      datasetSource.repository,
+    );
+
+    if (!lockSource) {
+      fail(`${datasetSource.value} is not pinned in dataset-releases.json`);
+    }
+
+    if (lockSource.tag !== datasetSource.tag) {
+      fail(`dataset-releases.json pins ${lockSource.value}, expected ${datasetSource.value}`);
+    }
+  }
+
+  if (!requireAllDatasetSources) {
+    return;
+  }
+
+  for (const lockSource of releaseLockSources) {
+    const datasetSource = findDatasetSource(
+      datasetSources,
+      lockSource.owner,
+      lockSource.repository,
+    );
+
+    if (!datasetSource) {
+      fail(`Configured dataset sources must include ${lockSource.value}`);
+    }
+  }
+}
+
 function assertGeographyReleaseReferences(geographyReleaseTag, datasetSources, releaseLockSources) {
   const expectedSource = `Open-Syria/data-geography@${geographyReleaseTag}`;
 
@@ -214,9 +276,7 @@ function assertGeographyReleaseReferences(geographyReleaseTag, datasetSources, r
     `GEOGRAPHY_RELEASE: ${geographyReleaseTag}`,
   );
 
-  const lockSource = releaseLockSources.find(
-    (source) => source.owner === 'Open-Syria' && source.repository === 'data-geography',
-  );
+  const lockSource = findDatasetSource(releaseLockSources, 'Open-Syria', 'data-geography');
 
   if (!lockSource) {
     fail(`dataset-releases.json must include ${expectedSource}`);
@@ -237,9 +297,7 @@ function assertGeographyReleaseReferences(geographyReleaseTag, datasetSources, r
     fail(`Configured dataset sources must include ${expectedSource}`);
   }
 
-  const geographySource = datasetSources.find(
-    (source) => source.owner === 'Open-Syria' && source.repository === 'data-geography',
-  );
+  const geographySource = findDatasetSource(datasetSources, 'Open-Syria', 'data-geography');
 
   if (geographySource && geographySource.tag !== geographyReleaseTag) {
     fail(`Configured geography release is ${geographySource.tag}, expected ${geographyReleaseTag}`);
@@ -319,8 +377,18 @@ function main() {
   const datasetSources = parseDatasetSources(
     options.get('dataset-sources') ?? process.env.DATASETS_RELEASE_SOURCES,
   );
-  const configuredGeographySource = datasetSources.find(
-    (source) => source.owner === 'Open-Syria' && source.repository === 'data-geography',
+  const requireAllDatasetSources = Boolean(options.get('require-all-dataset-sources'));
+
+  assertDatasetSourcesMatchReleaseLock(
+    datasetSources,
+    releaseLockSources,
+    requireAllDatasetSources,
+  );
+
+  const configuredGeographySource = findDatasetSource(
+    datasetSources,
+    'Open-Syria',
+    'data-geography',
   );
   const geographyReleaseTag = options.get('geography-release')
     ? normalizeReleaseTag(options.get('geography-release'))
@@ -347,6 +415,7 @@ function main() {
         version: packageJson.version,
         geographyRelease: geographyReleaseTag ?? null,
         datasetSources: datasetSources.map((source) => source.value),
+        requireAllDatasetSources,
         dockerBuild: Boolean(options.get('docker-build')),
       },
       null,

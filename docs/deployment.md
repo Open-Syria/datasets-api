@@ -28,13 +28,18 @@ Run these from a full checkout or CI release job with dev dependencies installed
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm run release:check -- --geography-release v0.1.3
+pnpm run release:check -- \
+  --geography-release v0.1.3 \
+  --dataset-sources Open-Syria/data-geography@v0.1.3,Open-Syria/data-universities@v0.1.11 \
+  --require-all-dataset-sources
 pnpm run db:migrate:deploy
 pnpm run datasets:sync
 DATABASE_ENABLED=true pnpm run read-model:import:geography
 ```
 
-Use `pnpm run release:check:docker -- --geography-release v0.1.3` when Docker is available and the release job should also build the runtime image locally.
+Use the same release arguments with `pnpm run release:check:docker --` when
+Docker is available and the release job should also build the runtime image
+locally.
 
 The import step must finish before a production instance is marked ready.
 

@@ -106,7 +106,7 @@ The lock file uses this shape:
     {
       "owner": "Open-Syria",
       "repository": "data-universities",
-      "tag": "v0.1.10"
+      "tag": "v0.1.11"
     }
   ]
 }
@@ -156,7 +156,7 @@ The current production dataset releases are:
 
 ```text
 Open-Syria/data-geography@v0.1.3
-Open-Syria/data-universities@v0.1.10
+Open-Syria/data-universities@v0.1.11
 ```
 
 The source of truth for this pin is `dataset-releases.json`; CI release checks
