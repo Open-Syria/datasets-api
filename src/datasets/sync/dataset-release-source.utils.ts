@@ -1,9 +1,21 @@
 import { z } from 'zod';
+import {
+  datasetPublicApiStatusSchema,
+  datasetReadinessLevelSchema,
+} from '../contracts/dataset-release-manifest.schema';
+
+export const datasetReleaseReadinessRequirementSchema = z
+  .object({
+    minimumLevel: datasetReadinessLevelSchema.optional(),
+    publicApi: datasetPublicApiStatusSchema.optional(),
+  })
+  .strict();
 
 export const datasetReleaseSourceSchema = z.object({
   owner: z.string().min(1),
   repository: z.string().min(1),
   tag: z.string().min(1),
+  requiredReadiness: datasetReleaseReadinessRequirementSchema.optional(),
 });
 
 export const datasetReleaseSourcesConfigSchema = z.object({
