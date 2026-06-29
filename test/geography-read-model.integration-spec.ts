@@ -126,6 +126,10 @@ describe('geography read model database integration', () => {
       method: 'GET',
       url: '/api/v1/geography/localities?kind=city&q=dimashq',
     });
+    const governoratesResponse = await app.inject({
+      method: 'GET',
+      url: '/api/v1/geography/governorates?q=dimashq',
+    });
     const localityDetailResponse = await app.inject({
       method: 'GET',
       url: '/api/v1/geography/localities/sy-damascus-damascus-damascus-damascus',
@@ -136,6 +140,7 @@ describe('geography read model database integration', () => {
     });
 
     expect(localitiesResponse.statusCode).toBe(200);
+    expect(governoratesResponse.statusCode).toBe(200);
     expect(localitiesResponse.json<ListResponseBody>().data).toMatchObject({
       pagination: {
         pageRecords: 1,
@@ -159,6 +164,28 @@ describe('geography read model database integration', () => {
             },
           ],
         },
+      },
+    });
+    expect(governoratesResponse.json()).toMatchObject({
+      data: {
+        items: [
+          {
+            id: 'sy-damascus',
+            aliases: [
+              {
+                value: 'Dimashq',
+              },
+            ],
+            population: {
+              value: 1796000,
+              year: 2016,
+            },
+            externalIds: {
+              geonames: '170654',
+            },
+            sourceIds: ['fixture-source'],
+          },
+        ],
       },
     });
     expect(readinessResponse.statusCode).toBe(200);

@@ -36,13 +36,35 @@ const exampleGovernorate = {
   id: 'sy-damascus',
   name: {
     en: 'Damascus',
-    ar: 'دمشق',
+    ar: '\u062f\u0645\u0634\u0642',
   },
+  aliases: [
+    {
+      value: 'Dimashq',
+      language: 'en',
+      type: 'alternate_spelling',
+    },
+  ],
   iso31662: 'SY-DI',
   centroid: {
     latitude: 33.5138,
     longitude: 36.2765,
   },
+  area: {
+    value: 105,
+    unit: 'km2',
+    sourceIds: ['fixture-source'],
+  },
+  population: {
+    value: 1796000,
+    year: 2016,
+    sourceIds: ['fixture-source'],
+  },
+  externalIds: {
+    geonames: '170654',
+    ochaPcode: 'C1000',
+  },
+  sourceIds: ['fixture-source'],
   sourceStatus: 'released',
 };
 
@@ -51,12 +73,34 @@ const exampleDistrict = {
   governorateId: 'sy-damascus',
   name: {
     en: 'Damascus',
-    ar: 'دمشق',
+    ar: '\u062f\u0645\u0634\u0642',
   },
+  aliases: [
+    {
+      value: 'Dimashq District',
+      language: 'en',
+      type: 'alternate_spelling',
+    },
+  ],
   centroid: {
     latitude: 33.5138,
     longitude: 36.2765,
   },
+  area: {
+    value: 105,
+    unit: 'km2',
+    sourceIds: ['fixture-source'],
+  },
+  population: {
+    value: 1552161,
+    year: 2004,
+    sourceIds: ['fixture-source'],
+  },
+  externalIds: {
+    geonames: '170654',
+    ochaPcode: 'C1000001',
+  },
+  sourceIds: ['fixture-source'],
   sourceStatus: 'released',
 };
 
@@ -66,12 +110,34 @@ const exampleSubdistrict = {
   districtId: 'sy-damascus-damascus',
   name: {
     en: 'Damascus',
-    ar: 'دمشق',
+    ar: '\u062f\u0645\u0634\u0642',
   },
+  aliases: [
+    {
+      value: 'Dimashq Subdistrict',
+      language: 'en',
+      type: 'alternate_spelling',
+    },
+  ],
   centroid: {
     latitude: 33.5138,
     longitude: 36.2765,
   },
+  area: {
+    value: 105,
+    unit: 'km2',
+    sourceIds: ['fixture-source'],
+  },
+  population: {
+    value: 1552161,
+    year: 2004,
+    sourceIds: ['fixture-source'],
+  },
+  externalIds: {
+    geonames: '170654',
+    ochaPcode: 'C100000101',
+  },
+  sourceIds: ['fixture-source'],
   sourceStatus: 'released',
 };
 
@@ -83,17 +149,8 @@ const exampleLocality = {
   kind: 'city',
   name: {
     en: 'Damascus',
-    ar: 'دمشق',
+    ar: '\u062f\u0645\u0634\u0642',
   },
-  centroid: {
-    latitude: 33.5138,
-    longitude: 36.2765,
-  },
-  sourceStatus: 'released',
-};
-
-const exampleLocalityDetail = {
-  ...exampleLocality,
   aliases: [
     {
       value: 'Dimashq',
@@ -101,11 +158,16 @@ const exampleLocalityDetail = {
       type: 'alternate_spelling',
     },
   ],
+  centroid: {
+    latitude: 33.5138,
+    longitude: 36.2765,
+  },
   externalIds: {
     geonames: '170654',
     ochaPcode: 'C1000',
   },
   sourceIds: ['geonames-sy', 'hdx-syr-populated-places'],
+  sourceStatus: 'released',
 };
 
 function createListExample(message: string, item: unknown) {
@@ -168,5 +230,5 @@ export const localityListResponseExample = createListExample(
 );
 export const localityDetailResponseExample = createDetailExample(
   'Locality fetched successfully',
-  exampleLocalityDetail,
+  exampleLocality,
 );

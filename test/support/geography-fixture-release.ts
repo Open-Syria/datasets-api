@@ -45,11 +45,33 @@ export async function createFixtureRelease(
         en: 'Damascus',
         ar: '\u062f\u0645\u0634\u0642',
       },
+      aliases: [
+        {
+          value: 'Dimashq',
+          language: 'en',
+          type: 'alternate_spelling',
+        },
+      ],
       iso31662: 'SY-DI',
       centroid: {
         latitude: 33.5138,
         longitude: 36.2765,
       },
+      area: {
+        value: 105,
+        unit: 'km2',
+        sourceIds: ['fixture-source'],
+      },
+      population: {
+        value: 1796000,
+        year: 2016,
+        sourceIds: ['fixture-source'],
+      },
+      externalIds: {
+        geonames: '170654',
+        ochaPcode: 'C1000',
+      },
+      sourceIds: ['fixture-source'],
       sourceStatus: 'released',
     },
   ]);
@@ -61,10 +83,32 @@ export async function createFixtureRelease(
         en: 'Damascus',
         ar: '\u062f\u0645\u0634\u0642',
       },
+      aliases: [
+        {
+          value: 'Dimashq District',
+          language: 'en',
+          type: 'alternate_spelling',
+        },
+      ],
       centroid: {
         latitude: 33.5138,
         longitude: 36.2765,
       },
+      area: {
+        value: 105,
+        unit: 'km2',
+        sourceIds: ['fixture-source'],
+      },
+      population: {
+        value: 1552161,
+        year: 2004,
+        sourceIds: ['fixture-source'],
+      },
+      externalIds: {
+        geonames: '170654',
+        ochaPcode: 'C1000001',
+      },
+      sourceIds: ['fixture-source'],
       sourceStatus: 'released',
     },
   ]);
@@ -77,10 +121,32 @@ export async function createFixtureRelease(
         en: 'Damascus',
         ar: '\u062f\u0645\u0634\u0642',
       },
+      aliases: [
+        {
+          value: 'Dimashq Subdistrict',
+          language: 'en',
+          type: 'alternate_spelling',
+        },
+      ],
       centroid: {
         latitude: 33.5138,
         longitude: 36.2765,
       },
+      area: {
+        value: 105,
+        unit: 'km2',
+        sourceIds: ['fixture-source'],
+      },
+      population: {
+        value: 1552161,
+        year: 2004,
+        sourceIds: ['fixture-source'],
+      },
+      externalIds: {
+        geonames: '170654',
+        ochaPcode: 'C100000101',
+      },
+      sourceIds: ['fixture-source'],
       sourceStatus: 'released',
     },
   ]);

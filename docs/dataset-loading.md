@@ -86,17 +86,30 @@ Before parsing an artifact, the API verifies:
 
 ## Syncing GitHub Releases
 
-Pinned GitHub Releases can be synced into the local release directory with:
+Pinned GitHub Releases are tracked in `dataset-releases.json`. Sync them into the
+local release directory with:
 
 ```bash
-DATASETS_RELEASE_SOURCES="Open-Syria/data-geography@v0.1.3" pnpm run datasets:sync
+pnpm run datasets:sync
 ```
 
-Use a comma-separated list for multiple sources:
+The lock file uses this shape:
 
-```text
-Open-Syria/data-geography@v0.1.3,Open-Syria/another-dataset@v0.1.0
+```json
+{
+  "sources": [
+    {
+      "owner": "Open-Syria",
+      "repository": "data-geography",
+      "tag": "v0.1.3"
+    }
+  ]
+}
 ```
+
+For one-off operations, set `DATASETS_RELEASE_SOURCES_OVERRIDE=true` and pass a
+comma-separated `DATASETS_RELEASE_SOURCES` value such as
+`Open-Syria/data-geography@v0.1.3,Open-Syria/another-dataset@v0.1.0`.
 
 The sync command:
 
@@ -140,7 +153,12 @@ The current production geography release is:
 Open-Syria/data-geography@v0.1.3
 ```
 
-The API should expose the active dataset versions through `/api/v1/releases`.
+The source of truth for this pin is `dataset-releases.json`; CI release checks
+verify that the lock file, docs, and deployment expectations stay aligned.
+
+The API should expose the active dataset versions and public artifact metadata through
+`/api/v1/releases`, including artifact names, formats, paths, checksums, sizes,
+record counts, media types, and download URLs when the manifest provides them.
 
 ## Why Not Read `main` Directly?
 

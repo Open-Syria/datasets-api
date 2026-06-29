@@ -5,13 +5,17 @@ import {
 } from '../../api/geography/districts/districts.dto';
 import { GEOGRAPHY_DATASET_ID } from '../../api/geography/geography.helpers';
 import {
+  type GeographyAreaMeasurement,
+  type GeographyPopulationMeasurement,
+  geographyPopulationMeasurementSchema,
+} from '../../api/geography/geography-records.dto';
+import {
   type GovernorateSummary,
   governorateSummarySchema,
 } from '../../api/geography/governorates/governorates.dto';
 import {
   type LocalityListQuery,
   type LocalityRecord,
-  type LocalitySummary,
   localityRecordSchema,
 } from '../../api/geography/localities/localities.dto';
 import {
@@ -107,7 +111,30 @@ function mapCentroid(record: { latitude: number | null; longitude: number | null
 }
 
 function mapPublicLocalityKind(kind: GeographyLocality['kind']): LocalityRecord['kind'] {
-  return kind === 'city' || kind === 'town' ? kind : 'locality';
+  if (kind === 'city' || kind === 'town' || kind === 'village' || kind === 'locality') {
+    return kind;
+  }
+
+  return 'locality';
+}
+
+function asPopulationMeasurement(value: unknown): GeographyPopulationMeasurement | null {
+  const parsed = geographyPopulationMeasurementSchema.safeParse(value);
+
+  return parsed.success ? parsed.data : null;
+}
+
+function mapAreaMeasurement(
+  areaKm2: number | null,
+  sourceIds: string[],
+): GeographyAreaMeasurement | null {
+  return areaKm2 === null
+    ? null
+    : {
+        value: areaKm2,
+        unit: 'km2',
+        sourceIds,
+      };
 }
 
 @Injectable()
@@ -328,7 +355,7 @@ export class GeographyReadModelQueryService {
 
   async listLocalities(
     query: LocalityListQuery,
-  ): Promise<GeographyDatabaseListResult<LocalitySummary> | null> {
+  ): Promise<GeographyDatabaseListResult<LocalityRecord> | null> {
     const context = await this.getQueryContext();
 
     if (!context) {
@@ -360,7 +387,7 @@ export class GeographyReadModelQueryService {
         ]);
 
         return {
-          items: records.map((record) => this.toLocalitySummary(this.mapLocality(record))),
+          items: records.map((record) => this.mapLocality(record)),
           totalRecords,
           manifest: context.manifest,
         };
@@ -495,14 +522,21 @@ export class GeographyReadModelQueryService {
       return parsed.data;
     }
 
+    const sourceIds = asStringArray(record.sourceIds) ?? [];
+
     return {
       id: record.id,
       name: {
         en: record.nameEn,
         ar: record.nameAr ?? undefined,
       },
+      aliases: [],
       iso31662: record.iso31662,
       centroid: mapCentroid(record),
+      area: mapAreaMeasurement(record.areaKm2, sourceIds),
+      population: asPopulationMeasurement(record.population),
+      externalIds: {},
+      sourceIds,
       sourceStatus: record.sourceStatus,
     };
   }
@@ -514,6 +548,8 @@ export class GeographyReadModelQueryService {
       return parsed.data;
     }
 
+    const sourceIds = asStringArray(record.sourceIds) ?? [];
+
     return {
       id: record.id,
       governorateId: record.governorateId,
@@ -521,7 +557,12 @@ export class GeographyReadModelQueryService {
         en: record.nameEn,
         ar: record.nameAr ?? undefined,
       },
+      aliases: [],
       centroid: mapCentroid(record),
+      area: mapAreaMeasurement(record.areaKm2, sourceIds),
+      population: asPopulationMeasurement(record.population),
+      externalIds: {},
+      sourceIds,
       sourceStatus: record.sourceStatus,
     };
   }
@@ -533,6 +574,8 @@ export class GeographyReadModelQueryService {
       return parsed.data;
     }
 
+    const sourceIds = asStringArray(record.sourceIds) ?? [];
+
     return {
       id: record.id,
       governorateId: record.governorateId,
@@ -541,7 +584,12 @@ export class GeographyReadModelQueryService {
         en: record.nameEn,
         ar: record.nameAr ?? undefined,
       },
+      aliases: [],
       centroid: mapCentroid(record),
+      area: mapAreaMeasurement(record.areaKm2, sourceIds),
+      population: asPopulationMeasurement(record.population),
+      externalIds: {},
+      sourceIds,
       sourceStatus: record.sourceStatus,
     };
   }
@@ -567,19 +615,6 @@ export class GeographyReadModelQueryService {
       centroid: mapCentroid(record),
       externalIds: asStringRecord(record.externalIds),
       sourceIds: asStringArray(record.sourceIds) ?? [],
-      sourceStatus: record.sourceStatus,
-    };
-  }
-
-  private toLocalitySummary(record: LocalityRecord): LocalitySummary {
-    return {
-      id: record.id,
-      governorateId: record.governorateId,
-      districtId: record.districtId,
-      subdistrictId: record.subdistrictId,
-      kind: record.kind,
-      name: record.name,
-      centroid: record.centroid,
       sourceStatus: record.sourceStatus,
     };
   }

@@ -2,6 +2,7 @@ import {
   formatDatasetReleaseSource,
   parseDatasetReleaseSource,
   parseDatasetReleaseSources,
+  parseDatasetReleaseSourcesConfig,
 } from './dataset-release-source.utils';
 
 describe('dataset release source utils', () => {
@@ -29,5 +30,25 @@ describe('dataset release source utils', () => {
         tag: 'v0.1.3',
       }),
     ).toBe('Open-Syria/data-geography@v0.1.3');
+  });
+
+  it('parses the tracked release source config', () => {
+    expect(
+      parseDatasetReleaseSourcesConfig({
+        sources: [
+          {
+            owner: 'Open-Syria',
+            repository: 'data-geography',
+            tag: 'v0.1.3',
+          },
+        ],
+      }),
+    ).toEqual([
+      {
+        owner: 'Open-Syria',
+        repository: 'data-geography',
+        tag: 'v0.1.3',
+      },
+    ]);
   });
 });

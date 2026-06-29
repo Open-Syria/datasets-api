@@ -9,6 +9,7 @@ import {
   buildOffsetPagination,
   GEOGRAPHY_DATASET_ID,
   mapGeographySources,
+  matchesSearch,
   paginateRecords,
   sortByEnglishName,
 } from '../geography.helpers';
@@ -117,8 +118,6 @@ export class SubdistrictsService {
   }
 
   private filterSubdistricts(items: SubdistrictSummary[], query: SubdistrictListQuery) {
-    const search = query.q?.toLowerCase();
-
     return items.filter((item) => {
       if (query.governorateId && item.governorateId !== query.governorateId) {
         return false;
@@ -132,18 +131,19 @@ export class SubdistrictsService {
         return false;
       }
 
-      if (!search) {
-        return true;
-      }
-
-      return [
-        item.id,
-        item.governorateId,
-        item.districtId,
-        item.name.en,
-        item.name.ar,
-        item.sourceStatus,
-      ].some((value) => value?.toLowerCase().includes(search));
+      return matchesSearch(
+        [
+          item.id,
+          item.governorateId,
+          item.districtId,
+          item.name,
+          item.aliases,
+          item.externalIds,
+          item.sourceIds,
+          item.sourceStatus,
+        ],
+        query.q,
+      );
     });
   }
 

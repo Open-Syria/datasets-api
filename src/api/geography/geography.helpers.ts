@@ -81,6 +81,36 @@ export function paginateRecords<TRecord>(items: TRecord[], query: PaginationQuer
   return items.slice(start, start + query.limit);
 }
 
+export function matchesSearch(values: unknown[], search: string | undefined) {
+  const normalizedSearch = search?.trim().toLowerCase();
+
+  if (!normalizedSearch) {
+    return true;
+  }
+
+  return values
+    .flatMap((value) => flattenSearchValues(value))
+    .some((value) => String(value).toLowerCase().includes(normalizedSearch));
+}
+
+function flattenSearchValues(value: unknown): unknown[] {
+  if (value === null || value === undefined || value === '') {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => flattenSearchValues(item));
+  }
+
+  if (typeof value === 'object') {
+    return Object.values(value as Record<string, unknown>).flatMap((item) =>
+      flattenSearchValues(item),
+    );
+  }
+
+  return [value];
+}
+
 export function buildOffsetPagination(
   totalRecords: number,
   query: PaginationQuery,

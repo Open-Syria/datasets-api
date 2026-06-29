@@ -156,15 +156,15 @@ Rules:
 
 - `page` is 1-based.
 - `limit` is a named enum, not a free integer.
-- Allowed limit values are `TEN`, `THIRTY_FIVE`, and `FIFTY`.
-- The API transforms limit names into numeric pagination sizes: `TEN=10`, `THIRTY_FIVE=35`, and `FIFTY=50`.
+- Allowed limit values are `ten`, `thirty_five`, and `fifty`.
+- The API transforms limit names into numeric pagination sizes: `ten=10`, `thirty_five=35`, and `fifty=50`.
 - `q` is a broad text search parameter.
 - `order` is a named enum, not a free string.
-- Allowed order values are `ASC` and `DESC`.
-- The API transforms order names into internal sort values: `ASC=asc` and `DESC=desc`.
+- Allowed order values are `asc` and `desc`.
+- The API transforms order names into internal sort values: `asc=asc` and `desc=desc`.
 - `sourceStatus` is a named enum for public query filters.
-- Allowed source status values are `PENDING_RELEASE`, `SEED`, `RELEASED`, and `DEPRECATED`.
-- The API transforms source status names into internal record values: `PENDING_RELEASE=pending_release`, `SEED=seed`, `RELEASED=released`, and `DEPRECATED=deprecated`.
+- Allowed source status values are `pending_release`, `seed`, `released`, and `deprecated`.
+- The API uses the same lowercase source status values as the canonical dataset records.
 - Resource-specific filters should use explicit names such as `sourceStatus`, `governorateId`, or `datasetId`.
 - Avoid ambiguous filter names such as `id`, `type`, or `status` when more specific terms exist.
 - Query DTOs should expose their OpenAPI query metadata through `static readonly openApiQueryParameters`.
@@ -183,10 +183,10 @@ export class GovernorateListQueryDto extends createZodDto(governorateListQuerySc
     {
       name: 'sourceStatus',
       required: false,
-      enum: ['PENDING_RELEASE', 'SEED', 'RELEASED', 'DEPRECATED'],
+      enum: ['pending_release', 'seed', 'released', 'deprecated'],
       description:
-        'Filter records by source review or release status. PENDING_RELEASE=pending release, SEED=seed data, RELEASED=released data, DEPRECATED=deprecated data.',
-      example: 'RELEASED',
+        'Filter records by source review or release status. pending_release=pending release, seed=seed data, released=released data, deprecated=deprecated data.',
+      example: 'released',
     },
   ] satisfies readonly ApiQueryParameter[];
 }
@@ -376,22 +376,22 @@ Use Zod transforms for query parameters that should expose stable public options
 export const listQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z
-    .enum(['TEN', 'THIRTY_FIVE', 'FIFTY'])
-    .default('TEN')
-    .transform((limit) => ({ TEN: 10, THIRTY_FIVE: 35, FIFTY: 50 })[limit]),
+    .enum(['ten', 'thirty_five', 'fifty'])
+    .default('ten')
+    .transform((limit) => ({ ten: 10, thirty_five: 35, fifty: 50 })[limit]),
   order: z
-    .enum(['ASC', 'DESC'])
-    .default('ASC')
-    .transform((order) => ({ ASC: 'asc', DESC: 'desc' })[order]),
+    .enum(['asc', 'desc'])
+    .default('asc')
+    .transform((order) => ({ asc: 'asc', desc: 'desc' })[order]),
   sourceStatus: z
-    .enum(['PENDING_RELEASE', 'SEED', 'RELEASED', 'DEPRECATED'])
+    .enum(['pending_release', 'seed', 'released', 'deprecated'])
     .transform(
       (sourceStatus) =>
         ({
-          PENDING_RELEASE: 'pending_release',
-          SEED: 'seed',
-          RELEASED: 'released',
-          DEPRECATED: 'deprecated',
+          pending_release: 'pending_release',
+          seed: 'seed',
+          released: 'released',
+          deprecated: 'deprecated',
         })[sourceStatus],
     )
     .optional(),
@@ -442,6 +442,10 @@ or a paginated response:
 ```
 
 Do not return raw arrays from controllers.
+
+Public DTOs should preserve the endpoint's documented data contract. If a dataset record
+or release manifest includes public fields that clients need, expose them explicitly in the
+matching Zod schema instead of relying on a narrower summary schema that strips them.
 
 ## Response Helpers
 
@@ -625,19 +629,19 @@ Default query parameters:
 
 ```text
 page=1
-limit=TEN
+limit=ten
 q=
-order=ASC|DESC
+order=asc|desc
 ```
 
 Defaults:
 
 ```text
 DEFAULT_CURRENT_PAGE=1
-DEFAULT_PAGE_LIMIT_OPTION=TEN
+DEFAULT_PAGE_LIMIT_OPTION=ten
 DEFAULT_PAGE_LIMIT=10
 MAX_PAGE_LIMIT=50
-DEFAULT_SORT_ORDER_OPTION=ASC
+DEFAULT_SORT_ORDER_OPTION=asc
 DEFAULT_SORT_ORDER=asc
 ```
 

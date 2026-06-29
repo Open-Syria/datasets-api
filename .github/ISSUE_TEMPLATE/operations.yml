@@ -38,7 +38,9 @@ body:
         OS/container:
         DATABASE_ENABLED:
         REDIS_ENABLED:
+        DATASETS_RELEASE_SOURCES_FILE:
         DATASETS_RELEASE_SOURCES:
+        DATASETS_RELEASE_SOURCES_OVERRIDE:
     validations:
       required: true
   - type: textarea

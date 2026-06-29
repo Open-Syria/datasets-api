@@ -25,6 +25,34 @@ type ListResponseBody = {
   };
 };
 
+type ReleaseListResponseBody = {
+  data: {
+    items: Array<{
+      id: string;
+      generatedAt: string | null;
+      datasets: Array<{
+        datasetId: string;
+        slug: string;
+        repository: string;
+        category: string;
+        title: {
+          en: string;
+        };
+        releaseVersion: string | null;
+      }>;
+      artifacts: Array<{
+        name: string;
+        format: string;
+        path: string;
+        sha256: string | null;
+        sizeBytes: number | null;
+        recordCount: number | null;
+        mediaType: string | null;
+      }>;
+    }>;
+  };
+};
+
 describe('geography release loading (e2e)', () => {
   let app: NestFastifyApplication;
   let tempDirectory: string;
@@ -93,6 +121,10 @@ describe('geography release loading (e2e)', () => {
       method: 'GET',
       url: '/health/ready',
     });
+    const releasesResponse = await app.inject({
+      method: 'GET',
+      url: '/api/v1/releases',
+    });
 
     for (const response of [
       governoratesResponse,
@@ -101,6 +133,7 @@ describe('geography release loading (e2e)', () => {
       localitiesResponse,
       localityDetailResponse,
       readinessResponse,
+      releasesResponse,
     ]) {
       expect(response.statusCode).toBe(200);
     }
@@ -145,6 +178,82 @@ describe('geography release loading (e2e)', () => {
         ],
       },
     });
+    expect(governoratesResponse.json()).toMatchObject({
+      data: {
+        items: [
+          {
+            id: 'sy-damascus',
+            aliases: [
+              {
+                value: 'Dimashq',
+              },
+            ],
+            population: {
+              value: 1796000,
+              year: 2016,
+            },
+            externalIds: {
+              geonames: '170654',
+            },
+            sourceIds: ['fixture-source'],
+          },
+        ],
+      },
+    });
+    expect(districtsResponse.json()).toMatchObject({
+      data: {
+        items: [
+          {
+            id: 'sy-damascus-damascus',
+            aliases: [
+              {
+                value: 'Dimashq District',
+              },
+            ],
+            population: {
+              value: 1552161,
+            },
+            sourceIds: ['fixture-source'],
+          },
+        ],
+      },
+    });
+    expect(subdistrictsResponse.json()).toMatchObject({
+      data: {
+        items: [
+          {
+            id: 'sy-damascus-damascus-damascus',
+            aliases: [
+              {
+                value: 'Dimashq Subdistrict',
+              },
+            ],
+            population: {
+              value: 1552161,
+            },
+            sourceIds: ['fixture-source'],
+          },
+        ],
+      },
+    });
+    expect(localitiesResponse.json()).toMatchObject({
+      data: {
+        items: [
+          {
+            id: 'sy-damascus-damascus-damascus-damascus',
+            aliases: [
+              {
+                value: 'Dimashq',
+              },
+            ],
+            externalIds: {
+              geonames: '170654',
+            },
+            sourceIds: ['fixture-source'],
+          },
+        ],
+      },
+    });
     expect(readinessResponse.json()).toMatchObject({
       data: {
         datasetReleases: {
@@ -154,5 +263,36 @@ describe('geography release loading (e2e)', () => {
         },
       },
     });
+    const releasesBody = releasesResponse.json<ReleaseListResponseBody>();
+
+    expect(releasesBody.data.items[0]).toMatchObject({
+      id: 'geography-v0.1.0',
+      generatedAt: '2026-06-27T00:00:00.000Z',
+    });
+    expect(releasesBody.data.items[0]?.datasets).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          datasetId: 'opensyria-geography',
+          slug: 'geography',
+          repository: 'data-geography',
+          category: 'geography',
+          title: {
+            en: 'Administrative Geography',
+          },
+          releaseVersion: 'v0.1.0',
+        }),
+      ]),
+    );
+    expect(releasesBody.data.items[0]?.artifacts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'governorates',
+          format: 'json',
+          path: 'artifacts/governorates.json',
+          recordCount: 1,
+          mediaType: 'application/json',
+        }),
+      ]),
+    );
   });
 });
