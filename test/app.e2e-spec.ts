@@ -1,3 +1,6 @@
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { ConfigService } from '@nestjs/config';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -13,7 +16,12 @@ type DatasetListResponseBody = {
       repository: string;
       apiEndpoints: string[];
     }>;
-    count: number;
+    pagination: {
+      pageRecords: number;
+      totalRecords: number;
+      currentPage: number;
+      totalPages: number;
+    };
   };
 };
 
@@ -33,7 +41,10 @@ type ReleaseListResponseBody = {
         };
       }>;
     }>;
-    count: number;
+    pagination: {
+      pageRecords: number;
+      totalRecords: number;
+    };
   };
 };
 
@@ -139,13 +150,20 @@ function getPathParameters(pathItem: unknown): OpenApiParameterObject[] {
 
 describe('AppController (e2e)', () => {
   let app: NestFastifyApplication;
+  let tempReleasesDirectory: string;
   let appTrustProxy = 'false';
   let freeTierDailyLimit = '500';
   const freeTierDailyTtlSeconds = '86400';
+  const originalDatasetsReleasesDirectory = process.env.DATASETS_RELEASES_DIR;
+  const originalDatasetsRequireReleases = process.env.DATASETS_REQUIRE_RELEASES;
 
   beforeEach(async () => {
+    tempReleasesDirectory = await mkdtemp(path.join(tmpdir(), 'opensyria-empty-releases-'));
+
     process.env.APP_DOCS_ENABLED = 'true';
     process.env.APP_TRUST_PROXY = appTrustProxy;
+    process.env.DATASETS_RELEASES_DIR = tempReleasesDirectory;
+    process.env.DATASETS_REQUIRE_RELEASES = 'false';
     process.env.THROTTLE_FREE_TIER_DAILY_LIMIT = freeTierDailyLimit;
     process.env.THROTTLE_FREE_TIER_DAILY_TTL_SECONDS = freeTierDailyTtlSeconds;
 
@@ -317,7 +335,10 @@ describe('AppController (e2e)', () => {
       status: 200,
       message: 'Datasets fetched successfully',
       data: {
-        count: 5,
+        pagination: {
+          pageRecords: 5,
+          totalRecords: 5,
+        },
       },
     });
     expect(body.data.items[0]).toMatchObject({
@@ -341,6 +362,24 @@ describe('AppController (e2e)', () => {
     });
   });
 
+  it('paginates and searches dataset metadata through shared list options', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/datasets?q=geo&limit=ten&page=1',
+    });
+    const body = response.json<DatasetListResponseBody>();
+
+    expect(response.statusCode).toBe(200);
+    expect(body.data.pagination).toMatchObject({
+      currentPage: 1,
+      pageRecords: 1,
+      totalRecords: 1,
+      totalPages: 1,
+    });
+    expect(body.data.items).toHaveLength(1);
+    expect(body.data.items[0]?.slug).toBe('geography');
+  });
+
   it('localizes response messages from query language', async () => {
     const response = await app.inject({
       method: 'GET',
@@ -362,7 +401,10 @@ describe('AppController (e2e)', () => {
     const body = response.json<ReleaseListResponseBody>();
 
     expect(response.statusCode).toBe(200);
-    expect(body.data.count).toBe(1);
+    expect(body.data.pagination).toMatchObject({
+      pageRecords: 1,
+      totalRecords: 1,
+    });
     expect(body.data.items[0]).toMatchObject({
       id: 'opensyria-seed-planning',
       generatedAt: null,
@@ -967,6 +1009,20 @@ describe('AppController (e2e)', () => {
 
   afterEach(async () => {
     await app.close();
+    await rm(tempReleasesDirectory, { force: true, recursive: true });
+
+    if (originalDatasetsReleasesDirectory) {
+      process.env.DATASETS_RELEASES_DIR = originalDatasetsReleasesDirectory;
+    } else {
+      delete process.env.DATASETS_RELEASES_DIR;
+    }
+
+    if (originalDatasetsRequireReleases) {
+      process.env.DATASETS_REQUIRE_RELEASES = originalDatasetsRequireReleases;
+    } else {
+      delete process.env.DATASETS_REQUIRE_RELEASES;
+    }
+
     delete process.env.APP_DOCS_ENABLED;
     delete process.env.APP_TRUST_PROXY;
     delete process.env.THROTTLE_FREE_TIER_DAILY_LIMIT;

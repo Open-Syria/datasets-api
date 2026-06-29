@@ -1,8 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
+import {
+  matchesSearchValues,
+  paginateOffsetItems,
+  sortByString,
+} from '../../common/helpers/list-query.helpers';
+import type { OffsetPaginationQuery } from '../../common/schemas/pagination.schema';
 import type { DatasetReleaseManifest } from '../../datasets/contracts/dataset-release-manifest.schema';
 import { DatasetReleaseRegistryService } from '../../datasets/dataset-release-registry.service';
 import { PublicDataCacheService } from '../../shared/cache/public-data-cache.service';
-import type { ReleaseSummaryList } from './releases.dto';
+import type { ReleaseSummary, ReleaseSummaryList } from './releases.dto';
 
 const RELEASES: ReleaseSummaryList['items'] = [
   {
@@ -79,6 +85,11 @@ const RELEASES: ReleaseSummaryList['items'] = [
   },
 ];
 
+type ReleaseSummaryListResult = {
+  items: ReleaseSummary[];
+  totalRecords: number;
+};
+
 @Injectable()
 export class ReleasesService {
   constructor(
@@ -88,29 +99,35 @@ export class ReleasesService {
     private readonly publicDataCacheService: PublicDataCacheService,
   ) {}
 
-  async listReleases(): Promise<ReleaseSummaryList> {
+  async listReleases(query: OffsetPaginationQuery): Promise<ReleaseSummaryListResult> {
     const manifests = this.datasetReleaseRegistryService.listManifests();
 
     return this.publicDataCacheService.getOrSet(
       'releases:list',
-      this.buildReleaseCachePayload(manifests),
-      () => this.buildReleaseSummaryList(manifests),
+      {
+        releases: this.buildReleaseCachePayload(manifests),
+        query,
+      },
+      () => this.buildReleaseSummaryList(manifests, query),
     );
   }
 
-  private buildReleaseSummaryList(manifests: DatasetReleaseManifest[]): ReleaseSummaryList {
-    if (manifests.length > 0) {
-      const items = manifests.map((manifest) => this.mapManifestToReleaseSummary(manifest));
-
-      return {
-        items,
-        count: items.length,
-      };
-    }
+  private buildReleaseSummaryList(
+    manifests: DatasetReleaseManifest[],
+    query: OffsetPaginationQuery,
+  ): ReleaseSummaryListResult {
+    const sourceItems =
+      manifests.length > 0
+        ? manifests.map((manifest) => this.mapManifestToReleaseSummary(manifest))
+        : RELEASES;
+    const filteredItems = sourceItems.filter((release) =>
+      this.matchesReleaseSearch(release, query.q),
+    );
+    const sortedItems = sortByString(filteredItems, (release) => release.id, query.order);
 
     return {
-      items: RELEASES,
-      count: RELEASES.length,
+      items: paginateOffsetItems(sortedItems, query),
+      totalRecords: sortedItems.length,
     };
   }
 
@@ -167,5 +184,21 @@ export class ReleasesService {
       })),
       notes: manifest.release.notes ?? null,
     };
+  }
+
+  private matchesReleaseSearch(release: ReleaseSummary, search: string | undefined) {
+    return matchesSearchValues(
+      [
+        release.id,
+        release.version,
+        release.status,
+        release.generatedAt,
+        release.publishedAt,
+        release.datasets,
+        release.artifacts,
+        release.notes,
+      ],
+      search,
+    );
   }
 }

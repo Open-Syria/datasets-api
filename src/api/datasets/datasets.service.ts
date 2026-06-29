@@ -1,10 +1,21 @@
 import { Inject, Injectable } from '@nestjs/common';
+import {
+  matchesSearchValues,
+  paginateOffsetItems,
+  sortByString,
+} from '../../common/helpers/list-query.helpers';
+import type { OffsetPaginationQuery } from '../../common/schemas/pagination.schema';
 import type { DatasetReleaseManifest } from '../../datasets/contracts/dataset-release-manifest.schema';
 import { DatasetReleaseRegistryService } from '../../datasets/dataset-release-registry.service';
 import { PublicDataCacheService } from '../../shared/cache/public-data-cache.service';
-import type { DatasetSummary, DatasetSummaryList } from './datasets.dto';
+import type { DatasetSummary } from './datasets.dto';
 
-const DATASETS: DatasetSummaryList['items'] = [
+type DatasetSummaryListResult = {
+  items: DatasetSummary[];
+  totalRecords: number;
+};
+
+const DATASETS: DatasetSummary[] = [
   {
     id: 'opensyria-geography',
     slug: 'geography',
@@ -115,17 +126,32 @@ export class DatasetsService {
     private readonly datasetReleaseRegistryService: DatasetReleaseRegistryService,
   ) {}
 
-  async listDatasets(): Promise<DatasetSummaryList> {
+  async listDatasets(query: OffsetPaginationQuery): Promise<DatasetSummaryListResult> {
     const manifests = this.datasetReleaseRegistryService.listManifests();
 
     return this.publicDataCacheService.getOrSet(
       'datasets:list',
-      this.buildDatasetCachePayload(manifests),
-      () => ({
-        items: DATASETS.map((dataset) => this.enrichDatasetFromManifest(dataset, manifests)),
-        count: DATASETS.length,
-      }),
+      {
+        releases: this.buildDatasetCachePayload(manifests),
+        query,
+      },
+      () => this.buildDatasetSummaryList(manifests, query),
     );
+  }
+
+  private buildDatasetSummaryList(
+    manifests: DatasetReleaseManifest[],
+    query: OffsetPaginationQuery,
+  ): DatasetSummaryListResult {
+    const filteredItems = DATASETS.map((dataset) =>
+      this.enrichDatasetFromManifest(dataset, manifests),
+    ).filter((dataset) => this.matchesDatasetSearch(dataset, query.q));
+    const sortedItems = sortByString(filteredItems, (dataset) => dataset.name.en, query.order);
+
+    return {
+      items: paginateOffsetItems(sortedItems, query),
+      totalRecords: sortedItems.length,
+    };
   }
 
   private buildDatasetCachePayload(manifests: DatasetReleaseManifest[]) {
@@ -161,5 +187,23 @@ export class DatasetsService {
       version: manifest.release.version,
       updatedAt: manifest.release.publishedAt ?? manifest.generatedAt,
     };
+  }
+
+  private matchesDatasetSearch(dataset: DatasetSummary, search: string | undefined) {
+    return matchesSearchValues(
+      [
+        dataset.id,
+        dataset.slug,
+        dataset.name,
+        dataset.description,
+        dataset.category,
+        dataset.repository,
+        dataset.status,
+        dataset.apiEndpoints,
+        dataset.version,
+        dataset.updatedAt,
+      ],
+      search,
+    );
   }
 }

@@ -33,6 +33,12 @@ const geographyManifest: DatasetReleaseManifest = {
   sources: [],
 };
 
+const defaultQuery = {
+  page: 1,
+  limit: 10,
+  order: 'asc',
+} as const;
+
 function createPublicDataCacheService(): PublicDataCacheServiceMock {
   return {
     getOrSet: jest.fn((_scope, _payload, loader) => Promise.resolve(loader())),
@@ -59,7 +65,7 @@ describe('DatasetsService', () => {
   it('keeps dataset release fields null when no manifests are loaded', async () => {
     const { service } = createService();
 
-    const result = await service.listDatasets();
+    const result = await service.listDatasets(defaultQuery);
 
     expect(result.items[0]).toMatchObject({
       id: 'opensyria-geography',
@@ -73,7 +79,7 @@ describe('DatasetsService', () => {
         '/api/v1/geography/governorates/{governorateId}',
       ]),
     );
-    expect(result.items[1]).toMatchObject({
+    expect(result.items.find((item) => item.id === 'opensyria-universities')).toMatchObject({
       id: 'opensyria-universities',
       apiEndpoints: [],
     });
@@ -82,7 +88,7 @@ describe('DatasetsService', () => {
   it('enriches released datasets from loaded release manifests', async () => {
     const { service } = createService([geographyManifest]);
 
-    const result = await service.listDatasets();
+    const result = await service.listDatasets(defaultQuery);
 
     expect(result.items[0]).toMatchObject({
       id: 'opensyria-geography',
@@ -90,10 +96,28 @@ describe('DatasetsService', () => {
       version: 'v0.1.3',
       updatedAt: '2026-06-28T18:02:00.000Z',
     });
-    expect(result.items[1]).toMatchObject({
+    expect(result.items.find((item) => item.id === 'opensyria-universities')).toMatchObject({
       id: 'opensyria-universities',
       version: null,
       updatedAt: null,
+    });
+  });
+
+  it('filters and paginates dataset metadata', async () => {
+    const { service } = createService();
+
+    const result = await service.listDatasets({
+      ...defaultQuery,
+      q: 'geo',
+    });
+
+    expect(result).toMatchObject({
+      totalRecords: 1,
+      items: [
+        {
+          id: 'opensyria-geography',
+        },
+      ],
     });
   });
 });

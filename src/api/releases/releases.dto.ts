@@ -1,11 +1,17 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
+import { buildOffsetPaginationQueryParameters } from '../../common/dto/offset-pagination/offset-page-options.dto';
+import {
+  offsetPaginationQuerySchema,
+  offsetPaginationSchema,
+} from '../../common/schemas/pagination.schema';
 import {
   datasetArtifactFormatSchema,
   datasetCategorySchema,
   datasetReleaseStatusSchema,
   localizedTextSchema,
 } from '../../datasets/contracts/dataset-release-manifest.schema';
+import type { ApiQueryParameter } from '../../decorators/api-request-dto';
 
 export const releaseStatusSchema = datasetReleaseStatusSchema;
 export const releaseArtifactFormatSchema = datasetArtifactFormatSchema;
@@ -45,10 +51,23 @@ export const releaseSummarySchema = z.object({
 
 export const releaseSummaryListSchema = z.object({
   items: z.array(releaseSummarySchema),
-  count: z.number().int().nonnegative(),
+  pagination: offsetPaginationSchema,
 });
 
+export const releaseSummaryListQuerySchema = offsetPaginationQuerySchema;
+
 export class ReleaseSummaryDto extends createZodDto(releaseSummarySchema) {}
+export class ReleaseSummaryListQueryDto extends createZodDto(releaseSummaryListQuerySchema) {
+  static readonly openApiQueryParameters: readonly ApiQueryParameter[] =
+    buildOffsetPaginationQueryParameters({
+      searchDescription:
+        'Search term matched against release ID, version, status, timestamps, dataset metadata, artifacts, and notes.',
+      searchExample: 'geography',
+      orderDescription: 'Sort order by release ID. asc=ascending, desc=descending.',
+    });
+}
 export class ReleaseSummaryListDto extends createZodDto(releaseSummaryListSchema) {}
 
 export type ReleaseSummaryList = z.infer<typeof releaseSummaryListSchema>;
+export type ReleaseSummary = z.infer<typeof releaseSummarySchema>;
+export type ReleaseSummaryListQuery = z.infer<typeof releaseSummaryListQuerySchema>;

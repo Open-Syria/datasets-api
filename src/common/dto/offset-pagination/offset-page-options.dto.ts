@@ -39,18 +39,31 @@ export const offsetPaginationQueryParameters = [
 ] as const satisfies readonly ApiQueryParameter[];
 
 export function buildOffsetPaginationQueryParameters(
-  options: { searchDescription?: string; searchExample?: string } = {},
+  options: {
+    searchDescription?: string;
+    searchExample?: string;
+    orderDescription?: string;
+    orderExample?: string;
+  } = {},
 ): ApiQueryParameter[] {
   return offsetPaginationQueryParameters.map((parameter) => {
-    if (parameter.name !== 'q') {
-      return parameter;
+    if (parameter.name === 'q') {
+      return {
+        ...parameter,
+        description: options.searchDescription ?? parameter.description,
+        example: options.searchExample ?? parameter.example,
+      };
     }
 
-    return {
-      ...parameter,
-      description: options.searchDescription ?? parameter.description,
-      example: options.searchExample ?? parameter.example,
-    };
+    if (parameter.name === 'order') {
+      return {
+        ...parameter,
+        description: options.orderDescription ?? parameter.description,
+        example: options.orderExample ?? parameter.example,
+      };
+    }
+
+    return parameter;
   });
 }
 

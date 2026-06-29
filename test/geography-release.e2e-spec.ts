@@ -50,6 +50,10 @@ type ReleaseListResponseBody = {
         mediaType: string | null;
       }>;
     }>;
+    pagination: {
+      pageRecords: number;
+      totalRecords: number;
+    };
   };
 };
 
@@ -265,6 +269,10 @@ describe('geography release loading (e2e)', () => {
     });
     const releasesBody = releasesResponse.json<ReleaseListResponseBody>();
 
+    expect(releasesBody.data.pagination).toMatchObject({
+      pageRecords: 1,
+      totalRecords: 1,
+    });
     expect(releasesBody.data.items[0]).toMatchObject({
       id: 'geography-v0.1.0',
       generatedAt: '2026-06-27T00:00:00.000Z',
