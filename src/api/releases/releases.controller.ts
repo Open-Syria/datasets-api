@@ -42,7 +42,7 @@ export class ReleasesController {
     return buildOffsetPaginatedResponse({
       i18n,
       items: result.items,
-      totalRecords: result.totalRecords,
+      totalRecords: result.pagination.totalRecords,
       options: query,
       message: 'api.responses.releases.listFetched',
       fallbackMessage: 'Releases fetched successfully',

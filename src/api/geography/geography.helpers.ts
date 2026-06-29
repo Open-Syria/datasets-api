@@ -1,5 +1,4 @@
 import type { SourceAttribution } from '../../common/dto/source-attribution.dto';
-import type { OffsetPagination } from '../../common/schemas/pagination.schema';
 import type {
   DatasetReleaseManifest,
   DatasetReleaseStatus,
@@ -109,24 +108,4 @@ function flattenSearchValues(value: unknown): unknown[] {
   }
 
   return [value];
-}
-
-export function buildOffsetPagination(
-  totalRecords: number,
-  query: PaginationQuery,
-  pageRecords: number,
-): OffsetPagination {
-  const totalPages = totalRecords === 0 ? 0 : Math.ceil(totalRecords / query.limit);
-  const hasNextPage = totalPages > 0 && query.page < totalPages;
-  const hasPreviousPage = query.page > 1 && query.page <= totalPages;
-
-  return {
-    limit: query.limit,
-    currentPage: query.page,
-    pageRecords,
-    totalRecords,
-    totalPages,
-    nextPage: hasNextPage ? query.page + 1 : null,
-    previousPage: hasPreviousPage ? query.page - 1 : null,
-  };
 }

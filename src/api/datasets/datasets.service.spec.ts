@@ -112,7 +112,9 @@ describe('DatasetsService', () => {
     });
 
     expect(result).toMatchObject({
-      totalRecords: 1,
+      pagination: {
+        totalRecords: 1,
+      },
       items: [
         {
           id: 'opensyria-geography',
