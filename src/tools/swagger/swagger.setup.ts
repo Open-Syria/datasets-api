@@ -29,7 +29,7 @@ type OpenApiOperation = {
 const API_DOCUMENT_TITLE = 'OpenSyria Datasets API';
 const API_REFERENCE_TITLE = 'OpenSyria Datasets API Reference';
 const API_DOCUMENT_DESCRIPTION =
-  'Public read-only API for stable, versioned OpenSyria reference datasets. The first released dataset covers Syrian administrative geography, including governorates, districts, subdistricts, localities, release metadata, and source attribution.';
+  'Public read-only API for stable, versioned OpenSyria reference datasets. Released endpoints cover Syrian administrative geography and public university profiles, including release metadata, source attribution, university logos, and ranking snapshots.';
 const API_REFERENCE_CUSTOM_CSS = `
 .light-mode {
   --scalar-font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -96,6 +96,10 @@ const OPENAPI_TAGS = [
     name: 'Geography',
     description: 'Administrative geography endpoints.',
   },
+  {
+    name: 'Universities',
+    description: 'Higher education institution profile endpoints.',
+  },
 ] as const;
 
 const COMMON_PATHS = ['/health', '/health/live', '/health/ready'];
@@ -126,6 +130,12 @@ const FILTERED_OPENAPI_SOURCES: OpenApiSource[] = [
     description: 'Administrative geography endpoints.',
     path: '/openapi/geography.json',
     matchesPath: (path) => COMMON_PATHS.includes(path) || path.startsWith('/api/v1/geography/'),
+  },
+  {
+    title: 'Universities API',
+    description: 'Higher education institution profile endpoints.',
+    path: '/openapi/universities.json',
+    matchesPath: (path) => COMMON_PATHS.includes(path) || path.startsWith('/api/v1/universities'),
   },
 ];
 
