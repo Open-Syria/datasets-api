@@ -43,6 +43,11 @@ locally.
 
 The import step must finish before a production instance is marked ready.
 
+`release:check` builds the API and runs the public API bridge check. Pinned
+datasets with `requiredReadiness.publicApi: "approved"` must have declared
+endpoint contracts, generated OpenAPI paths, filtered OpenAPI docs, and matching
+`/api/v1/datasets` endpoint metadata.
+
 For local or CI verification against PostgreSQL:
 
 ```bash

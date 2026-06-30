@@ -9,6 +9,7 @@ import type { OffsetPaginationQuery } from '../../common/schemas/pagination.sche
 import type { DatasetReleaseManifest } from '../../datasets/contracts/dataset-release-manifest.schema';
 import { DatasetReleaseRegistryService } from '../../datasets/dataset-release-registry.service';
 import { PublicDataCacheService } from '../../shared/cache/public-data-cache.service';
+import { getPublicDatasetEndpointRoutes } from '../public-dataset-endpoints';
 import type { DatasetSummary, DatasetSummaryList } from './datasets.dto';
 
 type DatasetSummaryListResult = DatasetSummaryList;
@@ -28,16 +29,7 @@ const DATASETS: DatasetSummary[] = [
     category: 'geography',
     repository: 'data-geography',
     status: 'seed',
-    apiEndpoints: [
-      '/api/v1/geography/governorates',
-      '/api/v1/geography/governorates/{governorateId}',
-      '/api/v1/geography/districts',
-      '/api/v1/geography/districts/{districtId}',
-      '/api/v1/geography/subdistricts',
-      '/api/v1/geography/subdistricts/{subdistrictId}',
-      '/api/v1/geography/localities',
-      '/api/v1/geography/localities/{localityId}',
-    ],
+    apiEndpoints: [...getPublicDatasetEndpointRoutes('data-geography')],
     version: null,
     updatedAt: null,
   },
@@ -55,7 +47,7 @@ const DATASETS: DatasetSummary[] = [
     category: 'education',
     repository: 'data-universities',
     status: 'seed',
-    apiEndpoints: [],
+    apiEndpoints: [...getPublicDatasetEndpointRoutes('data-universities')],
     version: null,
     updatedAt: null,
   },

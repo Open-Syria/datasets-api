@@ -81,8 +81,10 @@ describe('DatasetsService', () => {
     );
     expect(result.items.find((item) => item.id === 'opensyria-universities')).toMatchObject({
       id: 'opensyria-universities',
-      apiEndpoints: [],
     });
+    expect(result.items.find((item) => item.id === 'opensyria-universities')?.apiEndpoints).toEqual(
+      ['/api/v1/universities', '/api/v1/universities/{universityId}'],
+    );
   });
 
   it('enriches released datasets from loaded release manifests', async () => {

@@ -172,6 +172,11 @@ readiness level and public API status. This lets production download a dataset
 for discovery while still blocking endpoint/docs exposure until the dataset
 release explicitly approves public API use.
 
+Release checks also verify the route bridge for approved public datasets. Any
+pinned source with `requiredReadiness.publicApi: "approved"` must have a contract
+in `src/api/public-dataset-endpoints.ts`, matching routes in `/openapi.json`, its
+filtered OpenAPI document, and `/api/v1/datasets`.
+
 The API should expose the active dataset versions and public artifact metadata through
 `/api/v1/releases`, including artifact names, formats, paths, checksums, sizes,
 record counts, media types, and download URLs when the manifest provides them.

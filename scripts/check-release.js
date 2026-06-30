@@ -390,6 +390,7 @@ function assertProductionScripts(packageJson) {
 function assertDistRuntimeFiles() {
   for (const relativePath of [
     'dist/main.js',
+    'dist/api/public-dataset-endpoints.js',
     'dist/generated/prisma/client.js',
     'dist/i18n/messages/en/api.json',
     'dist/i18n/messages/ar/api.json',
@@ -454,6 +455,7 @@ function main() {
   }
 
   assertDistRuntimeFiles();
+  run(process.execPath, ['scripts/check-public-api-bridge.js']);
 
   if (options.get('docker-build')) {
     run('docker', ['build', '-t', 'opensyria/datasets-api:release-check', '.']);
