@@ -729,6 +729,10 @@ describe('AppController (e2e)', () => {
       method: 'GET',
       url: '/openapi/geography.json',
     });
+    const universitiesResponse = await app.inject({
+      method: 'GET',
+      url: '/openapi/universities.json',
+    });
     const educationResponse = await app.inject({
       method: 'GET',
       url: '/openapi/education.json',
@@ -739,12 +743,14 @@ describe('AppController (e2e)', () => {
     const defaultDocument = defaultResponse.json<OpenApiResponseBody>();
     const coreDocument = coreResponse.json<OpenApiResponseBody>();
     const geographyDocument = geographyResponse.json<OpenApiResponseBody>();
+    const universitiesDocument = universitiesResponse.json<OpenApiResponseBody>();
 
     expect(defaultDocument.tags?.map((tag) => tag.name)).toEqual([
       'Health',
       'Dataset Discovery',
       'Releases',
       'Geography',
+      'Universities',
     ]);
     expect(defaultDocument.info).toMatchObject({
       title: 'OpenSyria Datasets API',
@@ -753,7 +759,7 @@ describe('AppController (e2e)', () => {
       'Public read-only API for stable, versioned OpenSyria reference datasets.',
     );
     expect(defaultDocument.tags?.map((tag) => tag.name)).not.toEqual(
-      expect.arrayContaining(['Universities', 'Transport', 'Heritage', 'Telecom']),
+      expect.arrayContaining(['Transport', 'Heritage', 'Telecom']),
     );
     for (const pathItem of Object.values(defaultDocument.paths)) {
       const operationTags = getOperationTags(pathItem);
@@ -774,6 +780,9 @@ describe('AppController (e2e)', () => {
     expect(getOperationTags(defaultDocument.paths['/api/v1/geography/governorates'])).toEqual([
       'Geography',
     ]);
+    expect(getOperationTags(defaultDocument.paths['/api/v1/universities'])).toEqual([
+      'Universities',
+    ]);
     expect(defaultDocument.paths).toHaveProperty('/health');
     expect(defaultDocument.paths).toHaveProperty('/health/live');
     expect(defaultDocument.paths).toHaveProperty('/health/ready');
@@ -783,6 +792,8 @@ describe('AppController (e2e)', () => {
     expect(defaultDocument.paths).toHaveProperty('/api/v1/geography/districts');
     expect(defaultDocument.paths).toHaveProperty('/api/v1/geography/subdistricts');
     expect(defaultDocument.paths).toHaveProperty('/api/v1/geography/localities');
+    expect(defaultDocument.paths).toHaveProperty('/api/v1/universities');
+    expect(defaultDocument.paths).toHaveProperty('/api/v1/universities/{universityId}');
     expect(
       defaultDocument.components?.schemas?.DatasetSummaryListResponse_Output?.properties?.status
         ?.example,
@@ -918,6 +929,32 @@ describe('AppController (e2e)', () => {
       },
     });
     expect(geographyDocument.paths).not.toHaveProperty('/api/v1/datasets');
+    expect(universitiesResponse.statusCode).toBe(200);
+    expect(universitiesDocument.tags?.map((tag) => tag.name)).toEqual(['Health', 'Universities']);
+    expect(universitiesDocument.paths).toHaveProperty('/api/v1/universities');
+    expect(universitiesDocument.paths).toHaveProperty('/api/v1/universities/{universityId}');
+    expect(
+      getPathParameters(universitiesDocument.paths['/api/v1/universities/{universityId}']).map(
+        (parameter) => parameter.name,
+      ),
+    ).toEqual(['universityId']);
+    expect(
+      getQueryParameters(universitiesDocument.paths['/api/v1/universities']).map(
+        (parameter) => parameter.name,
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        'page',
+        'limit',
+        'q',
+        'order',
+        'institutionType',
+        'governorate',
+        'sourceStatus',
+        'hasWebsite',
+      ]),
+    );
+    expect(universitiesDocument.paths).not.toHaveProperty('/api/v1/geography/governorates');
     expect(educationResponse.statusCode).toBe(404);
   });
 

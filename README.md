@@ -7,7 +7,7 @@
 
 Public read-only API for released OpenSyria datasets.
 
-`datasets-api` serves stable, versioned reference data for Syria through documented HTTP endpoints. It exposes released dataset metadata, geography records, source attribution, and machine-readable API documentation.
+`datasets-api` serves stable, versioned reference data for Syria through documented HTTP endpoints. It exposes released dataset metadata, geography records, university profile records, source attribution, and machine-readable API documentation.
 
 ## Table of Contents
 
@@ -29,6 +29,7 @@ Public read-only API for released OpenSyria datasets.
 
 - Dataset discovery and release metadata
 - Geography endpoints for governorates, districts, subdistricts, and localities
+- University endpoints for higher education institution profiles, logos, and ranking snapshots
 - Stable record IDs and source attribution fields
 - Offset pagination, filtering, search, and parent-child geography relationships
 - Localized API response messages through `lang`, `x-lang`, or `Accept-Language`
@@ -69,17 +70,21 @@ GET /api/v1/geography/subdistricts/:subdistrictId
 GET /api/v1/geography/localities
 GET /api/v1/geography/localities/:localityId
 
+GET /api/v1/universities
+GET /api/v1/universities/:universityId
+
 GET /docs
 GET /swagger-ui
 GET /openapi.json
 GET /openapi/core.json
 GET /openapi/geography.json
+GET /openapi/universities.json
 GET /favicon.ico
 ```
 
 `/docs` and `/swagger-ui` use the complete `/openapi.json` document. The filtered
-`/openapi/core.json` and `/openapi/geography.json` documents are available for tools
-that need a smaller machine-readable spec.
+`/openapi/core.json`, `/openapi/geography.json`, and `/openapi/universities.json`
+documents are available for tools that need a smaller machine-readable spec.
 
 ## Query Conventions
 
@@ -103,10 +108,17 @@ Geography filters:
 | `/geography/subdistricts` | `governorateId`, `districtId` |
 | `/geography/localities` | `governorateId`, `districtId`, `subdistrictId`, `kind` |
 
+University filters:
+
+| Endpoint | Extra filters |
+| --- | --- |
+| `/universities` | `institutionType`, `governorate`, `hasWebsite` |
+
 Example:
 
 ```text
 GET /api/v1/geography/localities?q=damascus&limit=thirty_five&order=asc&sourceStatus=released
+GET /api/v1/universities?q=damascus&institutionType=public&limit=ten
 ```
 
 ## Localization

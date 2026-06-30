@@ -681,7 +681,8 @@ api.responses.datasets.listFetched
 api.responses.datasets.detailFetched
 api.responses.geography.governoratesFetched
 api.responses.geography.governorateFetched
-api.responses.universities.universitiesFetched
+api.responses.universities.listFetched
+api.responses.universities.detailFetched
 api.errors.validationFailed
 api.errors.notFound
 api.errors.internalServerError
