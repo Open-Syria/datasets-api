@@ -111,6 +111,7 @@ The current manifest schema version is:
 - `sources` must describe the reusable sources behind the release.
 - `readiness`, when present, must distinguish sync readiness from public API approval.
 - Public endpoint work must not treat a synced release as exposed unless `readiness.publicApi.status` is `approved`.
+- A pinned dataset with `requiredReadiness.publicApi: "approved"` must have a public endpoint contract in `src/api/public-dataset-endpoints.ts`, matching paths in `/openapi.json`, its filtered OpenAPI document, and `/api/v1/datasets`.
 - AI output must never appear as a source. AI may assist cleaning or matching, but released records need reviewable sources.
 
 ## API Consumption
@@ -172,7 +173,10 @@ Lock-file entries may include `requiredReadiness`, for example:
 ```
 
 When present, sync fails if the manifest omits readiness metadata, has a lower
-readiness level, or declares a different public API status.
+readiness level, or declares a different public API status. The release check
+also boots the built API and verifies approved datasets against their public
+endpoint contract, so a dataset cannot be marked API-approved while missing
+controllers or generated docs.
 
 The command expects every pinned release to include `release-manifest.json` as a release asset. Artifact files listed in the manifest are matched by the basename of `artifacts[].path`.
 

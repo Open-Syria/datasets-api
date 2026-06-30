@@ -43,6 +43,7 @@
     "smoke:geography": "ts-node -r tsconfig-paths/register src/cli/smoke-geography-release.ts",
     "audit:prod": "pnpm audit --prod",
     "release:check": "node scripts/check-release.js",
+    "release:check:public-api-bridge": "node scripts/check-public-api-bridge.js",
     "release:check:docker": "node scripts/check-release.js --docker-build",
     "validate": "pnpm run db:generate && pnpm run check && pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run test:e2e && pnpm run build && pnpm run audit:prod",
     "prepare": "husky"

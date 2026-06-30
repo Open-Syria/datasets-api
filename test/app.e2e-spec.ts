@@ -358,7 +358,7 @@ describe('AppController (e2e)', () => {
       ]),
     );
     expect(body.data.items.find((item) => item.slug === 'universities')).toMatchObject({
-      apiEndpoints: [],
+      apiEndpoints: ['/api/v1/universities', '/api/v1/universities/{universityId}'],
     });
   });
 

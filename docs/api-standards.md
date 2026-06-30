@@ -713,6 +713,7 @@ Filtered machine-readable documents:
 ```text
 Core API        /openapi/core.json
 Geography API   /openapi/geography.json
+Universities API /openapi/universities.json
 ```
 
 Rules:
@@ -724,6 +725,7 @@ Rules:
 - Filtered domain documents are optional machine-readable specs. They are filtered from one base document, not generated from separate app instances.
 - Do not expose empty domain documents in Scalar. Add a filtered domain document only after the domain has public endpoints.
 - Filtered documents should remove unused tags so clients do not see empty future sections.
+- Public endpoint contracts live in `src/api/public-dataset-endpoints.ts`. Keep dataset discovery `apiEndpoints`, full OpenAPI paths, and filtered domain documents aligned through that contract.
 
 ## Security Headers and CORS
 
