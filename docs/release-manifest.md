@@ -163,10 +163,10 @@ Lock-file entries may include `requiredReadiness`, for example:
 {
   "owner": "Open-Syria",
   "repository": "data-universities",
-  "tag": "v0.1.13",
+  "tag": "v0.2.0",
   "requiredReadiness": {
-    "minimumLevel": "identity_seed_ready",
-    "publicApi": "not_approved"
+    "minimumLevel": "profile_ready",
+    "publicApi": "approved"
   }
 }
 ```
