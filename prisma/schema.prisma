@@ -185,8 +185,8 @@ model GeographyLocality {
   id            String
   releaseId     String
   governorateId String
-  districtId    String
-  subdistrictId String
+  districtId    String?
+  subdistrictId String?
   kind          LocalityKind
   nameEn        String
   nameAr        String?
@@ -204,8 +204,8 @@ model GeographyLocality {
 
   release     DatasetRelease        @relation(fields: [releaseId], references: [id], onDelete: Cascade)
   governorate GeographyGovernorate  @relation(fields: [releaseId, governorateId], references: [releaseId, id], onDelete: Restrict)
-  district    GeographyDistrict    @relation(fields: [releaseId, districtId], references: [releaseId, id], onDelete: Restrict)
-  subdistrict GeographySubdistrict @relation(fields: [releaseId, subdistrictId], references: [releaseId, id], onDelete: Restrict)
+  district    GeographyDistrict?   @relation(fields: [releaseId, districtId], references: [releaseId, id], onDelete: Restrict)
+  subdistrict GeographySubdistrict? @relation(fields: [releaseId, subdistrictId], references: [releaseId, id], onDelete: Restrict)
 
   @@id([releaseId, id])
   @@index([releaseId])
