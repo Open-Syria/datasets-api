@@ -604,8 +604,8 @@ export class GeographyReadModelQueryService {
     return {
       id: record.id,
       governorateId: record.governorateId,
-      districtId: record.districtId,
-      subdistrictId: record.subdistrictId,
+      districtId: record.districtId ?? undefined,
+      subdistrictId: record.subdistrictId ?? undefined,
       kind: mapPublicLocalityKind(record.kind),
       name: {
         en: record.nameEn,

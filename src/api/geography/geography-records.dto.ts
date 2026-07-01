@@ -89,8 +89,8 @@ export const geographyLocalityKindSchema = z.enum(['city', 'town', 'village', 'l
 
 export const geographyLocalityRecordSchema = geographyBaseRecordSchema.extend({
   governorateId: z.string().min(1),
-  districtId: z.string().min(1),
-  subdistrictId: z.string().min(1),
+  districtId: z.string().min(1).optional(),
+  subdistrictId: z.string().min(1).optional(),
   kind: geographyLocalityKindSchema,
 });
 
