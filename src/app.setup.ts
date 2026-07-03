@@ -18,6 +18,7 @@ const DEFAULT_ALLOWED_METHODS = ALLOWED_CORS_METHODS.join(', ');
 const DEFAULT_ALLOWED_HEADERS = 'Content-Type, Authorization, X-Requested-With, X-Lang';
 const DEFAULT_EXPOSED_HEADERS = 'X-Request-Id';
 const CORS_PREFLIGHT_MAX_AGE_SECONDS = 600;
+const OPENSYRIA_WEBSITE_URL = 'https://opensyria.org';
 const PUBLIC_ASSETS_DIRECTORY = path.join(process.cwd(), 'public');
 const PUBLIC_ASSET_ROUTES = [
   'apple-touch-icon.png',
@@ -28,6 +29,32 @@ const PUBLIC_ASSET_ROUTES = [
   'site.webmanifest',
   'web-app-manifest-192x192.png',
   'web-app-manifest-512x512.png',
+] as const;
+const AGENT_DISCOVERY_LINK_HEADER = [
+  `<${OPENSYRIA_WEBSITE_URL}/.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+json"`,
+  `<${OPENSYRIA_WEBSITE_URL}/.well-known/agent-skills/index.json>; rel="index"; type="application/json"`,
+  `<${OPENSYRIA_WEBSITE_URL}/llms.txt>; rel="alternate"; type="text/plain"`,
+  '</docs>; rel="service-doc"; type="text/html"',
+  '</openapi.json>; rel="service-desc"; type="application/json"',
+  '</health>; rel="status"; type="application/json"',
+].join(', ');
+const CANONICAL_AGENT_DISCOVERY_REDIRECTS = [
+  {
+    path: '/.well-known/api-catalog',
+    location: `${OPENSYRIA_WEBSITE_URL}/.well-known/api-catalog`,
+  },
+  {
+    path: '/.well-known/agent-skills/index.json',
+    location: `${OPENSYRIA_WEBSITE_URL}/.well-known/agent-skills/index.json`,
+  },
+  {
+    path: '/llms.txt',
+    location: `${OPENSYRIA_WEBSITE_URL}/llms.txt`,
+  },
+  {
+    path: '/auth.md',
+    location: `${OPENSYRIA_WEBSITE_URL}/auth.md`,
+  },
 ] as const;
 
 function appendVaryHeader(reply: FastifyReply, value: string) {
@@ -141,9 +168,20 @@ function setupCrawlerHeaders(app: NestFastifyApplication) {
   const fastify = app.getHttpAdapter().getInstance();
 
   fastify.addHook('onRequest', (_request: FastifyRequest, reply: FastifyReply, done) => {
+    reply.header('Link', AGENT_DISCOVERY_LINK_HEADER);
     reply.header('X-Robots-Tag', 'noindex, nofollow');
     done();
   });
+}
+
+function setupAgentDiscoveryRedirects(app: NestFastifyApplication) {
+  const fastify = app.getHttpAdapter().getInstance();
+
+  for (const redirect of CANONICAL_AGENT_DISCOVERY_REDIRECTS) {
+    fastify.get(redirect.path, (_request, reply) => {
+      reply.status(308).header('Location', redirect.location).send();
+    });
+  }
 }
 
 async function setupPublicAssets(app: NestFastifyApplication) {
@@ -230,6 +268,7 @@ export async function setupApp(
 
   setupCors(app, appConfig);
   setupCrawlerHeaders(app);
+  setupAgentDiscoveryRedirects(app);
   await setupPublicAssets(app);
 
   app.setGlobalPrefix(appConfig.apiPrefix, {

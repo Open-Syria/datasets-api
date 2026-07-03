@@ -1,2 +1,33 @@
+#    ____                  _____            _
+#   / __ \____  ___  ____ / ___/__  _______(_)___ _
+#  / / / / __ \/ _ \/ __ \\__ \/ / / / ___/ / __ `/
+# / /_/ / /_/ /  __/ / / /__/ / /_/ / /  / / /_/ /
+# \____/ .___/\___/_/ /_/____/\__, /_/  /_/\__,_/
+#     /_/                    /____/
+#
+# Open civic intelligence for Syria.
+#
+# +-----------------------------+
+# |=============================|
+# |                             |
+# |        *     *     *        |
+# |                             |
+# |#############################|
+# +-----------------------------+
+
 User-agent: *
+Allow: /docs
+Allow: /swagger-ui
+Allow: /openapi.json
+Allow: /openapi/
+Allow: /.well-known/
+Allow: /llms.txt
+Allow: /auth.md
+Allow: /health
+Allow: /health/live
+Allow: /health/ready
 Disallow: /
+
+Content-Signal: ai-train=no, search=yes, ai-input=yes
+
+Host: https://api.opensyria.org
