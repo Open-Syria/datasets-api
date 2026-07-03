@@ -9,6 +9,7 @@ Most public contribution should happen in dataset repositories. This API reposit
 - [Branches](#branches)
 - [Pull Request Scope](#pull-request-scope)
 - [Commit Messages](#commit-messages)
+- [Release Automation](#release-automation)
 - [Review Requirements](#review-requirements)
 - [Validation](#validation)
 - [Dataset Boundary](#dataset-boundary)
@@ -78,6 +79,21 @@ Commit types commonly used here:
 | `refactor` | Internal code changes without behavior changes |
 | `chore` | Tooling, CI, config, repository maintenance |
 | `deps` | Dependency updates |
+
+## Release Automation
+
+Release metadata is managed by release-please. See [releases.md](releases.md)
+for the full flow.
+
+Release-worthy commits such as `feat`, `fix`, `perf`, and commits with
+`BREAKING CHANGE` notes are used to open or update release pull requests.
+Documentation-only and maintenance commits usually do not create a release unless
+they are intentionally marked as release-worthy.
+
+API repository releases produce version tags, GitHub Releases, and changelog
+entries. They do not replace production deployment, which still uses SHA-pinned
+container images, and they do not change the dataset artifacts pinned in
+`dataset-releases.json`.
 
 ## Review Requirements
 
