@@ -247,18 +247,30 @@ describe('AppController (e2e)', () => {
   });
 
   it('serves crawler and favicon assets', async () => {
-    const robotsResponse = await app.inject({
-      method: 'GET',
-      url: '/robots.txt',
-    });
-    const faviconResponse = await app.inject({
-      method: 'GET',
-      url: '/favicon.ico',
-    });
-    const manifestResponse = await app.inject({
-      method: 'GET',
-      url: '/site.webmanifest',
-    });
+    const [
+      robotsResponse,
+      faviconResponse,
+      svgFaviconResponse,
+      pngFaviconResponse,
+      appleTouchIconResponse,
+      webAppIconResponse,
+      manifestResponse,
+    ] = await Promise.all(
+      [
+        '/robots.txt',
+        '/favicon.ico',
+        '/favicon.svg',
+        '/favicon-96x96.png',
+        '/apple-touch-icon.png',
+        '/web-app-manifest-192x192.png',
+        '/site.webmanifest',
+      ].map((url) =>
+        app.inject({
+          method: 'GET',
+          url,
+        }),
+      ),
+    );
 
     expect(robotsResponse.statusCode).toBe(200);
     expect(robotsResponse.headers['content-type']).toContain('text/plain');
@@ -268,10 +280,36 @@ describe('AppController (e2e)', () => {
     expect(faviconResponse.statusCode).toBe(200);
     expect(faviconResponse.headers['content-type']).toContain('image/');
     expect(faviconResponse.body.length).toBeGreaterThan(0);
+    expect(svgFaviconResponse.statusCode).toBe(200);
+    expect(svgFaviconResponse.headers['content-type']).toContain('image/svg+xml');
+    expect(svgFaviconResponse.body.length).toBeGreaterThan(0);
+    expect(pngFaviconResponse.statusCode).toBe(200);
+    expect(pngFaviconResponse.headers['content-type']).toContain('image/png');
+    expect(pngFaviconResponse.body.length).toBeGreaterThan(0);
+    expect(appleTouchIconResponse.statusCode).toBe(200);
+    expect(appleTouchIconResponse.headers['content-type']).toContain('image/png');
+    expect(appleTouchIconResponse.body.length).toBeGreaterThan(0);
+    expect(webAppIconResponse.statusCode).toBe(200);
+    expect(webAppIconResponse.headers['content-type']).toContain('image/png');
+    expect(webAppIconResponse.body.length).toBeGreaterThan(0);
     expect(manifestResponse.statusCode).toBe(200);
     expect(manifestResponse.json()).toMatchObject({
       name: 'OpenSyria',
       short_name: 'OpenSyria',
+      theme_color: '#f8f7ef',
+      background_color: '#f8f7ef',
+      icons: expect.arrayContaining([
+        expect.objectContaining({
+          src: '/web-app-manifest-192x192.png',
+          sizes: '192x192',
+          type: 'image/png',
+        }),
+        expect.objectContaining({
+          src: '/web-app-manifest-512x512.png',
+          sizes: '512x512',
+          type: 'image/png',
+        }),
+      ]),
     });
   });
 
@@ -967,6 +1005,14 @@ describe('AppController (e2e)', () => {
     expect(response.statusCode).toBe(200);
     expect(response.headers['content-type']).toContain('text/html');
     expect(response.body).toContain('<title>OpenSyria Datasets API Reference</title>');
+    expect(response.body).toContain('<meta name="application-name" content="OpenSyria">');
+    expect(response.body).toContain(
+      '<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f8f7ef">',
+    );
+    expect(response.body).toContain('<link rel="icon" href="/favicon.ico" sizes="any">');
+    expect(response.body).toContain('<link rel="icon" href="/favicon.svg" type="image/svg+xml">');
+    expect(response.body).toContain('<link rel="apple-touch-icon" href="/apple-touch-icon.png">');
+    expect(response.body).toContain('<link rel="manifest" href="/site.webmanifest">');
   });
 
   it('serves Swagger UI fallback', async () => {
