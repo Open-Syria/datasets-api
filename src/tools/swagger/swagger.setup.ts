@@ -30,6 +30,13 @@ const API_DOCUMENT_TITLE = 'OpenSyria Datasets API';
 const API_REFERENCE_TITLE = 'OpenSyria Datasets API Reference';
 const API_DOCUMENT_DESCRIPTION =
   'Public read-only API for stable, versioned OpenSyria reference datasets. Released endpoints cover Syrian administrative geography and public university profiles, including release metadata, source attribution, university logos, and ranking snapshots.';
+const API_REFERENCE_APPLICATION_NAME = 'OpenSyria';
+const API_REFERENCE_FAVICON_PATH = '/favicon.ico';
+const API_REFERENCE_SVG_ICON_PATH = '/favicon.svg';
+const API_REFERENCE_APPLE_TOUCH_ICON_PATH = '/apple-touch-icon.png';
+const API_REFERENCE_MANIFEST_PATH = '/site.webmanifest';
+const API_REFERENCE_LIGHT_THEME_COLOR = '#f8f7ef';
+const API_REFERENCE_DARK_THEME_COLOR = '#10160f';
 const API_REFERENCE_CUSTOM_CSS = `
 .light-mode {
   --scalar-font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -234,12 +241,88 @@ function registerOpenApiRoute(app: NestFastifyApplication, path: string, documen
   });
 }
 
+function getApiReferenceHeadMetadata(indent = '  ') {
+  return [
+    `<meta name="application-name" content="${API_REFERENCE_APPLICATION_NAME}">`,
+    `<meta name="description" content="${API_DOCUMENT_DESCRIPTION}">`,
+    `<meta name="theme-color" media="(prefers-color-scheme: light)" content="${API_REFERENCE_LIGHT_THEME_COLOR}">`,
+    `<meta name="theme-color" media="(prefers-color-scheme: dark)" content="${API_REFERENCE_DARK_THEME_COLOR}">`,
+    `<link rel="icon" href="${API_REFERENCE_FAVICON_PATH}" sizes="any">`,
+    `<link rel="icon" href="${API_REFERENCE_SVG_ICON_PATH}" type="image/svg+xml">`,
+    `<link rel="apple-touch-icon" href="${API_REFERENCE_APPLE_TOUCH_ICON_PATH}">`,
+    `<link rel="manifest" href="${API_REFERENCE_MANIFEST_PATH}">`,
+  ]
+    .map((tag) => `${indent}${tag}`)
+    .join('\n');
+}
+
+function renderApiReferenceFallbackHtml() {
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+${getApiReferenceHeadMetadata()}
+  <title>${API_REFERENCE_TITLE}</title>
+</head>
+<body></body>
+</html>`;
+}
+
+function appendScalarHtmlChunk(chunks: string[], chunk: unknown) {
+  if (chunk === null || chunk === undefined) {
+    return;
+  }
+
+  if (typeof chunk === 'string') {
+    chunks.push(chunk);
+    return;
+  }
+
+  if (Buffer.isBuffer(chunk)) {
+    chunks.push(chunk.toString('utf8'));
+    return;
+  }
+
+  if (chunk instanceof Uint8Array) {
+    chunks.push(Buffer.from(chunk).toString('utf8'));
+    return;
+  }
+
+  chunks.push(String(chunk));
+}
+
+function renderScalarHandlerHtml(
+  handler: (request: FastifyRequest, response: ServerResponse) => void,
+  request: FastifyRequest,
+) {
+  const chunks: string[] = [];
+  const response = {
+    writeHead: () => undefined,
+    write: (chunk: unknown) => {
+      appendScalarHtmlChunk(chunks, chunk);
+      return true;
+    },
+    end: (chunk?: unknown) => {
+      appendScalarHtmlChunk(chunks, chunk);
+    },
+  } as unknown as ServerResponse;
+
+  handler(request, response);
+
+  return chunks.join('');
+}
+
+function injectApiReferenceHeadMetadata(html: string) {
+  return html.replace('</head>', `${getApiReferenceHeadMetadata('    ')}\n  </head>`);
+}
+
 async function registerScalarRoute(app: NestFastifyApplication, appConfig: AppConfig) {
   const fastify = app.getHttpAdapter().getInstance();
 
   if (appConfig.nodeEnv === Environment.Test) {
     fastify.get('/docs', (_request, reply) => {
-      reply.type('text/html').send(`<!doctype html><title>${API_REFERENCE_TITLE}</title>`);
+      reply.type('text/html').send(renderApiReferenceFallbackHtml());
     });
     return;
   }
@@ -252,7 +335,7 @@ async function registerScalarRoute(app: NestFastifyApplication, appConfig: AppCo
     layout: 'modern',
     darkMode: true,
     hideDarkModeToggle: false,
-    favicon: '/favicon.ico',
+    favicon: API_REFERENCE_FAVICON_PATH,
     customCss: API_REFERENCE_CUSTOM_CSS,
     withFastify: true,
     sources: [
@@ -265,8 +348,8 @@ async function registerScalarRoute(app: NestFastifyApplication, appConfig: AppCo
   }) as (request: FastifyRequest, response: ServerResponse) => void;
 
   fastify.get('/docs', (request, reply) => {
-    reply.hijack();
-    handler(request, reply.raw);
+    const html = renderScalarHandlerHtml(handler, request);
+    reply.type('text/html').send(injectApiReferenceHeadMetadata(html));
   });
 }
 
@@ -302,6 +385,8 @@ export async function setupSwagger(app: NestFastifyApplication, appConfig: AppCo
   SwaggerModule.setup('swagger-ui', app, baseDocument, {
     raw: false,
     jsonDocumentUrl: '/openapi.json',
+    customfavIcon: API_REFERENCE_FAVICON_PATH,
+    customSiteTitle: API_REFERENCE_TITLE,
   });
   await registerScalarRoute(app, appConfig);
 }
