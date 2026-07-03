@@ -32,6 +32,11 @@ const githubReleaseSchema = z.object({
 type GitHubReleaseAsset = z.infer<typeof githubReleaseAssetSchema>;
 type GitHubRelease = z.infer<typeof githubReleaseSchema>;
 
+const defaultFetchMaxAttempts = 4;
+const defaultFetchRetryDelayMs = 2_000;
+const defaultFetchTimeoutMs = 30_000;
+const retryableHttpStatuses = new Set([408, 429, 500, 502, 503, 504]);
+
 const readinessLevelOrder: Record<DatasetReadinessLevel, number> = {
   raw_seed: 0,
   identity_seed_ready: 1,
@@ -43,6 +48,9 @@ export type GitHubReleaseSyncOptions = {
   releasesDirectory: string;
   githubToken?: string;
   downloadArtifacts: boolean;
+  fetchMaxAttempts?: number;
+  fetchRetryDelayMs?: number;
+  fetchTimeoutMs?: number;
 };
 
 export type GitHubReleaseSyncResult = {
@@ -58,6 +66,54 @@ function getArtifactAssetName(artifact: DatasetReleaseArtifact) {
 
 function sha256(buffer: Buffer) {
   return createHash('sha256').update(buffer).digest('hex');
+}
+
+function formatUnknownError(error: unknown): string {
+  if (error instanceof Error) {
+    const cause = error.cause === undefined ? '' : `; cause: ${formatUnknownError(error.cause)}`;
+
+    return `${error.name}: ${error.message}${cause}`;
+  }
+
+  if (typeof error === 'object' && error !== null) {
+    const details = ['code', 'errno', 'syscall', 'hostname', 'host', 'port', 'address']
+      .flatMap((key) => {
+        if (!(key in error)) {
+          return [];
+        }
+
+        const value = error[key as keyof typeof error];
+
+        return value === undefined ? [] : [`${key}=${String(value)}`];
+      })
+      .join(', ');
+
+    return details || String(error);
+  }
+
+  return String(error);
+}
+
+function getRetryDelay(attempt: number, baseDelayMs: number) {
+  return baseDelayMs * 2 ** (attempt - 1);
+}
+
+async function readResponseSnippet(response: Response) {
+  try {
+    const text = await response.text();
+
+    if (!text) {
+      return '';
+    }
+
+    return ` Body: ${text.slice(0, 500)}`;
+  } catch {
+    return '';
+  }
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export class GitHubReleaseSyncService {
@@ -76,7 +132,11 @@ export class GitHubReleaseSyncService {
   private async syncSource(source: DatasetReleaseSource): Promise<GitHubReleaseSyncResult> {
     const release = await this.fetchRelease(source);
     const manifestAsset = this.getRequiredAsset(release, RELEASE_MANIFEST_FILE, source);
-    const manifestBuffer = await this.downloadAsset(manifestAsset.browser_download_url);
+    const sourceLabel = formatDatasetReleaseSource(source);
+    const manifestBuffer = await this.downloadAsset(
+      manifestAsset.browser_download_url,
+      `${sourceLabel} ${RELEASE_MANIFEST_FILE}`,
+    );
     const manifest = datasetReleaseManifestSchema.parse(
       JSON.parse(manifestBuffer.toString('utf8')),
     );
@@ -125,7 +185,10 @@ export class GitHubReleaseSyncService {
         repository: manifest.dataset.repository,
         tag: manifest.release.version,
       });
-      const artifactBuffer = await this.downloadAsset(asset.browser_download_url);
+      const artifactBuffer = await this.downloadAsset(
+        asset.browser_download_url,
+        `${manifest.dataset.repository}@${manifest.release.version} ${assetName}`,
+      );
       const checksum = sha256(artifactBuffer);
 
       if (checksum !== artifact.sha256) {
@@ -186,32 +249,68 @@ export class GitHubReleaseSyncService {
   }
 
   private async fetchRelease(source: DatasetReleaseSource): Promise<GitHubRelease> {
-    const response = await fetch(
-      `https://api.github.com/repos/${source.owner}/${source.repository}/releases/tags/${source.tag}`,
-      {
-        headers: this.getHeaders(),
-      },
-    );
+    const sourceLabel = formatDatasetReleaseSource(source);
+    const url = `https://api.github.com/repos/${source.owner}/${source.repository}/releases/tags/${source.tag}`;
+    const response = await this.fetchWithRetry(url, `fetch GitHub release ${sourceLabel}`);
 
     if (!response.ok) {
+      const body = await readResponseSnippet(response);
+
       throw new Error(
-        `Failed to fetch ${formatDatasetReleaseSource(source)}: ${response.status} ${response.statusText}`,
+        `Failed to fetch ${sourceLabel} from ${url}: ${response.status} ${response.statusText}.${body}`,
       );
     }
 
     return githubReleaseSchema.parse(await response.json());
   }
 
-  private async downloadAsset(url: string): Promise<Buffer> {
-    const response = await fetch(url, {
-      headers: this.getHeaders(),
-    });
+  private async downloadAsset(url: string, label: string): Promise<Buffer> {
+    const response = await this.fetchWithRetry(url, `download GitHub release asset ${label}`);
 
     if (!response.ok) {
-      throw new Error(`Failed to download ${url}: ${response.status} ${response.statusText}`);
+      const body = await readResponseSnippet(response);
+
+      throw new Error(
+        `Failed to download ${label} from ${url}: ${response.status} ${response.statusText}.${body}`,
+      );
     }
 
     return Buffer.from(await response.arrayBuffer());
+  }
+
+  private async fetchWithRetry(url: string, action: string): Promise<Response> {
+    const maxAttempts = this.options.fetchMaxAttempts ?? defaultFetchMaxAttempts;
+    const retryDelayMs = this.options.fetchRetryDelayMs ?? defaultFetchRetryDelayMs;
+    const timeoutMs = this.options.fetchTimeoutMs ?? defaultFetchTimeoutMs;
+    let lastFailure = 'unknown failure';
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        const response = await fetch(url, {
+          headers: this.getHeaders(),
+          signal: AbortSignal.timeout(timeoutMs),
+        });
+
+        if (!retryableHttpStatuses.has(response.status) || attempt === maxAttempts) {
+          return response;
+        }
+
+        lastFailure = `${response.status} ${response.statusText}`;
+      } catch (error) {
+        lastFailure = formatUnknownError(error);
+
+        if (attempt === maxAttempts) {
+          throw new Error(
+            `Failed to ${action} from ${url} after ${attempt}/${maxAttempts} attempts: ${lastFailure}`,
+            { cause: error },
+          );
+        }
+      }
+
+      await sleep(getRetryDelay(attempt, retryDelayMs));
+    }
+
+    throw new Error(`Failed to ${action} from ${url}: ${lastFailure}`);
   }
 
   private getRequiredAsset(
