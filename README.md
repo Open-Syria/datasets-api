@@ -21,6 +21,7 @@ Public read-only API for released OpenSyria datasets.
 - [Local Read Model](#local-read-model)
 - [Validation](#validation)
 - [Deployment](#deployment)
+- [Releases](#releases)
 - [Public Documentation](#public-documentation)
 - [Contribution Model](#contribution-model)
 - [License](#license)
@@ -243,6 +244,18 @@ Run the built app:
 docker run --rm -p 3000:3000 --env-file .env opensyria/datasets-api
 ```
 
+## Releases
+
+Repository releases are managed by release-please. They provide version tags,
+GitHub Releases, and `CHANGELOG.md` entries for API code and documentation
+changes.
+
+This is separate from production deployment, which uses SHA-pinned GHCR images,
+and separate from dataset artifact releases, which are pinned in
+[`dataset-releases.json`](dataset-releases.json).
+
+See [docs/releases.md](docs/releases.md).
+
 ## Public Documentation
 
 - [API standards](docs/api-standards.md)
@@ -250,6 +263,7 @@ docker run --rm -p 3000:3000 --env-file .env opensyria/datasets-api
 - [Release manifest contract](docs/release-manifest.md)
 - [Read model architecture](docs/read-model-architecture.md)
 - [Deployment](docs/deployment.md)
+- [Releases](docs/releases.md)
 - [Dataset contribution policy](docs/dataset-contribution-policy.md)
 - [Pull request workflow](docs/pull-request-workflow.md)
 - [Contributing](CONTRIBUTING.md)

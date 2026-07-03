@@ -144,6 +144,12 @@ docker run --rm --env-file .env -v "$(pwd)/data/releases:/app/data/releases" ope
 
 Production deployment is handled by `.github/workflows/deploy-production.yml`.
 
+Repository release metadata is handled separately by
+[releases.md](releases.md) and `.github/workflows/release-please.yml`.
+Release-please tags and GitHub Releases do not select the production image;
+production deploys continue to use SHA-pinned GHCR images built by the deploy
+workflow.
+
 Push commits containing `[skip ci]` or `[ci skip]` skip the CI, CodeQL push job, and production deployment workflow jobs. Manual `workflow_dispatch` deployments and scheduled CodeQL analysis still run.
 
 The workflow:
