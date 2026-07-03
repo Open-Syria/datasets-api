@@ -243,6 +243,9 @@ describe('AppController (e2e)', () => {
     expect(response.headers['x-frame-options']).toBe('DENY');
     expect(response.headers['x-permitted-cross-domain-policies']).toBe('none');
     expect(response.headers['x-powered-by']).toBeUndefined();
+    expect(response.headers.link).toContain('rel="api-catalog"');
+    expect(response.headers.link).toContain('rel="service-desc"');
+    expect(response.headers.link).toContain('rel="status"');
     expect(response.headers['x-robots-tag']).toBe('noindex, nofollow');
   });
 
@@ -274,8 +277,15 @@ describe('AppController (e2e)', () => {
 
     expect(robotsResponse.statusCode).toBe(200);
     expect(robotsResponse.headers['content-type']).toContain('text/plain');
+    expect(robotsResponse.body).toContain('# Open civic intelligence for Syria.');
+    expect(robotsResponse.body).toContain('|        *     *     *        |');
     expect(robotsResponse.body).toContain('User-agent: *');
+    expect(robotsResponse.body).toContain('Allow: /docs');
+    expect(robotsResponse.body).toContain('Allow: /openapi.json');
+    expect(robotsResponse.body).toContain('Allow: /.well-known/');
     expect(robotsResponse.body).toContain('Disallow: /');
+    expect(robotsResponse.body).toContain('Content-Signal: ai-train=no, search=yes, ai-input=yes');
+    expect(robotsResponse.body).toContain('Host: https://api.opensyria.org');
     expect(robotsResponse.headers['x-robots-tag']).toBe('noindex, nofollow');
     expect(faviconResponse.statusCode).toBe(200);
     expect(faviconResponse.headers['content-type']).toContain('image/');
@@ -311,6 +321,43 @@ describe('AppController (e2e)', () => {
         }),
       ]),
     });
+  });
+
+  it('redirects API discovery helper resources to canonical website resources', async () => {
+    const redirects = [
+      {
+        url: '/.well-known/api-catalog',
+        location: 'https://opensyria.org/.well-known/api-catalog',
+      },
+      {
+        url: '/.well-known/agent-skills/index.json',
+        location: 'https://opensyria.org/.well-known/agent-skills/index.json',
+      },
+      {
+        url: '/llms.txt',
+        location: 'https://opensyria.org/llms.txt',
+      },
+      {
+        url: '/auth.md',
+        location: 'https://opensyria.org/auth.md',
+      },
+    ] as const;
+
+    const responses = await Promise.all(
+      redirects.map((redirect) =>
+        app.inject({
+          method: 'GET',
+          url: redirect.url,
+        }),
+      ),
+    );
+
+    for (const [index, response] of responses.entries()) {
+      expect(response.statusCode).toBe(308);
+      expect(response.headers.location).toBe(redirects[index].location);
+      expect(response.headers.link).toContain('rel="api-catalog"');
+      expect(response.headers['x-robots-tag']).toBe('noindex, nofollow');
+    }
   });
 
   it('allows read-only CORS preflight requests with approved headers', async () => {
