@@ -6,6 +6,12 @@
   "packages": {
     ".": {
       "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        {
+          "path": "src/tools/swagger/swagger.setup.ts",
+          "type": "generic"
+        }
+      ],
       "package-name": "@opensyria/datasets-api",
       "release-type": "node"
     }

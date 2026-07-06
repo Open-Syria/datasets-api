@@ -34,9 +34,10 @@ Merging that release pull request:
 
 1. Updates `package.json`.
 2. Updates `.release-please-manifest.json`.
-3. Updates `CHANGELOG.md`.
-4. Creates a Git tag such as `v0.1.0`.
-5. Creates a GitHub Release.
+3. Updates the generated OpenAPI document version in `src/tools/swagger/swagger.setup.ts`.
+4. Updates `CHANGELOG.md`.
+5. Creates a Git tag such as `v0.1.0`.
+6. Creates a GitHub Release.
 
 No package is published to npm.
 
