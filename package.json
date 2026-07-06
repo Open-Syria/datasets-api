@@ -1,6 +1,6 @@
 {
   "name": "@opensyria/datasets-api",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Read-only datasets API for OpenSyria.",
   "author": "OpenSyria",
   "private": true,
