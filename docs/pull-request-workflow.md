@@ -130,6 +130,21 @@ docker compose up -d postgres redis
 pnpm run test:integration:db
 ```
 
+## Dependency Updates
+
+Dependabot groups npm updates into one weekly pull request so `package.json` and
+`pnpm-lock.yaml` are reviewed as one dependency graph. GitHub Actions updates
+stay separate because they do not rewrite the pnpm lockfile.
+
+Do not merge dependency pull requests until the lockfile install check and the
+full CI validation pass on the pull request branch. The CI workflow runs the
+frozen-lockfile install before starting database-backed validation so stale
+manifests fail early.
+
+If dependency pull requests are manually combined, regenerate the lockfile with
+the pinned pnpm version before merging. A manifest-only bump will fail CI and
+should not be pushed to `main`.
+
 ## Dataset Boundary
 
 This API consumes released dataset artifacts. It does not own canonical dataset records.

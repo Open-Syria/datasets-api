@@ -8,29 +8,15 @@ updates:
       time: '04:00'
       timezone: Europe/Istanbul
     open-pull-requests-limit: 5
+    rebase-strategy: auto
     versioning-strategy: increase
     commit-message:
       prefix: chore
       include: scope
     groups:
-      nestjs:
+      npm-dependencies:
         patterns:
-          - '@nestjs/*'
-      tooling:
-        patterns:
-          - '@biomejs/*'
-          - '@commitlint/*'
-          - eslint
-          - typescript
-          - typescript-eslint
-          - jest
-          - ts-jest
-      openapi:
-        patterns:
-          - '@nestjs/swagger'
-          - '@scalar/*'
-          - nestjs-zod
-          - zod
+          - '*'
 
   - package-ecosystem: github-actions
     directory: /
@@ -40,7 +26,7 @@ updates:
       time: '04:30'
       timezone: Europe/Istanbul
     open-pull-requests-limit: 5
+    rebase-strategy: auto
     commit-message:
       prefix: chore
       include: scope
-
