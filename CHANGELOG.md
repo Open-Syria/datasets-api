@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/Open-Syria/datasets-api/compare/v0.1.0...v0.1.1) (2026-07-06)
+
+
+### Bug Fixes
+
+* align OpenAPI release version ([fe7c327](https://github.com/Open-Syria/datasets-api/commit/fe7c3277b37d2e3eb16fa7648595fe85a9cad1d0))
+
 ## [0.1.0](https://github.com/Open-Syria/datasets-api/compare/v0.0.1...v0.1.0) (2026-07-04)
 
 
