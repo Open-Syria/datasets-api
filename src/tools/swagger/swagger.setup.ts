@@ -357,7 +357,7 @@ export async function setupSwagger(app: NestFastifyApplication, appConfig: AppCo
   const documentConfig = new DocumentBuilder()
     .setTitle(API_DOCUMENT_TITLE)
     .setDescription(API_DOCUMENT_DESCRIPTION)
-    .setVersion('0.1.0') // x-release-please-version
+    .setVersion('0.1.1') // x-release-please-version
     .setOpenAPIVersion('3.1.0')
     .addServer(appConfig.url);
 
