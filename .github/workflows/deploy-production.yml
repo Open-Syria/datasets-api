@@ -18,9 +18,58 @@ env:
   UNIVERSITIES_RELEASE: v0.2.1
 
 jobs:
+  deploy-policy:
+    name: Resolve Deploy Policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      should-deploy: ${{ steps.policy.outputs.should-deploy }}
+      reason: ${{ steps.policy.outputs.reason }}
+
+    steps:
+      - name: Decide whether to deploy
+        id: policy
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const setPolicy = (shouldDeploy, reason) => {
+              core.setOutput('should-deploy', String(shouldDeploy));
+              core.setOutput('reason', reason);
+              core.notice(reason);
+            };
+
+            if (context.eventName !== 'push') {
+              setPolicy(true, 'Manual dispatch is eligible for deployment.');
+              return;
+            }
+
+            const message = context.payload.head_commit?.message ?? '';
+            if (message.includes('[skip ci]') || message.includes('[ci skip]')) {
+              setPolicy(false, 'Commit message requested CI skip.');
+              return;
+            }
+
+            const pulls = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+            });
+
+            const dependabotPull = pulls.data.find((pull) => pull.user?.login === 'dependabot[bot]');
+            if (dependabotPull) {
+              setPolicy(false, `Push came from Dependabot PR #${dependabotPull.number}.`);
+              return;
+            }
+
+            setPolicy(true, 'Push is eligible for deployment.');
+
   verify:
     name: Verify Release
-    if: ${{ github.event_name != 'push' || (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')) }}
+    needs: deploy-policy
+    if: ${{ needs.deploy-policy.outputs.should-deploy == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
 

@@ -150,7 +150,11 @@ Release-please tags and GitHub Releases do not select the production image;
 production deploys continue to use SHA-pinned GHCR images built by the deploy
 workflow.
 
-Push commits containing `[skip ci]` or `[ci skip]` skip the CI, CodeQL push job, and production deployment workflow jobs. Manual `workflow_dispatch` deployments and scheduled CodeQL analysis still run.
+Push commits containing `[skip ci]` or `[ci skip]` skip the CI, CodeQL push job,
+and production deployment workflow jobs. The production deployment workflow also
+skips pushes associated with pull requests opened by `dependabot[bot]`, while
+normal CI can still run. Manual `workflow_dispatch` deployments and scheduled
+CodeQL analysis still run.
 
 The workflow:
 
