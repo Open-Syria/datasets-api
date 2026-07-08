@@ -206,7 +206,9 @@ async function main() {
   process.env.DATASETS_RELEASES_DIR = releaseDirectory;
   process.env.DATASETS_REQUIRE_RELEASES = 'true';
   process.env.DATABASE_ENABLED = 'false';
+  process.env.DATABASE_REQUIRED = 'false';
   process.env.REDIS_ENABLED = 'false';
+  process.env.REDIS_REQUIRED = 'false';
 
   const { AppModule } = requireFromSmokeScript('../app.module') as { AppModule: Type<unknown> };
   const app = await createApp(AppModule);
