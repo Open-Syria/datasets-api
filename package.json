@@ -67,7 +67,7 @@
     "@scalar/nestjs-api-reference": "^1.2.8",
     "cache-manager": "^7.2.9",
     "dotenv": "^17.4.2",
-    "fastify": "^5.8.5",
+    "fastify": "^5.10.0",
     "ioredis": "^5.11.1",
     "keyv": "^5.6.0",
     "nestjs-graceful-shutdown": "^2.0.0",
