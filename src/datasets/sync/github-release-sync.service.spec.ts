@@ -7,16 +7,16 @@ import { GitHubReleaseSyncService } from './github-release-sync.service';
 const source = {
   owner: 'Open-Syria',
   repository: 'data-geography',
-  tag: 'v0.1.3',
+  tag: 'v0.1.4',
 };
 
 const release = {
-  tag_name: 'v0.1.3',
+  tag_name: 'v0.1.4',
   assets: [
     {
       name: 'release-manifest.json',
       browser_download_url:
-        'https://github.com/Open-Syria/data-geography/releases/download/v0.1.3/release-manifest.json',
+        'https://github.com/Open-Syria/data-geography/releases/download/v0.1.4/release-manifest.json',
       size: 512,
     },
   ],
@@ -35,7 +35,7 @@ const manifest: DatasetReleaseManifest = {
     },
   },
   release: {
-    version: 'v0.1.3',
+    version: 'v0.1.4',
     status: 'released',
     publishedAt: '2026-06-27T00:00:00.000Z',
   },
@@ -99,7 +99,7 @@ describe('GitHubReleaseSyncService', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(result).toMatchObject({
-      source: 'Open-Syria/data-geography@v0.1.3',
+      source: 'Open-Syria/data-geography@v0.1.4',
       artifactsDownloaded: 0,
       artifactsSkipped: 0,
     });
@@ -124,7 +124,7 @@ describe('GitHubReleaseSyncService', () => {
     });
 
     await expect(service.syncSources([source])).rejects.toThrow(
-      /https:\/\/api\.github\.com\/repos\/Open-Syria\/data-geography\/releases\/tags\/v0\.1\.3/,
+      /https:\/\/api\.github\.com\/repos\/Open-Syria\/data-geography\/releases\/tags\/v0\.1\.4/,
     );
     await expect(service.syncSources([source])).rejects.toThrow(/ENOTFOUND/);
   });

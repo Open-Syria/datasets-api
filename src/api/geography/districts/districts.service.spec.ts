@@ -11,6 +11,13 @@ const defaultListQuery = {
   order: 'asc',
 } as const;
 
+const sourceReferences = [
+  {
+    sourceId: 'source-1',
+    accessedAt: '2026-06-27T00:00:00.000Z',
+  },
+];
+
 const district: DistrictSummary = {
   id: 'sy-damascus-damascus',
   governorateId: 'sy-damascus',
@@ -42,6 +49,7 @@ const district: DistrictSummary = {
     geonames: '170654',
   },
   sourceIds: ['source-1'],
+  sourceReferences,
   sourceStatus: 'released',
 };
 

@@ -11,6 +11,19 @@ const defaultListQuery = {
   order: 'asc',
 } as const;
 
+const sourceReferences = [
+  {
+    sourceId: 'geonames-sy',
+    sourceRecordId: '170654',
+    accessedAt: '2026-06-28T00:00:00.000Z',
+  },
+  {
+    sourceId: 'hdx-syr-populated-places',
+    sourceRecordId: 'C1000',
+    accessedAt: '2026-06-28T00:00:00.000Z',
+  },
+];
+
 const locality: LocalityRecord = {
   id: 'sy-damascus-damascus-damascus-damascus',
   governorateId: 'sy-damascus',
@@ -37,6 +50,7 @@ const locality: LocalityRecord = {
     ochaPcode: 'C1000',
   },
   sourceIds: ['geonames-sy', 'hdx-syr-populated-places'],
+  sourceReferences,
   sourceStatus: 'released',
 };
 

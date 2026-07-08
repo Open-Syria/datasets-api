@@ -26,7 +26,7 @@ async function writeJsonArtifact(releaseDirectory: string, name: string, buffer:
 }
 
 export async function createTransportFixtureRelease(releaseDirectory: string) {
-  const version = 'v0.1.0';
+  const version = 'v0.1.1';
   const generatedAt = '2026-07-08T00:00:00.000Z';
   const publishedAt = '2026-07-08T01:00:00.000Z';
   const locations = createArtifact([

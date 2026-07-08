@@ -498,7 +498,8 @@ describe('AppController (e2e)', () => {
       totalRecords: 1,
     });
     expect(body.data.items[0]).toMatchObject({
-      id: 'opensyria-seed-planning',
+      id: 'opensyria-active-datasets',
+      status: 'released',
       generatedAt: null,
       artifacts: [],
     });

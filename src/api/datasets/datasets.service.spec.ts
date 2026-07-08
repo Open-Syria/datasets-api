@@ -24,10 +24,10 @@ const geographyManifest: DatasetReleaseManifest = {
     },
   },
   release: {
-    version: 'v0.1.3',
+    version: 'v0.1.4',
     status: 'released',
-    publishedAt: '2026-06-28T18:02:00.000Z',
-    notes: 'Seed release.',
+    publishedAt: '2026-07-08T00:00:00.000Z',
+    notes: 'Released geography fixture.',
   },
   artifacts: [],
   sources: [],
@@ -69,7 +69,7 @@ describe('DatasetsService', () => {
 
     expect(result.items[0]).toMatchObject({
       id: 'opensyria-geography',
-      status: 'seed',
+      status: 'released',
       version: null,
       updatedAt: null,
     });
@@ -87,7 +87,7 @@ describe('DatasetsService', () => {
     );
     expect(result.items.find((item) => item.id === 'opensyria-transport')).toMatchObject({
       id: 'opensyria-transport',
-      status: 'seed',
+      status: 'released',
     });
     expect(result.items.find((item) => item.id === 'opensyria-transport')?.apiEndpoints).toEqual(
       expect.arrayContaining([
@@ -106,8 +106,8 @@ describe('DatasetsService', () => {
     expect(result.items[0]).toMatchObject({
       id: 'opensyria-geography',
       status: 'released',
-      version: 'v0.1.3',
-      updatedAt: '2026-06-28T18:02:00.000Z',
+      version: 'v0.1.4',
+      updatedAt: '2026-07-08T00:00:00.000Z',
     });
     expect(result.items.find((item) => item.id === 'opensyria-universities')).toMatchObject({
       id: 'opensyria-universities',

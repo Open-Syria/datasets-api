@@ -29,6 +29,12 @@ export async function createUniversitiesFixtureRelease(releaseDirectory: string)
   const version = 'v0.2.0';
   const generatedAt = '2026-06-30T00:00:00.000Z';
   const publishedAt = '2026-06-30T00:46:15.000Z';
+  const sourceReferences = [
+    {
+      sourceId: 'fixture-source',
+      accessedAt: generatedAt,
+    },
+  ];
   const universities = createArtifact([
     {
       id: 'sy-damascus-university',
@@ -59,6 +65,7 @@ export async function createUniversitiesFixtureRelease(releaseDirectory: string)
         website: 'https://damascusuniversity.edu.sy/',
       },
       sourceIds: ['fixture-source'],
+      sourceReferences,
       sourceStatus: 'released',
     },
     {
@@ -83,6 +90,7 @@ export async function createUniversitiesFixtureRelease(releaseDirectory: string)
       },
       externalIds: {},
       sourceIds: ['fixture-source'],
+      sourceReferences,
       sourceStatus: 'released',
     },
   ]);
@@ -118,6 +126,7 @@ export async function createUniversitiesFixtureRelease(releaseDirectory: string)
         attributionRequired: false,
       },
       sourceIds: ['fixture-source'],
+      sourceReferences,
       sourceStatus: 'released',
     },
   ]);
@@ -133,6 +142,12 @@ export async function createUniversitiesFixtureRelease(releaseDirectory: string)
       sourceUrl: 'https://example.org/rankings',
       retrievedAt: '2026-06-30T00:00:00.000Z',
       sourceIds: ['fixture-source'],
+      sourceReferences: [
+        {
+          ...sourceReferences[0],
+          sourceRecordDate: '2025',
+        },
+      ],
       sourceStatus: 'released',
     },
   ]);

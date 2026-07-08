@@ -3,12 +3,12 @@
     {
       "owner": "Open-Syria",
       "repository": "data-geography",
-      "tag": "v0.1.3"
+      "tag": "v0.1.4"
     },
     {
       "owner": "Open-Syria",
       "repository": "data-universities",
-      "tag": "v0.2.1",
+      "tag": "v0.2.2",
       "requiredReadiness": {
         "minimumLevel": "profile_ready",
         "publicApi": "approved"
@@ -17,7 +17,7 @@
     {
       "owner": "Open-Syria",
       "repository": "data-transport",
-      "tag": "v0.1.0",
+      "tag": "v0.1.1",
       "requiredReadiness": {
         "minimumLevel": "public_directory_ready",
         "publicApi": "approved"

@@ -46,17 +46,17 @@ The current manifest schema version is:
     }
   },
   "release": {
-    "version": "v0.1.3",
+    "version": "v0.1.4",
     "status": "released",
-    "publishedAt": "2026-06-27T00:00:00.000Z",
-    "notes": "Initial verified geography release."
+    "publishedAt": "2026-07-08T00:00:00.000Z",
+    "notes": "Verified geography release with dated record-level provenance."
   },
   "artifacts": [
     {
       "name": "governorates",
       "format": "json",
       "path": "artifacts/governorates.json",
-      "url": "https://github.com/Open-Syria/data-geography/releases/download/v0.1.3/governorates.json",
+      "url": "https://github.com/Open-Syria/data-geography/releases/download/v0.1.4/governorates.json",
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
       "sizeBytes": 1024,
       "recordCount": 14,
@@ -112,6 +112,7 @@ The current manifest schema version is:
 - `readiness`, when present, must distinguish sync readiness from public API approval.
 - Public endpoint work must not treat a synced release as exposed unless `readiness.publicApi.status` is `approved`.
 - A pinned dataset with `requiredReadiness.publicApi: "approved"` must have a public endpoint contract in `src/api/public-dataset-endpoints.ts`, matching paths in `/openapi.json`, its filtered OpenAPI document, and `/api/v1/datasets`.
+- Public JSON records should expose consistent provenance fields: `sourceIds`, dated `sourceReferences`, and `sourceStatus`.
 - AI output must never appear as a source. AI may assist cleaning or matching, but released records need reviewable sources.
 
 ## API Consumption
@@ -141,6 +142,17 @@ opensyria-geography
   artifact format: json
   artifact path: artifacts/localities.json
 
+opensyria-universities
+  artifact name: universities
+  artifact format: json
+  artifact path: artifacts/universities.json
+  artifact name: assets
+  artifact format: json
+  artifact path: artifacts/assets.json
+  artifact name: rankings
+  artifact format: json
+  artifact path: artifacts/rankings.json
+
 opensyria-transport
   artifact name: locations
   artifact format: json
@@ -153,10 +165,11 @@ opensyria-transport
   artifact path: artifacts/route-snapshots.json
 ```
 
-The governorates, districts, subdistricts, localities, transport locations,
-transport status snapshots, and transport route snapshots JSON artifacts may be
-either arrays of records or objects with an `items` array. Each record should
-match the matching public schema exposed by the API.
+The governorates, districts, subdistricts, localities, universities, university
+assets, university rankings, transport locations, transport status snapshots,
+and transport route snapshots JSON artifacts may be either arrays of records or
+objects with an `items` array. Each record should match the matching public
+schema exposed by the API.
 
 The API should not parse CSV, SQL, YAML, XML, GeoJSON, or SQLite artifacts for runtime endpoint serving unless a future importer intentionally adds that support. Those artifacts are still useful in the manifest because clients can discover and verify public downloads from one release contract.
 
@@ -178,7 +191,7 @@ Lock-file entries may include `requiredReadiness`, for example:
 {
   "owner": "Open-Syria",
   "repository": "data-transport",
-  "tag": "v0.1.0",
+  "tag": "v0.1.1",
   "requiredReadiness": {
     "minimumLevel": "public_directory_ready",
     "publicApi": "approved"

@@ -21,6 +21,15 @@ export const geographyAliasSchema = z.object({
 
 export const geographySourceIdsSchema = z.array(z.string().min(1));
 
+const geographySourceRecordDatePattern = /^[0-9]{4}(?:-[0-9]{2}(?:-[0-9]{2})?)?$/;
+
+export const geographySourceReferenceSchema = z.object({
+  sourceId: z.string().min(1),
+  sourceRecordId: z.string().min(1).optional(),
+  sourceRecordDate: z.string().regex(geographySourceRecordDatePattern).optional(),
+  accessedAt: z.string().datetime(),
+});
+
 export const geographyExternalIdsSchema = z.object({
   wikidata: z
     .string()
@@ -59,6 +68,7 @@ const geographyBaseRecordSchema = z.object({
   centroid: geographyGeographicPointSchema.nullable(),
   externalIds: geographyExternalIdsSchema,
   sourceIds: geographySourceIdsSchema,
+  sourceReferences: z.array(geographySourceReferenceSchema).min(1),
   sourceStatus: z.enum(RECORD_SOURCE_STATUSES),
   notes: z.string().min(1).optional(),
 });
@@ -107,3 +117,4 @@ export function geographyArtifactSchema<TSchema extends z.ZodType>(recordSchema:
 
 export type GeographyPopulationMeasurement = z.infer<typeof geographyPopulationMeasurementSchema>;
 export type GeographyAreaMeasurement = z.infer<typeof geographyAreaMeasurementSchema>;
+export type GeographySourceReference = z.infer<typeof geographySourceReferenceSchema>;
