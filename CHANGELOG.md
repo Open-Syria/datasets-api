@@ -7,6 +7,20 @@
 * expose transport locations, status snapshots, and route snapshots through public API endpoints
 * add transport OpenAPI, dataset discovery, release pin, and fixture-backed e2e coverage
 
+## [0.2.0](https://github.com/Open-Syria/datasets-api/compare/v0.1.1...v0.2.0) (2026-07-08)
+
+
+### Features
+
+* align dataset provenance contracts ([86ddef4](https://github.com/Open-Syria/datasets-api/commit/86ddef441f13209e53321b42e2c60aef098e6e28))
+* expose transport dataset api ([f83a09f](https://github.com/Open-Syria/datasets-api/commit/f83a09f057a370d575e67f83c0ebacd6ecb1b7aa))
+
+
+### Bug Fixes
+
+* disable required deps in transport smoke ([684c7e0](https://github.com/Open-Syria/datasets-api/commit/684c7e0a517b41c1efec9daec174448e349b1c22))
+* stabilize dependency validation flow ([e01dc0f](https://github.com/Open-Syria/datasets-api/commit/e01dc0f0a9304c6befa08ae7ef299f7cba6c98a8))
+
 ## [0.1.1](https://github.com/Open-Syria/datasets-api/compare/v0.1.0...v0.1.1) (2026-07-06)
 
 
