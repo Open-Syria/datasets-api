@@ -14,9 +14,9 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  GEOGRAPHY_RELEASE: v0.1.3
-  UNIVERSITIES_RELEASE: v0.2.1
-  TRANSPORT_RELEASE: v0.1.0
+  GEOGRAPHY_RELEASE: v0.1.4
+  UNIVERSITIES_RELEASE: v0.2.2
+  TRANSPORT_RELEASE: v0.1.1
 
 jobs:
   deploy-policy:
@@ -325,7 +325,7 @@ jobs:
             write_env DATASETS_RELEASE_SOURCES ''
             write_env DATASETS_RELEASE_SOURCES_OVERRIDE false
             write_env DATASETS_SYNC_DOWNLOAD_ARTIFACTS true
-            write_env TRANSPORT_RELEASE_DIR "data/releases/transport/${TRANSPORT_RELEASE:-v0.1.0}"
+            write_env TRANSPORT_RELEASE_DIR "data/releases/transport/${TRANSPORT_RELEASE:-v0.1.1}"
             write_env DATABASE_ENABLED true
             write_env DATABASE_REQUIRED true
             write_env DATABASE_LOG_QUERIES false

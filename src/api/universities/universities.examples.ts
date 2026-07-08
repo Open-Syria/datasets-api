@@ -7,8 +7,8 @@ const exampleDataset = {
 };
 
 const exampleRelease = {
-  version: 'v0.2.0',
-  releasedAt: '2026-06-30T00:46:15.000Z',
+  version: 'v0.2.2',
+  releasedAt: '2026-07-08T00:00:00.000Z',
 };
 
 const examplePagination = {
@@ -63,7 +63,14 @@ const exampleLogo = {
     attributionRequired: false,
   },
   sourceIds: ['sy-damascus-university-official-logo'],
-  sourceStatus: 'seed',
+  sourceReferences: [
+    {
+      sourceId: 'sy-damascus-university-official-logo',
+      sourceRecordId: 'https://damascusuniversity.edu.sy/',
+      accessedAt: '2026-06-30T00:00:00.000Z',
+    },
+  ],
+  sourceStatus: 'released',
 };
 
 const exampleRanking = {
@@ -77,7 +84,15 @@ const exampleRanking = {
   sourceUrl: 'https://www.auranking.aaru.edu.jo/rank%20results/',
   retrievedAt: '2026-06-30T00:00:00.000Z',
   sourceIds: ['arab-ranking-for-universities-2025'],
-  sourceStatus: 'seed',
+  sourceReferences: [
+    {
+      sourceId: 'arab-ranking-for-universities-2025',
+      sourceRecordId: 'https://www.auranking.aaru.edu.jo/rank%20results/',
+      sourceRecordDate: '2025',
+      accessedAt: '2026-06-30T00:00:00.000Z',
+    },
+  ],
+  sourceStatus: 'released',
 };
 
 const exampleUniversity = {
@@ -110,7 +125,18 @@ const exampleUniversity = {
     website: 'https://damascusuniversity.edu.sy/',
   },
   sourceIds: ['wikidata', 'wikipedia-list-universities-syria'],
-  sourceStatus: 'seed',
+  sourceReferences: [
+    {
+      sourceId: 'wikidata',
+      sourceRecordId: 'Q821075',
+      accessedAt: '2026-06-29T00:00:00.000Z',
+    },
+    {
+      sourceId: 'wikipedia-list-universities-syria',
+      accessedAt: '2026-06-29T00:00:00.000Z',
+    },
+  ],
+  sourceStatus: 'released',
   logo: exampleLogo,
   rankings: [exampleRanking],
 };

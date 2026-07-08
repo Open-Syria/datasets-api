@@ -139,7 +139,7 @@ describe('transport release loading (e2e)', () => {
         status: 'released',
       },
       release: {
-        version: 'v0.1.0',
+        version: 'v0.1.1',
       },
       items: [
         {
@@ -198,7 +198,7 @@ describe('transport release loading (e2e)', () => {
 
     expect(transportDataset).toMatchObject({
       status: 'released',
-      version: 'v0.1.0',
+      version: 'v0.1.1',
       apiEndpoints: expect.arrayContaining([
         '/api/v1/transport/locations',
         '/api/v1/transport/status-snapshots',

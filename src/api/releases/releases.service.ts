@@ -13,9 +13,9 @@ import type { ReleaseSummary, ReleaseSummaryList } from './releases.dto';
 
 const RELEASES: ReleaseSummaryList['items'] = [
   {
-    id: 'opensyria-seed-planning',
+    id: 'opensyria-active-datasets',
     version: null,
-    status: 'seed',
+    status: 'released',
     generatedAt: null,
     publishedAt: null,
     datasets: [
@@ -27,7 +27,7 @@ const RELEASES: ReleaseSummaryList['items'] = [
         title: {
           en: 'Administrative Geography',
         },
-        status: 'seed',
+        status: 'released',
         releaseVersion: null,
         manifestPath: 'release-manifest.json',
       },
@@ -39,7 +39,7 @@ const RELEASES: ReleaseSummaryList['items'] = [
         title: {
           en: 'Universities',
         },
-        status: 'seed',
+        status: 'released',
         releaseVersion: null,
         manifestPath: 'release-manifest.json',
       },
@@ -51,7 +51,7 @@ const RELEASES: ReleaseSummaryList['items'] = [
         title: {
           en: 'Transport Locations',
         },
-        status: 'seed',
+        status: 'released',
         releaseVersion: null,
         manifestPath: 'release-manifest.json',
       },
@@ -82,7 +82,7 @@ const RELEASES: ReleaseSummaryList['items'] = [
     ],
     artifacts: [],
     notes:
-      'Initial release planning metadata. Dataset artifacts will be attached after the data repositories publish versioned releases.',
+      'Static fallback metadata for active released datasets. Production should load versioned release manifests and artifacts.',
   },
 ];
 
@@ -133,7 +133,7 @@ export class ReleasesService {
   private buildReleaseCachePayload(manifests: DatasetReleaseManifest[]) {
     if (manifests.length === 0) {
       return {
-        source: 'seed-releases',
+        source: 'static-releases',
         version: 1,
       };
     }

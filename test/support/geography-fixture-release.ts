@@ -38,6 +38,12 @@ export async function createFixtureRelease(
   const version = options.version ?? 'v0.1.0';
   const generatedAt = options.generatedAt ?? '2026-06-27T00:00:00.000Z';
   const publishedAt = options.publishedAt ?? '2026-06-27T00:00:00.000Z';
+  const sourceReferences = [
+    {
+      sourceId: 'fixture-source',
+      accessedAt: generatedAt,
+    },
+  ];
   const governorates = createArtifact([
     {
       id: 'sy-damascus',
@@ -72,6 +78,7 @@ export async function createFixtureRelease(
         ochaPcode: 'C1000',
       },
       sourceIds: ['fixture-source'],
+      sourceReferences,
       sourceStatus: 'released',
     },
   ]);
@@ -109,6 +116,7 @@ export async function createFixtureRelease(
         ochaPcode: 'C1000001',
       },
       sourceIds: ['fixture-source'],
+      sourceReferences,
       sourceStatus: 'released',
     },
   ]);
@@ -147,6 +155,7 @@ export async function createFixtureRelease(
         ochaPcode: 'C100000101',
       },
       sourceIds: ['fixture-source'],
+      sourceReferences,
       sourceStatus: 'released',
     },
   ]);
@@ -177,6 +186,7 @@ export async function createFixtureRelease(
         ochaPcode: 'C1000',
       },
       sourceIds: ['fixture-source'],
+      sourceReferences,
       sourceStatus: 'released',
     },
   ]);

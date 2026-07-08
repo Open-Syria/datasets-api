@@ -44,7 +44,7 @@ describe('datasets config', () => {
           {
             owner: 'Open-Syria',
             repository: 'data-geography',
-            tag: 'v0.1.3',
+            tag: 'v0.1.4',
           },
         ],
       }),
@@ -55,19 +55,19 @@ describe('datasets config', () => {
       {
         owner: 'Open-Syria',
         repository: 'data-geography',
-        tag: 'v0.1.3',
+        tag: 'v0.1.4',
       },
     ]);
   });
 
   it('falls back to environment sources when the release source file is absent', () => {
-    process.env.DATASETS_RELEASE_SOURCES = 'Open-Syria/data-geography@v0.1.3';
+    process.env.DATASETS_RELEASE_SOURCES = 'Open-Syria/data-geography@v0.1.4';
 
     expect(getConfig().releaseSources).toEqual([
       {
         owner: 'Open-Syria',
         repository: 'data-geography',
-        tag: 'v0.1.3',
+        tag: 'v0.1.4',
       },
     ]);
   });
@@ -80,7 +80,7 @@ describe('datasets config', () => {
           {
             owner: 'Open-Syria',
             repository: 'data-geography',
-            tag: 'v0.1.3',
+            tag: 'v0.1.4',
           },
         ],
       }),

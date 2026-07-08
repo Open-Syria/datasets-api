@@ -3,11 +3,11 @@ const exampleTimestamp = '2026-07-08T00:00:00.000Z';
 const exampleDataset = {
   id: 'opensyria-transport',
   repository: 'data-transport',
-  status: 'seed',
+  status: 'released',
 };
 
 const exampleRelease = {
-  version: 'v0.1.0',
+  version: 'v0.1.1',
   releasedAt: '2026-07-08T00:00:00.000Z',
 };
 
@@ -66,7 +66,7 @@ const exampleLocation = {
       accessedAt: '2026-07-07T21:51:07.081Z',
     },
   ],
-  sourceStatus: 'seed',
+  sourceStatus: 'released',
 };
 
 const exampleStatusSnapshot = {
@@ -85,7 +85,7 @@ const exampleStatusSnapshot = {
       accessedAt: '2026-07-08T10:33:17.978Z',
     },
   ],
-  sourceStatus: 'seed',
+  sourceStatus: 'released',
 };
 
 const exampleRouteSnapshot = {
@@ -117,7 +117,7 @@ const exampleRouteSnapshot = {
       accessedAt: '2026-07-08T10:12:08.051Z',
     },
   ],
-  sourceStatus: 'seed',
+  sourceStatus: 'released',
 };
 
 export const transportLocationListResponseExample = {

@@ -284,7 +284,7 @@ const sourceStatusQueryParameter = {
   enum: RECORD_SOURCE_STATUS_OPTIONS,
   description:
     'Filter records by source review or release status. pending_release=pending release, seed=seed data, released=released data, deprecated=deprecated data.',
-  example: 'seed',
+  example: 'released',
 } as const satisfies ApiQueryParameter;
 
 export class TransportLocationDto extends createZodDto(transportLocationSchema) {}

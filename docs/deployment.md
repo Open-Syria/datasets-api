@@ -29,12 +29,12 @@ Run these from a full checkout or CI release job with dev dependencies installed
 ```bash
 pnpm install --frozen-lockfile
 pnpm run release:check -- \
-  --geography-release v0.1.3 \
-  --dataset-sources Open-Syria/data-geography@v0.1.3,Open-Syria/data-universities@v0.2.1,Open-Syria/data-transport@v0.1.0 \
+  --geography-release v0.1.4 \
+  --dataset-sources Open-Syria/data-geography@v0.1.4,Open-Syria/data-universities@v0.2.2,Open-Syria/data-transport@v0.1.1 \
   --require-all-dataset-sources
 pnpm run db:migrate:deploy
 pnpm run datasets:sync
-TRANSPORT_RELEASE_DIR=data/releases/transport/v0.1.0 pnpm run smoke:transport
+TRANSPORT_RELEASE_DIR=data/releases/transport/v0.1.1 pnpm run smoke:transport
 DATABASE_ENABLED=true pnpm run read-model:import:geography
 ```
 
@@ -104,7 +104,7 @@ If the Docker/runtime image is used for release sync or read-model import, use t
 
 ```bash
 pnpm run datasets:sync:prod
-TRANSPORT_RELEASE_DIR=data/releases/transport/v0.1.0 pnpm run smoke:transport:prod
+TRANSPORT_RELEASE_DIR=data/releases/transport/v0.1.1 pnpm run smoke:transport:prod
 DATABASE_ENABLED=true pnpm run read-model:import:geography:prod
 ```
 

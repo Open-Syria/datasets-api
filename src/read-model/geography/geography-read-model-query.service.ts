@@ -7,6 +7,7 @@ import { GEOGRAPHY_DATASET_ID } from '../../api/geography/geography.helpers';
 import {
   type GeographyAreaMeasurement,
   type GeographyPopulationMeasurement,
+  type GeographySourceReference,
   geographyPopulationMeasurementSchema,
 } from '../../api/geography/geography-records.dto';
 import {
@@ -137,6 +138,16 @@ function mapAreaMeasurement(
       };
 }
 
+function mapFallbackSourceReferences(
+  sourceIds: string[],
+  accessedAt: Date,
+): GeographySourceReference[] {
+  return sourceIds.map((sourceId) => ({
+    sourceId,
+    accessedAt: accessedAt.toISOString(),
+  }));
+}
+
 @Injectable()
 export class GeographyReadModelQueryService {
   constructor(
@@ -176,7 +187,7 @@ export class GeographyReadModelQueryService {
         ]);
 
         return {
-          items: records.map((record) => this.mapGovernorate(record)),
+          items: records.map((record) => this.mapGovernorate(record, context.release.generatedAt)),
           totalRecords,
           manifest: context.manifest,
         };
@@ -207,7 +218,7 @@ export class GeographyReadModelQueryService {
         });
 
         return {
-          item: record ? this.mapGovernorate(record) : null,
+          item: record ? this.mapGovernorate(record, context.release.generatedAt) : null,
           manifest: context.manifest,
         };
       },
@@ -245,7 +256,7 @@ export class GeographyReadModelQueryService {
         ]);
 
         return {
-          items: records.map((record) => this.mapDistrict(record)),
+          items: records.map((record) => this.mapDistrict(record, context.release.generatedAt)),
           totalRecords,
           manifest: context.manifest,
         };
@@ -276,7 +287,7 @@ export class GeographyReadModelQueryService {
         });
 
         return {
-          item: record ? this.mapDistrict(record) : null,
+          item: record ? this.mapDistrict(record, context.release.generatedAt) : null,
           manifest: context.manifest,
         };
       },
@@ -315,7 +326,7 @@ export class GeographyReadModelQueryService {
         ]);
 
         return {
-          items: records.map((record) => this.mapSubdistrict(record)),
+          items: records.map((record) => this.mapSubdistrict(record, context.release.generatedAt)),
           totalRecords,
           manifest: context.manifest,
         };
@@ -346,7 +357,7 @@ export class GeographyReadModelQueryService {
         });
 
         return {
-          item: record ? this.mapSubdistrict(record) : null,
+          item: record ? this.mapSubdistrict(record, context.release.generatedAt) : null,
           manifest: context.manifest,
         };
       },
@@ -387,7 +398,7 @@ export class GeographyReadModelQueryService {
         ]);
 
         return {
-          items: records.map((record) => this.mapLocality(record)),
+          items: records.map((record) => this.mapLocality(record, context.release.generatedAt)),
           totalRecords,
           manifest: context.manifest,
         };
@@ -418,7 +429,7 @@ export class GeographyReadModelQueryService {
         });
 
         return {
-          item: record ? this.mapLocality(record) : null,
+          item: record ? this.mapLocality(record, context.release.generatedAt) : null,
           manifest: context.manifest,
         };
       },
@@ -515,7 +526,10 @@ export class GeographyReadModelQueryService {
     };
   }
 
-  private mapGovernorate(record: GeographyGovernorate): GovernorateSummary {
+  private mapGovernorate(
+    record: GeographyGovernorate,
+    fallbackAccessedAt: Date,
+  ): GovernorateSummary {
     const parsed = governorateSummarySchema.safeParse(record.raw);
 
     if (parsed.success) {
@@ -537,11 +551,12 @@ export class GeographyReadModelQueryService {
       population: asPopulationMeasurement(record.population),
       externalIds: {},
       sourceIds,
+      sourceReferences: mapFallbackSourceReferences(sourceIds, fallbackAccessedAt),
       sourceStatus: record.sourceStatus,
     };
   }
 
-  private mapDistrict(record: GeographyDistrict): DistrictSummary {
+  private mapDistrict(record: GeographyDistrict, fallbackAccessedAt: Date): DistrictSummary {
     const parsed = districtSummarySchema.safeParse(record.raw);
 
     if (parsed.success) {
@@ -563,11 +578,15 @@ export class GeographyReadModelQueryService {
       population: asPopulationMeasurement(record.population),
       externalIds: {},
       sourceIds,
+      sourceReferences: mapFallbackSourceReferences(sourceIds, fallbackAccessedAt),
       sourceStatus: record.sourceStatus,
     };
   }
 
-  private mapSubdistrict(record: GeographySubdistrict): SubdistrictSummary {
+  private mapSubdistrict(
+    record: GeographySubdistrict,
+    fallbackAccessedAt: Date,
+  ): SubdistrictSummary {
     const parsed = subdistrictSummarySchema.safeParse(record.raw);
 
     if (parsed.success) {
@@ -590,16 +609,19 @@ export class GeographyReadModelQueryService {
       population: asPopulationMeasurement(record.population),
       externalIds: {},
       sourceIds,
+      sourceReferences: mapFallbackSourceReferences(sourceIds, fallbackAccessedAt),
       sourceStatus: record.sourceStatus,
     };
   }
 
-  private mapLocality(record: GeographyLocality): LocalityRecord {
+  private mapLocality(record: GeographyLocality, fallbackAccessedAt: Date): LocalityRecord {
     const parsed = localityRecordSchema.safeParse(record.raw);
 
     if (parsed.success) {
       return parsed.data;
     }
+
+    const sourceIds = asStringArray(record.sourceIds) ?? [];
 
     return {
       id: record.id,
@@ -614,7 +636,8 @@ export class GeographyReadModelQueryService {
       aliases: [],
       centroid: mapCentroid(record),
       externalIds: asStringRecord(record.externalIds),
-      sourceIds: asStringArray(record.sourceIds) ?? [],
+      sourceIds,
+      sourceReferences: mapFallbackSourceReferences(sourceIds, fallbackAccessedAt),
       sourceStatus: record.sourceStatus,
     };
   }

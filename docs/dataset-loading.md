@@ -76,7 +76,7 @@ The loader also supports a direct release directory such as:
 
 In that mode, artifacts are resolved relative to the directory containing `release-manifest.json`. This is useful for local development before a dataset repository publishes a GitHub Release.
 
-For example, `GET /api/v1/geography/governorates` reads `artifacts/governorates.json`, `GET /api/v1/geography/districts` reads `artifacts/districts.json`, `GET /api/v1/geography/subdistricts` reads `artifacts/subdistricts.json`, and `GET /api/v1/geography/localities` reads `artifacts/localities.json`, when the active `opensyria-geography` manifest includes matching JSON artifacts. Transport endpoints read `artifacts/locations.json`, `artifacts/status-snapshots.json`, and `artifacts/route-snapshots.json` from the active `opensyria-transport` manifest.
+For example, `GET /api/v1/geography/governorates` reads `artifacts/governorates.json`, `GET /api/v1/geography/districts` reads `artifacts/districts.json`, `GET /api/v1/geography/subdistricts` reads `artifacts/subdistricts.json`, and `GET /api/v1/geography/localities` reads `artifacts/localities.json`, when the active `opensyria-geography` manifest includes matching JSON artifacts. University endpoints read `artifacts/universities.json`, `artifacts/assets.json`, and `artifacts/rankings.json` from the active `opensyria-universities` manifest. Transport endpoints read `artifacts/locations.json`, `artifacts/status-snapshots.json`, and `artifacts/route-snapshots.json` from the active `opensyria-transport` manifest.
 
 Before parsing an artifact, the API verifies:
 
@@ -84,6 +84,11 @@ Before parsing an artifact, the API verifies:
 - the SHA-256 checksum matches the manifest,
 - the file size matches the manifest,
 - the JSON payload matches the endpoint schema.
+
+Current public record schemas require record-level `sourceIds`, dated
+`sourceReferences`, and `sourceStatus`. Time-varying datasets may add domain
+records such as status snapshots, but provenance fields stay consistent across
+geography, universities, and transport.
 
 ## Syncing GitHub Releases
 
@@ -102,12 +107,12 @@ The lock file uses this shape:
     {
       "owner": "Open-Syria",
       "repository": "data-geography",
-      "tag": "v0.1.3"
+      "tag": "v0.1.4"
     },
     {
       "owner": "Open-Syria",
       "repository": "data-universities",
-      "tag": "v0.2.1",
+      "tag": "v0.2.2",
       "requiredReadiness": {
         "minimumLevel": "profile_ready",
         "publicApi": "approved"
@@ -116,7 +121,7 @@ The lock file uses this shape:
     {
       "owner": "Open-Syria",
       "repository": "data-transport",
-      "tag": "v0.1.0",
+      "tag": "v0.1.1",
       "requiredReadiness": {
         "minimumLevel": "public_directory_ready",
         "publicApi": "approved"
@@ -128,7 +133,7 @@ The lock file uses this shape:
 
 For one-off operations, set `DATASETS_RELEASE_SOURCES_OVERRIDE=true` and pass a
 comma-separated `DATASETS_RELEASE_SOURCES` value such as
-`Open-Syria/data-geography@v0.1.3,Open-Syria/another-dataset@v0.1.0`.
+`Open-Syria/data-geography@v0.1.4,Open-Syria/another-dataset@v0.1.0`.
 
 The sync command:
 
@@ -169,9 +174,9 @@ Production deployments should sync pinned release artifacts, import geography in
 The current production dataset releases are:
 
 ```text
-Open-Syria/data-geography@v0.1.3
-Open-Syria/data-universities@v0.2.1
-Open-Syria/data-transport@v0.1.0
+Open-Syria/data-geography@v0.1.4
+Open-Syria/data-universities@v0.2.2
+Open-Syria/data-transport@v0.1.1
 ```
 
 The source of truth for this pin is `dataset-releases.json`; CI release checks
@@ -206,7 +211,7 @@ In the production runtime image, use the compiled smoke command after syncing
 pinned releases:
 
 ```bash
-TRANSPORT_RELEASE_DIR=data/releases/transport/v0.1.0 pnpm run smoke:transport:prod
+TRANSPORT_RELEASE_DIR=data/releases/transport/v0.1.1 pnpm run smoke:transport:prod
 ```
 
 ## Why Not Read `main` Directly?

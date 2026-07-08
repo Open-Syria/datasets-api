@@ -22,6 +22,7 @@ const universityInstitutionTypes = [
 ] as const;
 const universityOperationalStatuses = ['operating', 'planned', 'closed', 'unknown'] as const;
 const universityRankScopes = ['global', 'regional', 'national', 'subject', 'other'] as const;
+const universitySourceRecordDatePattern = /^[0-9]{4}(?:-[0-9]{2}(?:-[0-9]{2})?)?$/;
 
 export const universityLocalizedTextSchema = z.object({
   en: z.string().min(1),
@@ -59,6 +60,13 @@ export const universityExternalIdsSchema = z.object({
   ministryId: z.string().min(1).optional(),
 });
 
+export const universitySourceReferenceSchema = z.object({
+  sourceId: z.string().min(1),
+  sourceRecordId: z.string().min(1).optional(),
+  sourceRecordDate: z.string().regex(universitySourceRecordDatePattern).optional(),
+  accessedAt: z.string().datetime(),
+});
+
 export const universityRecordSchema = z.object({
   id: z.string().min(1),
   name: universityLocalizedTextSchema,
@@ -70,6 +78,7 @@ export const universityRecordSchema = z.object({
   location: universityLocationSchema,
   externalIds: universityExternalIdsSchema,
   sourceIds: z.array(z.string().min(1)).min(1),
+  sourceReferences: z.array(universitySourceReferenceSchema).min(1),
   sourceStatus: z.enum(RECORD_SOURCE_STATUS_OPTIONS),
   notes: z.string().min(1).optional(),
 });
@@ -105,6 +114,7 @@ export const universityLogoAssetSchema = z.object({
   variants: z.array(universityAssetVariantSchema).min(1),
   attribution: universityAssetAttributionSchema,
   sourceIds: z.array(z.string().min(1)).min(1),
+  sourceReferences: z.array(universitySourceReferenceSchema).min(1),
   sourceStatus: z.enum(RECORD_SOURCE_STATUS_OPTIONS),
   notes: z.string().min(1).optional(),
 });
@@ -120,6 +130,7 @@ export const universityRankingSchema = z.object({
   sourceUrl: z.string().url(),
   retrievedAt: z.string().datetime(),
   sourceIds: z.array(z.string().min(1)).min(1),
+  sourceReferences: z.array(universitySourceReferenceSchema).min(1),
   sourceStatus: z.enum(RECORD_SOURCE_STATUS_OPTIONS),
   notes: z.string().min(1).optional(),
 });
@@ -225,7 +236,7 @@ export class UniversityListQueryDto extends createZodDto(universityListQuerySche
       enum: RECORD_SOURCE_STATUS_OPTIONS,
       description:
         'Filter records by source review or release status. pending_release=pending release, seed=seed data, released=released data, deprecated=deprecated data.',
-      example: 'seed',
+      example: 'released',
     },
     {
       name: 'hasWebsite',

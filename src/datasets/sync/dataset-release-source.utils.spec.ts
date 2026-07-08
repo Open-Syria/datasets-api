@@ -7,17 +7,17 @@ import {
 
 describe('dataset release source utils', () => {
   it('parses a pinned GitHub release source', () => {
-    expect(parseDatasetReleaseSource('Open-Syria/data-geography@v0.1.3')).toEqual({
+    expect(parseDatasetReleaseSource('Open-Syria/data-geography@v0.1.4')).toEqual({
       owner: 'Open-Syria',
       repository: 'data-geography',
-      tag: 'v0.1.3',
+      tag: 'v0.1.4',
     });
   });
 
   it('parses comma-separated sources', () => {
     expect(
       parseDatasetReleaseSources(
-        'Open-Syria/data-geography@v0.1.3, Open-Syria/data-universities@v0.2.0',
+        'Open-Syria/data-geography@v0.1.4, Open-Syria/data-universities@v0.2.2',
       ),
     ).toHaveLength(2);
   });
@@ -27,9 +27,9 @@ describe('dataset release source utils', () => {
       formatDatasetReleaseSource({
         owner: 'Open-Syria',
         repository: 'data-geography',
-        tag: 'v0.1.3',
+        tag: 'v0.1.4',
       }),
-    ).toBe('Open-Syria/data-geography@v0.1.3');
+    ).toBe('Open-Syria/data-geography@v0.1.4');
   });
 
   it('parses the tracked release source config', () => {
@@ -39,12 +39,12 @@ describe('dataset release source utils', () => {
           {
             owner: 'Open-Syria',
             repository: 'data-geography',
-            tag: 'v0.1.3',
+            tag: 'v0.1.4',
           },
           {
             owner: 'Open-Syria',
             repository: 'data-universities',
-            tag: 'v0.2.0',
+            tag: 'v0.2.2',
             requiredReadiness: {
               minimumLevel: 'profile_ready',
               publicApi: 'approved',
@@ -56,12 +56,12 @@ describe('dataset release source utils', () => {
       {
         owner: 'Open-Syria',
         repository: 'data-geography',
-        tag: 'v0.1.3',
+        tag: 'v0.1.4',
       },
       {
         owner: 'Open-Syria',
         repository: 'data-universities',
-        tag: 'v0.2.0',
+        tag: 'v0.2.2',
         requiredReadiness: {
           minimumLevel: 'profile_ready',
           publicApi: 'approved',

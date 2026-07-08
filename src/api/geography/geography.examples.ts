@@ -7,8 +7,8 @@ const exampleDataset = {
 };
 
 const exampleRelease = {
-  version: 'v0.1.3',
-  releasedAt: '2026-06-28T00:00:00.000Z',
+  version: 'v0.1.4',
+  releasedAt: '2026-07-08T00:00:00.000Z',
 };
 
 const examplePagination = {
@@ -27,8 +27,28 @@ const exampleSources = [
     title: 'GeoNames Syrian Arab Republic Gazetteer Extract',
     url: 'https://download.geonames.org/export/dump/SY.zip',
     license: 'CC BY 4.0',
-    accessedAt: null,
+    accessedAt: '2026-06-28T00:00:00.000Z',
     fields: ['names', 'alternateNames', 'featureCodes', 'coordinates'],
+  },
+];
+
+const exampleFixtureSourceReferences = [
+  {
+    sourceId: 'fixture-source',
+    accessedAt: '2026-01-01T00:00:00.000Z',
+  },
+];
+
+const exampleLocalitySourceReferences = [
+  {
+    sourceId: 'geonames-sy',
+    sourceRecordId: '170654',
+    accessedAt: '2026-06-28T00:00:00.000Z',
+  },
+  {
+    sourceId: 'hdx-syr-populated-places',
+    sourceRecordId: 'C1000',
+    accessedAt: '2026-06-28T00:00:00.000Z',
   },
 ];
 
@@ -65,6 +85,7 @@ const exampleGovernorate = {
     ochaPcode: 'C1000',
   },
   sourceIds: ['fixture-source'],
+  sourceReferences: exampleFixtureSourceReferences,
   sourceStatus: 'released',
 };
 
@@ -101,6 +122,7 @@ const exampleDistrict = {
     ochaPcode: 'C1000001',
   },
   sourceIds: ['fixture-source'],
+  sourceReferences: exampleFixtureSourceReferences,
   sourceStatus: 'released',
 };
 
@@ -138,6 +160,7 @@ const exampleSubdistrict = {
     ochaPcode: 'C100000101',
   },
   sourceIds: ['fixture-source'],
+  sourceReferences: exampleFixtureSourceReferences,
   sourceStatus: 'released',
 };
 
@@ -167,6 +190,7 @@ const exampleLocality = {
     ochaPcode: 'C1000',
   },
   sourceIds: ['geonames-sy', 'hdx-syr-populated-places'],
+  sourceReferences: exampleLocalitySourceReferences,
   sourceStatus: 'released',
 };
 

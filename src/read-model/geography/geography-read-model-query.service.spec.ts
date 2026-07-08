@@ -8,6 +8,12 @@ type PublicDataCacheServiceMock = {
 };
 
 const releasedAt = new Date('2026-06-27T00:00:00.000Z');
+const sourceReferences = [
+  {
+    sourceId: 'source-1',
+    accessedAt: releasedAt.toISOString(),
+  },
+];
 
 const release = {
   id: 'opensyria-geography:v0.1.0',
@@ -64,6 +70,7 @@ const locality = {
     geonames: '170654',
   },
   sourceIds: ['source-1'],
+  sourceReferences,
   sourceStatus: 'released',
 } as const;
 

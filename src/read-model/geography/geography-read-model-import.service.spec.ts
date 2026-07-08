@@ -9,6 +9,12 @@ import type { PublicDataCacheService } from '../../shared/cache/public-data-cach
 import { GeographyReadModelImportService } from './geography-read-model-import.service';
 
 const generatedAt = '2026-06-27T00:00:00.000Z';
+const sourceReferences = [
+  {
+    sourceId: 'source-1',
+    accessedAt: generatedAt,
+  },
+];
 
 const governorate: GovernorateSummary = {
   id: 'sy-damascus',
@@ -22,6 +28,7 @@ const governorate: GovernorateSummary = {
   population: null,
   externalIds: {},
   sourceIds: ['source-1'],
+  sourceReferences,
   sourceStatus: 'released',
 };
 
@@ -37,6 +44,7 @@ const district: DistrictSummary = {
   population: null,
   externalIds: {},
   sourceIds: ['source-1'],
+  sourceReferences,
   sourceStatus: 'released',
 };
 
@@ -53,6 +61,7 @@ const subdistrict: SubdistrictSummary = {
   population: null,
   externalIds: {},
   sourceIds: ['source-1'],
+  sourceReferences,
   sourceStatus: 'released',
 };
 
@@ -69,6 +78,7 @@ const locality: LocalityRecord = {
   centroid: null,
   externalIds: {},
   sourceIds: ['source-1'],
+  sourceReferences,
   sourceStatus: 'released',
 };
 
