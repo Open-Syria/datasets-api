@@ -3,8 +3,11 @@ packages:
 
 overrides:
   '@hono/node-server': 1.19.13
+  '@nestjs/platform-fastify@11.1.27>fastify': 5.10.0
   js-yaml: 4.2.0
   multer: 2.2.0
+  picomatch@4.0.5: 4.0.4
+  type-fest@5.8.0: 5.7.0
 
 minimumReleaseAge: 1440
 minimumReleaseAgeStrict: true
