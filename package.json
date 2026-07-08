@@ -41,6 +41,8 @@
     "read-model:refresh:geography": "pnpm run datasets:sync && pnpm run read-model:import:geography",
     "read-model:refresh:geography:prod": "pnpm run datasets:sync:prod && pnpm run read-model:import:geography:prod",
     "smoke:geography": "ts-node -r tsconfig-paths/register src/cli/smoke-geography-release.ts",
+    "smoke:transport": "ts-node -r tsconfig-paths/register src/cli/smoke-transport-release.ts",
+    "smoke:transport:prod": "node dist/cli/smoke-transport-release.js",
     "audit:prod": "pnpm audit --prod",
     "release:check": "node scripts/check-release.js",
     "release:check:public-api-bridge": "node scripts/check-public-api-bridge.js",

@@ -29,8 +29,9 @@ The manifest contract is documented in [`release-manifest.md`](./release-manifes
    - schema version
    - source attribution summary
 5. `datasets-api` is configured to consume specific release versions.
-6. During build, deploy, or a controlled sync step, the API downloads the manifests and artifacts, verifies checksums and schema versions, then imports the primary JSON artifacts into the local read model.
-7. Runtime requests read from the database-backed read model, with verified JSON artifact fallback available for local development. They should not call GitHub for every request.
+6. During build, deploy, or a controlled sync step, the API downloads the manifests and artifacts, then verifies checksums and schema versions.
+7. Geography releases are imported into the PostgreSQL read model; universities and transport endpoints currently read verified JSON artifacts directly until domain-specific read models are added.
+8. Runtime requests should not call GitHub for every request.
 
 ## Generated Exports
 
@@ -75,7 +76,7 @@ The loader also supports a direct release directory such as:
 
 In that mode, artifacts are resolved relative to the directory containing `release-manifest.json`. This is useful for local development before a dataset repository publishes a GitHub Release.
 
-For example, `GET /api/v1/geography/governorates` reads `artifacts/governorates.json`, `GET /api/v1/geography/districts` reads `artifacts/districts.json`, `GET /api/v1/geography/subdistricts` reads `artifacts/subdistricts.json`, and `GET /api/v1/geography/localities` reads `artifacts/localities.json`, when the active `opensyria-geography` manifest includes matching JSON artifacts.
+For example, `GET /api/v1/geography/governorates` reads `artifacts/governorates.json`, `GET /api/v1/geography/districts` reads `artifacts/districts.json`, `GET /api/v1/geography/subdistricts` reads `artifacts/subdistricts.json`, and `GET /api/v1/geography/localities` reads `artifacts/localities.json`, when the active `opensyria-geography` manifest includes matching JSON artifacts. Transport endpoints read `artifacts/locations.json`, `artifacts/status-snapshots.json`, and `artifacts/route-snapshots.json` from the active `opensyria-transport` manifest.
 
 Before parsing an artifact, the API verifies:
 
@@ -111,6 +112,15 @@ The lock file uses this shape:
         "minimumLevel": "profile_ready",
         "publicApi": "approved"
       }
+    },
+    {
+      "owner": "Open-Syria",
+      "repository": "data-transport",
+      "tag": "v0.1.0",
+      "requiredReadiness": {
+        "minimumLevel": "public_directory_ready",
+        "publicApi": "approved"
+      }
     }
   ]
 }
@@ -131,7 +141,7 @@ The sync command:
 
 Set `DATASETS_SYNC_DOWNLOAD_ARTIFACTS=false` to sync manifests only.
 
-Set `GITHUB_TOKEN` when syncing private releases or when higher GitHub API limits are needed.
+Set `GITHUB_TOKEN` when syncing private releases or when higher GitHub API limits are needed. The production deployment writes an authenticated token for the controlled sync step, even for public dataset repositories, so release downloads are not blocked by unauthenticated GitHub API limits.
 
 ## Local Geography Smoke Test
 
@@ -154,13 +164,14 @@ Set `GEOGRAPHY_RELEASE_DIR` to use a different local release directory.
 
 ## Production Runtime
 
-Production deployments should sync pinned release artifacts, import them into the database read model, and require release manifests before marking the API ready.
+Production deployments should sync pinned release artifacts, import geography into the database read model, and require release manifests before marking the API ready. Universities and transport are currently served from verified JSON artifacts after manifest, checksum, size, and schema validation.
 
 The current production dataset releases are:
 
 ```text
 Open-Syria/data-geography@v0.1.3
 Open-Syria/data-universities@v0.2.1
+Open-Syria/data-transport@v0.1.0
 ```
 
 The source of truth for this pin is `dataset-releases.json`; CI release checks
@@ -180,6 +191,23 @@ filtered OpenAPI document, and `/api/v1/datasets`.
 The API should expose the active dataset versions and public artifact metadata through
 `/api/v1/releases`, including artifact names, formats, paths, checksums, sizes,
 record counts, media types, and download URLs when the manifest provides them.
+
+Before publishing a new artifact-backed dataset, run a local smoke test with
+`DATASETS_RELEASES_DIR` pointed at the prepared `dist/release` directory and
+`DATASETS_REQUIRE_RELEASES=true`. For transport, verify the locations, status
+snapshot, route snapshot, dataset discovery, and `/openapi/transport.json`
+responses against the prepared release:
+
+```bash
+pnpm run smoke:transport
+```
+
+In the production runtime image, use the compiled smoke command after syncing
+pinned releases:
+
+```bash
+TRANSPORT_RELEASE_DIR=data/releases/transport/v0.1.0 pnpm run smoke:transport:prod
+```
 
 ## Why Not Read `main` Directly?
 

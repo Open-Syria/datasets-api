@@ -7,8 +7,8 @@ The long-term flow is:
 1. Dataset repositories publish versioned release artifacts and a release manifest.
 2. `datasets-api` syncs pinned releases into `DATASETS_RELEASES_DIR`.
 3. The API verifies manifest, checksum, size, and schema for each artifact.
-4. A read-model import loads the verified release into PostgreSQL/PostGIS tables.
-5. Public endpoints prefer the database read model for filters, search, relationships, pagination, and future geospatial queries.
+4. A read-model import loads domains with importers into PostgreSQL/PostGIS tables.
+5. Public endpoints prefer the database read model where available, and otherwise read verified JSON artifacts with checksum, size, and schema validation.
 6. Redis caches hot responses and lightweight derived views.
 
 Release artifacts remain the public distribution contract. The database is an internal serving layer.
@@ -29,7 +29,7 @@ Dataset repositories can generate many export formats from the same canonical JS
 `datasets-api` should treat those formats differently:
 
 - JSON artifacts are the primary API ingestion format.
-- PostgreSQL/PostGIS is the production serving model.
+- PostgreSQL/PostGIS is the preferred production serving model for domains with importers.
 - CSV, SQL, YAML, XML, GeoJSON, SQLite, and similar exports are download artifacts for users.
 - OpenAPI/Scalar docs describe API response DTOs, not every raw export column.
 - Release manifests expose artifact metadata, checksums, record counts, and download paths.
@@ -68,7 +68,7 @@ The API response contract does not need to expose every raw dataset field immedi
 
 ## Serving Strategy
 
-For local development, endpoints may fall back to verified local artifacts when the database read model is disabled. In production, a deployment should import the read model before marking the API ready.
+For local development, endpoints may fall back to verified local artifacts when the database read model is disabled. In production, geography should be imported into the read model before marking the API ready. Universities and transport currently serve from verified JSON artifacts until domain-specific read-model importers are added.
 
 Production should run with:
 
@@ -90,9 +90,13 @@ Cached payloads include:
 - dataset discovery metadata,
 - release discovery metadata,
 - geography list and detail results served from the PostgreSQL read model,
-- verified local JSON artifact payloads used by development and fallback paths.
+- verified universities and transport JSON artifact payloads used by current artifact-backed endpoints.
 
 Geography read-model cache keys include the active release id, release version, release status, generated timestamp, published timestamp, and normalized query or detail parameters. A newly imported release therefore uses different cache keys immediately.
+
+Transport endpoint cache keys currently come from the verified artifact cache and
+include the active release version and artifact SHA-256. A newly synced transport
+release therefore bypasses old cached artifact payloads automatically.
 
 Invalidation is layered:
 

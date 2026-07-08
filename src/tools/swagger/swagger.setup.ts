@@ -29,7 +29,7 @@ type OpenApiOperation = {
 const API_DOCUMENT_TITLE = 'OpenSyria Datasets API';
 const API_REFERENCE_TITLE = 'OpenSyria Datasets API Reference';
 const API_DOCUMENT_DESCRIPTION =
-  'Public read-only API for stable, versioned OpenSyria reference datasets. Released endpoints cover Syrian administrative geography and public university profiles, including release metadata, source attribution, university logos, and ranking snapshots.';
+  'Public read-only API for stable, versioned OpenSyria reference datasets. Released endpoints cover Syrian administrative geography, public university profiles, and source-backed transport reference data, including release metadata and source attribution.';
 const API_REFERENCE_APPLICATION_NAME = 'OpenSyria';
 const API_REFERENCE_FAVICON_PATH = '/favicon.ico';
 const API_REFERENCE_SVG_ICON_PATH = '/favicon.svg';
@@ -107,6 +107,10 @@ const OPENAPI_TAGS = [
     name: 'Universities',
     description: 'Higher education institution profile endpoints.',
   },
+  {
+    name: 'Transport',
+    description: 'Transport locations, dated status observations, and high-level route snapshots.',
+  },
 ] as const;
 
 const COMMON_PATHS = ['/health', '/health/live', '/health/ready'];
@@ -143,6 +147,13 @@ const FILTERED_OPENAPI_SOURCES: OpenApiSource[] = [
     description: 'Higher education institution profile endpoints.',
     path: '/openapi/universities.json',
     matchesPath: (path) => COMMON_PATHS.includes(path) || path.startsWith('/api/v1/universities'),
+  },
+  {
+    title: 'Transport API',
+    description:
+      'Transport reference endpoints for public locations, dated status snapshots, and high-level route observations.',
+    path: '/openapi/transport.json',
+    matchesPath: (path) => COMMON_PATHS.includes(path) || path.startsWith('/api/v1/transport/'),
   },
 ];
 

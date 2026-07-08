@@ -33,6 +33,21 @@ export const publicDatasetEndpointContracts = [
     openApiDocumentPath: '/openapi/universities.json',
     routes: ['/api/v1/universities', '/api/v1/universities/{universityId}'],
   },
+  {
+    owner: 'Open-Syria',
+    repository: 'data-transport',
+    datasetId: 'opensyria-transport',
+    slug: 'transport',
+    openApiDocumentPath: '/openapi/transport.json',
+    routes: [
+      '/api/v1/transport/locations',
+      '/api/v1/transport/locations/{locationId}',
+      '/api/v1/transport/status-snapshots',
+      '/api/v1/transport/status-snapshots/{statusSnapshotId}',
+      '/api/v1/transport/route-snapshots',
+      '/api/v1/transport/route-snapshots/{routeSnapshotId}',
+    ],
+  },
 ] as const satisfies readonly PublicDatasetEndpointContract[];
 
 export function findPublicDatasetEndpointContract(owner: string, repository: string) {

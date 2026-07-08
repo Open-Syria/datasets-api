@@ -49,9 +49,9 @@ const RELEASES: ReleaseSummaryList['items'] = [
         repository: 'data-transport',
         category: 'transport',
         title: {
-          en: 'Civil Transport Nodes',
+          en: 'Transport Locations',
         },
-        status: 'planned',
+        status: 'seed',
         releaseVersion: null,
         manifestPath: 'release-manifest.json',
       },
