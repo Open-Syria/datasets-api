@@ -85,6 +85,17 @@ describe('DatasetsService', () => {
     expect(result.items.find((item) => item.id === 'opensyria-universities')?.apiEndpoints).toEqual(
       ['/api/v1/universities', '/api/v1/universities/{universityId}'],
     );
+    expect(result.items.find((item) => item.id === 'opensyria-transport')).toMatchObject({
+      id: 'opensyria-transport',
+      status: 'seed',
+    });
+    expect(result.items.find((item) => item.id === 'opensyria-transport')?.apiEndpoints).toEqual(
+      expect.arrayContaining([
+        '/api/v1/transport/locations',
+        '/api/v1/transport/status-snapshots',
+        '/api/v1/transport/route-snapshots',
+      ]),
+    );
   });
 
   it('enriches released datasets from loaded release manifests', async () => {

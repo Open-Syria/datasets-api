@@ -124,7 +124,7 @@ data/releases
 
 The local loader recursively searches for files named `release-manifest.json`.
 
-JSON artifacts are resolved relative to the release directory that contains the manifest. The first supported endpoint artifact is:
+JSON artifacts are resolved relative to the release directory that contains the manifest. The first supported endpoint artifacts are:
 
 ```text
 opensyria-geography
@@ -140,9 +140,23 @@ opensyria-geography
   artifact name: localities
   artifact format: json
   artifact path: artifacts/localities.json
+
+opensyria-transport
+  artifact name: locations
+  artifact format: json
+  artifact path: artifacts/locations.json
+  artifact name: status-snapshots
+  artifact format: json
+  artifact path: artifacts/status-snapshots.json
+  artifact name: route-snapshots
+  artifact format: json
+  artifact path: artifacts/route-snapshots.json
 ```
 
-The governorates, districts, subdistricts, and localities JSON artifacts may be either arrays of records or objects with an `items` array. Each record should match the matching public schema exposed by the geography API.
+The governorates, districts, subdistricts, localities, transport locations,
+transport status snapshots, and transport route snapshots JSON artifacts may be
+either arrays of records or objects with an `items` array. Each record should
+match the matching public schema exposed by the API.
 
 The API should not parse CSV, SQL, YAML, XML, GeoJSON, or SQLite artifacts for runtime endpoint serving unless a future importer intentionally adds that support. Those artifacts are still useful in the manifest because clients can discover and verify public downloads from one release contract.
 
@@ -163,10 +177,10 @@ Lock-file entries may include `requiredReadiness`, for example:
 ```json
 {
   "owner": "Open-Syria",
-  "repository": "data-universities",
-  "tag": "v0.2.1",
+  "repository": "data-transport",
+  "tag": "v0.1.0",
   "requiredReadiness": {
-    "minimumLevel": "profile_ready",
+    "minimumLevel": "public_directory_ready",
     "publicApi": "approved"
   }
 }

@@ -103,6 +103,9 @@ GET /api/v1/geography/governorates/:governorateId
 GET /api/v1/geography/districts?governorateId=
 GET /api/v1/universities
 GET /api/v1/universities/:universityId
+GET /api/v1/transport/locations
+GET /api/v1/transport/status-snapshots
+GET /api/v1/transport/route-snapshots
 ```
 
 Avoid:
@@ -252,13 +255,13 @@ Health
 Dataset Discovery
 Releases
 Geography
+Universities
+Transport
 ```
 
 Reserved future tags:
 
 ```text
-Universities
-Transport
 Heritage
 Telecom
 Sources
@@ -683,6 +686,12 @@ api.responses.geography.governoratesFetched
 api.responses.geography.governorateFetched
 api.responses.universities.listFetched
 api.responses.universities.detailFetched
+api.responses.transport.locationsFetched
+api.responses.transport.locationFetched
+api.responses.transport.statusSnapshotsFetched
+api.responses.transport.statusSnapshotFetched
+api.responses.transport.routeSnapshotsFetched
+api.responses.transport.routeSnapshotFetched
 api.errors.validationFailed
 api.errors.notFound
 api.errors.internalServerError
@@ -714,6 +723,7 @@ Filtered machine-readable documents:
 Core API        /openapi/core.json
 Geography API   /openapi/geography.json
 Universities API /openapi/universities.json
+Transport API   /openapi/transport.json
 ```
 
 Rules:

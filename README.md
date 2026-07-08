@@ -7,7 +7,7 @@
 
 Public read-only API for released OpenSyria datasets.
 
-`datasets-api` serves stable, versioned reference data for Syria through documented HTTP endpoints. It exposes released dataset metadata, geography records, university profile records, source attribution, and machine-readable API documentation.
+`datasets-api` serves stable, versioned reference data for Syria through documented HTTP endpoints. It exposes released dataset metadata, geography records, university profile records, transport reference records, source attribution, and machine-readable API documentation.
 
 ## Table of Contents
 
@@ -31,6 +31,7 @@ Public read-only API for released OpenSyria datasets.
 - Dataset discovery and release metadata
 - Geography endpoints for governorates, districts, subdistricts, and localities
 - University endpoints for higher education institution profiles, logos, and ranking snapshots
+- Transport endpoints for public locations, dated status snapshots, and high-level route snapshots
 - Stable record IDs and source attribution fields
 - Offset pagination, filtering, search, and parent-child geography relationships
 - Localized API response messages through `lang`, `x-lang`, or `Accept-Language`
@@ -43,10 +44,10 @@ OpenSyria datasets live in separate repositories. This API does not read live `m
 The production flow is:
 
 ```text
-dataset repositories -> versioned release artifacts -> verified JSON imports -> API read model -> public API responses
+dataset repositories -> versioned release artifacts -> verified JSON artifacts/read model -> public API responses
 ```
 
-Dataset repositories own canonical JSON data, source attribution, validation rules, generated export files, and release manifests. `datasets-api` consumes pinned releases, verifies checksums and schemas, imports the data into read tables, then serves the public endpoints.
+Dataset repositories own canonical JSON data, source attribution, validation rules, generated export files, and release manifests. `datasets-api` consumes pinned releases, verifies checksums and schemas, imports domains with read-model support into read tables, and serves artifact-backed domains from verified JSON until a dedicated read model exists.
 
 The pinned dataset release sources live in [`dataset-releases.json`](dataset-releases.json). Production does not automatically follow the latest GitHub release; changing the served dataset version is a reviewed code change plus a sync/import step.
 
@@ -74,18 +75,27 @@ GET /api/v1/geography/localities/:localityId
 GET /api/v1/universities
 GET /api/v1/universities/:universityId
 
+GET /api/v1/transport/locations
+GET /api/v1/transport/locations/:locationId
+GET /api/v1/transport/status-snapshots
+GET /api/v1/transport/status-snapshots/:statusSnapshotId
+GET /api/v1/transport/route-snapshots
+GET /api/v1/transport/route-snapshots/:routeSnapshotId
+
 GET /docs
 GET /swagger-ui
 GET /openapi.json
 GET /openapi/core.json
 GET /openapi/geography.json
 GET /openapi/universities.json
+GET /openapi/transport.json
 GET /favicon.ico
 ```
 
 `/docs` and `/swagger-ui` use the complete `/openapi.json` document. The filtered
-`/openapi/core.json`, `/openapi/geography.json`, and `/openapi/universities.json`
-documents are available for tools that need a smaller machine-readable spec.
+`/openapi/core.json`, `/openapi/geography.json`, `/openapi/universities.json`,
+and `/openapi/transport.json` documents are available for tools that need a
+smaller machine-readable spec.
 
 ## Query Conventions
 
@@ -115,11 +125,21 @@ University filters:
 | --- | --- |
 | `/universities` | `institutionType`, `governorate`, `hasWebsite` |
 
+Transport filters:
+
+| Endpoint | Extra filters |
+| --- | --- |
+| `/transport/locations` | `locationType`, `transportMode`, `operationalStatus`, `governorateId`, `hasCoordinates` |
+| `/transport/status-snapshots` | `locationId`, `observedStatus`, `statusAsOf` |
+| `/transport/route-snapshots` | `routeType`, `transportMode`, `observedStatus`, `statusAsOf`, `locationId` |
+
 Example:
 
 ```text
 GET /api/v1/geography/localities?q=damascus&limit=thirty_five&order=asc&sourceStatus=released
 GET /api/v1/universities?q=damascus&institutionType=public&limit=ten
+GET /api/v1/transport/locations?transportMode=air&locationType=airport
+GET /api/v1/transport/status-snapshots?locationId=sy-damascus-international-airport
 ```
 
 ## Localization
@@ -191,6 +211,28 @@ Run a local geography smoke test:
 
 ```bash
 pnpm run smoke:geography
+```
+
+Transport and universities endpoints can also serve verified local JSON release
+artifacts directly. For example, after building `../data-transport/dist/release`:
+
+```bash
+DATASETS_RELEASES_DIR=../data-transport/dist/release DATASETS_REQUIRE_RELEASES=true pnpm run start:dev
+```
+
+Run the transport release smoke test:
+
+```bash
+pnpm run smoke:transport
+```
+
+Or smoke-check the transport artifact endpoints manually:
+
+```bash
+curl "http://localhost:3000/api/v1/transport/locations?limit=ten"
+curl "http://localhost:3000/api/v1/transport/status-snapshots?limit=ten"
+curl "http://localhost:3000/api/v1/transport/route-snapshots?limit=ten"
+curl "http://localhost:3000/openapi/transport.json"
 ```
 
 ## Validation

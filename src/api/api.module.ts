@@ -3,9 +3,17 @@ import { DatasetsModule } from './datasets/datasets.module';
 import { GeographyModule } from './geography/geography.module';
 import { HealthModule } from './health/health.module';
 import { ReleasesModule } from './releases/releases.module';
+import { TransportModule } from './transport/transport.module';
 import { UniversitiesModule } from './universities/universities.module';
 
 @Module({
-  imports: [HealthModule, DatasetsModule, ReleasesModule, GeographyModule, UniversitiesModule],
+  imports: [
+    HealthModule,
+    DatasetsModule,
+    ReleasesModule,
+    GeographyModule,
+    UniversitiesModule,
+    TransportModule,
+  ],
 })
 export class ApiModule {}

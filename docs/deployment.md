@@ -30,18 +30,29 @@ Run these from a full checkout or CI release job with dev dependencies installed
 pnpm install --frozen-lockfile
 pnpm run release:check -- \
   --geography-release v0.1.3 \
-  --dataset-sources Open-Syria/data-geography@v0.1.3,Open-Syria/data-universities@v0.2.1 \
+  --dataset-sources Open-Syria/data-geography@v0.1.3,Open-Syria/data-universities@v0.2.1,Open-Syria/data-transport@v0.1.0 \
   --require-all-dataset-sources
 pnpm run db:migrate:deploy
 pnpm run datasets:sync
+TRANSPORT_RELEASE_DIR=data/releases/transport/v0.1.0 pnpm run smoke:transport
 DATABASE_ENABLED=true pnpm run read-model:import:geography
 ```
+
+Before deploying a new `dataset-releases.json` pin, confirm that the matching
+GitHub Release exists and includes `release-manifest.json` plus the referenced
+artifact assets. A public repository alone is not enough for `datasets:sync`;
+the sync job resolves the pinned release tag and downloads release assets.
 
 Use the same release arguments with `pnpm run release:check:docker --` when
 Docker is available and the release job should also build the runtime image
 locally.
 
-The import step must finish before a production instance is marked ready.
+The geography import step must finish before a production instance is marked ready. Universities and transport are served from verified release artifacts until dedicated read-model importers are added.
+
+Run `smoke:transport` after `datasets:sync` whenever the transport release pin
+changes. The smoke command boots the API against the synced transport release
+directory and checks locations, status snapshots, route snapshots, dataset
+discovery, and `/openapi/transport.json`.
 
 `release:check` builds the API and runs the public API bridge check. Pinned
 datasets with `requiredReadiness.publicApi: "approved"` must have declared
@@ -93,6 +104,7 @@ If the Docker/runtime image is used for release sync or read-model import, use t
 
 ```bash
 pnpm run datasets:sync:prod
+TRANSPORT_RELEASE_DIR=data/releases/transport/v0.1.0 pnpm run smoke:transport:prod
 DATABASE_ENABLED=true pnpm run read-model:import:geography:prod
 ```
 
@@ -164,11 +176,17 @@ The workflow:
 4. Pushes both images to GitHub Container Registry.
 5. Joins the tailnet with `tailscale/github-action@v4`.
 6. Copies `deploy/datasets-api` to `/srv/opensyria/datasets-api`.
-7. Runs the blue/green deployment script on the server.
+7. Writes runtime release-sync settings, including `TRANSPORT_RELEASE_DIR`.
+8. Runs the blue/green deployment script on the server.
 
 Dataset release pins are stored in `dataset-releases.json` and copied into the
 runtime image. Server `.env` values can only override the lock file when
 `DATASETS_RELEASE_SOURCES_OVERRIDE=true` is set deliberately.
+
+The blue/green script syncs pinned dataset artifacts, runs
+`smoke:transport:prod` against the synced transport release, imports geography
+into the read model, then starts the inactive API color and verifies readiness
+before traffic flips.
 
 Images are pushed to GHCR using the built-in `GITHUB_TOKEN` with `packages: write`.
 
@@ -224,7 +242,9 @@ DATASETS_GITHUB_TOKEN
 ```
 
 `DATASETS_GITHUB_TOKEN` is only needed when syncing private dataset releases or
-when GitHub API rate limits become a problem.
+when a longer-lived token is preferred. If it is not set, the production
+workflow writes the short-lived repository `GITHUB_TOKEN` for the controlled
+release sync step so public GitHub API rate limits do not block deployment.
 
 Secret placement recommendation:
 

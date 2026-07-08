@@ -30,6 +30,14 @@
     "universities": {
       "detailFetched": "University fetched successfully",
       "listFetched": "Universities fetched successfully"
+    },
+    "transport": {
+      "locationFetched": "Transport location fetched successfully",
+      "locationsFetched": "Transport locations fetched successfully",
+      "routeSnapshotFetched": "Transport route snapshot fetched successfully",
+      "routeSnapshotsFetched": "Transport route snapshots fetched successfully",
+      "statusSnapshotFetched": "Transport status snapshot fetched successfully",
+      "statusSnapshotsFetched": "Transport status snapshots fetched successfully"
     }
   }
 }

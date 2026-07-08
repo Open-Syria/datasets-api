@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+* expose transport locations, status snapshots, and route snapshots through public API endpoints
+* add transport OpenAPI, dataset discovery, release pin, and fixture-backed e2e coverage
+
 ## [0.1.1](https://github.com/Open-Syria/datasets-api/compare/v0.1.0...v0.1.1) (2026-07-06)
 
 

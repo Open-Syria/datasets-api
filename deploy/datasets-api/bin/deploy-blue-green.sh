@@ -132,6 +132,7 @@ docker pull "$runtime_image"
 
 docker compose --profile ops run --rm migrate
 docker compose run --rm --no-deps "api-$target_slot" pnpm run datasets:sync:prod
+docker compose run --rm --no-deps "api-$target_slot" pnpm run smoke:transport:prod
 docker compose run --rm "api-$target_slot" pnpm run read-model:import:geography:prod
 
 docker compose up -d --no-deps "api-$target_slot"

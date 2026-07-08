@@ -445,6 +445,13 @@ describe('AppController (e2e)', () => {
     expect(body.data.items.find((item) => item.slug === 'universities')).toMatchObject({
       apiEndpoints: ['/api/v1/universities', '/api/v1/universities/{universityId}'],
     });
+    expect(body.data.items.find((item) => item.slug === 'transport')).toMatchObject({
+      apiEndpoints: expect.arrayContaining([
+        '/api/v1/transport/locations',
+        '/api/v1/transport/status-snapshots',
+        '/api/v1/transport/route-snapshots',
+      ]),
+    });
   });
 
   it('paginates and searches dataset metadata through shared list options', async () => {
@@ -818,6 +825,10 @@ describe('AppController (e2e)', () => {
       method: 'GET',
       url: '/openapi/universities.json',
     });
+    const transportResponse = await app.inject({
+      method: 'GET',
+      url: '/openapi/transport.json',
+    });
     const educationResponse = await app.inject({
       method: 'GET',
       url: '/openapi/education.json',
@@ -829,6 +840,7 @@ describe('AppController (e2e)', () => {
     const coreDocument = coreResponse.json<OpenApiResponseBody>();
     const geographyDocument = geographyResponse.json<OpenApiResponseBody>();
     const universitiesDocument = universitiesResponse.json<OpenApiResponseBody>();
+    const transportDocument = transportResponse.json<OpenApiResponseBody>();
 
     expect(defaultDocument.tags?.map((tag) => tag.name)).toEqual([
       'Health',
@@ -836,6 +848,7 @@ describe('AppController (e2e)', () => {
       'Releases',
       'Geography',
       'Universities',
+      'Transport',
     ]);
     expect(defaultDocument.info).toMatchObject({
       title: 'OpenSyria Datasets API',
@@ -844,7 +857,7 @@ describe('AppController (e2e)', () => {
       'Public read-only API for stable, versioned OpenSyria reference datasets.',
     );
     expect(defaultDocument.tags?.map((tag) => tag.name)).not.toEqual(
-      expect.arrayContaining(['Transport', 'Heritage', 'Telecom']),
+      expect.arrayContaining(['Heritage', 'Telecom']),
     );
     for (const pathItem of Object.values(defaultDocument.paths)) {
       const operationTags = getOperationTags(pathItem);
@@ -868,6 +881,9 @@ describe('AppController (e2e)', () => {
     expect(getOperationTags(defaultDocument.paths['/api/v1/universities'])).toEqual([
       'Universities',
     ]);
+    expect(getOperationTags(defaultDocument.paths['/api/v1/transport/locations'])).toEqual([
+      'Transport',
+    ]);
     expect(defaultDocument.paths).toHaveProperty('/health');
     expect(defaultDocument.paths).toHaveProperty('/health/live');
     expect(defaultDocument.paths).toHaveProperty('/health/ready');
@@ -879,6 +895,16 @@ describe('AppController (e2e)', () => {
     expect(defaultDocument.paths).toHaveProperty('/api/v1/geography/localities');
     expect(defaultDocument.paths).toHaveProperty('/api/v1/universities');
     expect(defaultDocument.paths).toHaveProperty('/api/v1/universities/{universityId}');
+    expect(defaultDocument.paths).toHaveProperty('/api/v1/transport/locations');
+    expect(defaultDocument.paths).toHaveProperty('/api/v1/transport/locations/{locationId}');
+    expect(defaultDocument.paths).toHaveProperty('/api/v1/transport/status-snapshots');
+    expect(defaultDocument.paths).toHaveProperty(
+      '/api/v1/transport/status-snapshots/{statusSnapshotId}',
+    );
+    expect(defaultDocument.paths).toHaveProperty('/api/v1/transport/route-snapshots');
+    expect(defaultDocument.paths).toHaveProperty(
+      '/api/v1/transport/route-snapshots/{routeSnapshotId}',
+    );
     expect(
       defaultDocument.components?.schemas?.DatasetSummaryListResponse_Output?.properties?.status
         ?.example,
@@ -1040,6 +1066,37 @@ describe('AppController (e2e)', () => {
       ]),
     );
     expect(universitiesDocument.paths).not.toHaveProperty('/api/v1/geography/governorates');
+    expect(transportResponse.statusCode).toBe(200);
+    expect(transportDocument.tags?.map((tag) => tag.name)).toEqual(['Health', 'Transport']);
+    expect(transportDocument.paths).toHaveProperty('/api/v1/transport/locations');
+    expect(transportDocument.paths).toHaveProperty('/api/v1/transport/locations/{locationId}');
+    expect(transportDocument.paths).toHaveProperty('/api/v1/transport/status-snapshots');
+    expect(transportDocument.paths).toHaveProperty(
+      '/api/v1/transport/status-snapshots/{statusSnapshotId}',
+    );
+    expect(transportDocument.paths).toHaveProperty('/api/v1/transport/route-snapshots');
+    expect(transportDocument.paths).toHaveProperty(
+      '/api/v1/transport/route-snapshots/{routeSnapshotId}',
+    );
+    expect(
+      getQueryParameters(transportDocument.paths['/api/v1/transport/locations']).map(
+        (parameter) => parameter.name,
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        'page',
+        'limit',
+        'q',
+        'order',
+        'locationType',
+        'transportMode',
+        'operationalStatus',
+        'governorateId',
+        'sourceStatus',
+        'hasCoordinates',
+      ]),
+    );
+    expect(transportDocument.paths).not.toHaveProperty('/api/v1/universities');
     expect(educationResponse.statusCode).toBe(404);
   });
 

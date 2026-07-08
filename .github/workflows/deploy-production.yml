@@ -16,6 +16,7 @@ concurrency:
 env:
   GEOGRAPHY_RELEASE: v0.1.3
   UNIVERSITIES_RELEASE: v0.2.1
+  TRANSPORT_RELEASE: v0.1.0
 
 jobs:
   deploy-policy:
@@ -99,7 +100,7 @@ jobs:
         run: |
           pnpm run release:check -- \
             --geography-release "$GEOGRAPHY_RELEASE" \
-            --dataset-sources "Open-Syria/data-geography@$GEOGRAPHY_RELEASE,Open-Syria/data-universities@$UNIVERSITIES_RELEASE" \
+            --dataset-sources "Open-Syria/data-geography@$GEOGRAPHY_RELEASE,Open-Syria/data-universities@$UNIVERSITIES_RELEASE,Open-Syria/data-transport@$TRANSPORT_RELEASE" \
             --require-all-dataset-sources
 
   build:
@@ -291,7 +292,8 @@ jobs:
           APP_DOCS_ENABLED: ${{ vars.APP_DOCS_ENABLED }}
           THROTTLE_FREE_TIER_DAILY_LIMIT: ${{ vars.THROTTLE_FREE_TIER_DAILY_LIMIT }}
           THROTTLE_FREE_TIER_DAILY_TTL_SECONDS: ${{ vars.THROTTLE_FREE_TIER_DAILY_TTL_SECONDS }}
-          GITHUB_TOKEN_FOR_DATASETS: ${{ secrets.DATASETS_GITHUB_TOKEN }}
+          GITHUB_TOKEN_FOR_DATASETS: ${{ secrets.DATASETS_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+          TRANSPORT_RELEASE: ${{ env.TRANSPORT_RELEASE }}
         run: |
           test -n "$POSTGRES_PASSWORD"
 
@@ -323,6 +325,7 @@ jobs:
             write_env DATASETS_RELEASE_SOURCES ''
             write_env DATASETS_RELEASE_SOURCES_OVERRIDE false
             write_env DATASETS_SYNC_DOWNLOAD_ARTIFACTS true
+            write_env TRANSPORT_RELEASE_DIR "data/releases/transport/${TRANSPORT_RELEASE:-v0.1.0}"
             write_env DATABASE_ENABLED true
             write_env DATABASE_REQUIRED true
             write_env DATABASE_LOG_QUERIES false
