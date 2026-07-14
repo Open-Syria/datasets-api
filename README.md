@@ -7,7 +7,7 @@
 
 Public read-only API for released OpenSyria datasets.
 
-`datasets-api` serves stable, versioned reference data for Syria through documented HTTP endpoints. It exposes released dataset metadata, geography records, university profile records, transport reference records, source attribution, and machine-readable API documentation.
+`datasets-api` serves stable, versioned reference data for Syria through documented HTTP endpoints. It exposes released dataset metadata, geography records, university profile records, transport reference records, telecom numbering metadata, source attribution, and machine-readable API documentation.
 
 ## Table of Contents
 
@@ -32,6 +32,7 @@ Public read-only API for released OpenSyria datasets.
 - Geography endpoints for governorates, districts, subdistricts, and localities
 - University endpoints for higher education institution profiles, logos, and ranking snapshots
 - Transport endpoints for public locations, dated status snapshots, and high-level route snapshots
+- Telecom endpoints for country numbering plans, operators, fixed area codes, mobile prefixes, and public numbering ranges
 - Stable record IDs and source attribution fields
 - Offset pagination, filtering, search, and parent-child geography relationships
 - Localized API response messages through `lang`, `x-lang`, or `Accept-Language`
@@ -82,6 +83,17 @@ GET /api/v1/transport/status-snapshots/:statusSnapshotId
 GET /api/v1/transport/route-snapshots
 GET /api/v1/transport/route-snapshots/:routeSnapshotId
 
+GET /api/v1/telecom/country-numbering-plans
+GET /api/v1/telecom/country-numbering-plans/:countryNumberingPlanId
+GET /api/v1/telecom/operators
+GET /api/v1/telecom/operators/:operatorId
+GET /api/v1/telecom/fixed-area-codes
+GET /api/v1/telecom/fixed-area-codes/:fixedAreaCodeId
+GET /api/v1/telecom/mobile-prefixes
+GET /api/v1/telecom/mobile-prefixes/:mobilePrefixId
+GET /api/v1/telecom/number-ranges
+GET /api/v1/telecom/number-ranges/:numberRangeId
+
 GET /docs
 GET /swagger-ui
 GET /openapi.json
@@ -89,13 +101,14 @@ GET /openapi/core.json
 GET /openapi/geography.json
 GET /openapi/universities.json
 GET /openapi/transport.json
+GET /openapi/telecom.json
 GET /favicon.ico
 ```
 
 `/docs` and `/swagger-ui` use the complete `/openapi.json` document. The filtered
 `/openapi/core.json`, `/openapi/geography.json`, `/openapi/universities.json`,
-and `/openapi/transport.json` documents are available for tools that need a
-smaller machine-readable spec.
+`/openapi/transport.json`, and `/openapi/telecom.json` documents are available
+for tools that need a smaller machine-readable spec.
 
 ## Query Conventions
 
@@ -133,6 +146,16 @@ Transport filters:
 | `/transport/status-snapshots` | `locationId`, `observedStatus`, `statusAsOf` |
 | `/transport/route-snapshots` | `routeType`, `transportMode`, `observedStatus`, `statusAsOf`, `locationId` |
 
+Telecom filters:
+
+| Endpoint | Extra filters |
+| --- | --- |
+| `/telecom/country-numbering-plans` | `countryCode` |
+| `/telecom/operators` | `operatorType`, `assignmentStatus` |
+| `/telecom/fixed-area-codes` | `areaCode`, `dialingPrefix`, `operatorId`, `governorateId` |
+| `/telecom/mobile-prefixes` | `prefix`, `dialingPrefix`, `operatorId`, `assignmentStatus` |
+| `/telecom/number-ranges` | `rangeType`, `assignmentStatus` |
+
 Example:
 
 ```text
@@ -140,6 +163,7 @@ GET /api/v1/geography/localities?q=damascus&limit=thirty_five&order=asc&sourceSt
 GET /api/v1/universities?q=damascus&institutionType=public&limit=ten
 GET /api/v1/transport/locations?transportMode=air&locationType=airport
 GET /api/v1/transport/status-snapshots?locationId=sy-damascus-international-airport
+GET /api/v1/telecom/mobile-prefixes?operatorId=sy-syriatel&prefix=93
 ```
 
 ## Localization
@@ -213,8 +237,9 @@ Run a local geography smoke test:
 pnpm run smoke:geography
 ```
 
-Transport and universities endpoints can also serve verified local JSON release
-artifacts directly. For example, after building `../data-transport/dist/release`:
+Universities, transport, and telecom endpoints can also serve verified local JSON
+release artifacts directly. For example, after building
+`../data-transport/dist/release`:
 
 ```bash
 DATASETS_RELEASES_DIR=../data-transport/dist/release DATASETS_REQUIRE_RELEASES=true pnpm run start:dev
@@ -226,6 +251,12 @@ Run the transport release smoke test:
 pnpm run smoke:transport
 ```
 
+Run the telecom release smoke test after building `../data-telecom/dist/release`:
+
+```bash
+pnpm run smoke:telecom
+```
+
 Or smoke-check the transport artifact endpoints manually:
 
 ```bash
@@ -233,6 +264,8 @@ curl "http://localhost:3000/api/v1/transport/locations?limit=ten"
 curl "http://localhost:3000/api/v1/transport/status-snapshots?limit=ten"
 curl "http://localhost:3000/api/v1/transport/route-snapshots?limit=ten"
 curl "http://localhost:3000/openapi/transport.json"
+curl "http://localhost:3000/api/v1/telecom/mobile-prefixes?limit=ten"
+curl "http://localhost:3000/openapi/telecom.json"
 ```
 
 ## Validation

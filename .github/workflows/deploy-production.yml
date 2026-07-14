@@ -17,6 +17,7 @@ env:
   GEOGRAPHY_RELEASE: v0.1.4
   UNIVERSITIES_RELEASE: v0.2.2
   TRANSPORT_RELEASE: v0.1.1
+  TELECOM_RELEASE: v0.1.0
 
 jobs:
   deploy-policy:
@@ -100,7 +101,7 @@ jobs:
         run: |
           pnpm run release:check -- \
             --geography-release "$GEOGRAPHY_RELEASE" \
-            --dataset-sources "Open-Syria/data-geography@$GEOGRAPHY_RELEASE,Open-Syria/data-universities@$UNIVERSITIES_RELEASE,Open-Syria/data-transport@$TRANSPORT_RELEASE" \
+            --dataset-sources "Open-Syria/data-geography@$GEOGRAPHY_RELEASE,Open-Syria/data-universities@$UNIVERSITIES_RELEASE,Open-Syria/data-transport@$TRANSPORT_RELEASE,Open-Syria/data-telecom@$TELECOM_RELEASE" \
             --require-all-dataset-sources
 
   build:
@@ -326,6 +327,7 @@ jobs:
             write_env DATASETS_RELEASE_SOURCES_OVERRIDE false
             write_env DATASETS_SYNC_DOWNLOAD_ARTIFACTS true
             write_env TRANSPORT_RELEASE_DIR "data/releases/transport/${TRANSPORT_RELEASE:-v0.1.1}"
+            write_env TELECOM_RELEASE_DIR "data/releases/telecom/${TELECOM_RELEASE:-v0.1.0}"
             write_env DATABASE_ENABLED true
             write_env DATABASE_REQUIRED true
             write_env DATABASE_LOG_QUERIES false

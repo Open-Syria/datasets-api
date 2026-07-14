@@ -10,6 +10,7 @@ const readinessLevels = new Set([
   'identity_seed_ready',
   'public_directory_ready',
   'profile_ready',
+  'api_ready',
 ]);
 const publicApiReadinessStatuses = new Set(['not_approved', 'approved']);
 const booleanOptions = new Set([
@@ -396,6 +397,7 @@ function assertDistRuntimeFiles() {
     'dist/i18n/messages/ar/api.json',
     'dist/cli/sync-dataset-releases.js',
     'dist/cli/import-geography-read-model.js',
+    'dist/cli/smoke-telecom-release.js',
   ]) {
     assertExists(relativePath);
   }

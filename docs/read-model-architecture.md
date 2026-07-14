@@ -68,7 +68,7 @@ The API response contract does not need to expose every raw dataset field immedi
 
 ## Serving Strategy
 
-For local development, endpoints may fall back to verified local artifacts when the database read model is disabled. In production, geography should be imported into the read model before marking the API ready. Universities and transport currently serve from verified JSON artifacts until domain-specific read-model importers are added.
+For local development, endpoints may fall back to verified local artifacts when the database read model is disabled. In production, geography should be imported into the read model before marking the API ready. Universities, transport, and telecom currently serve from verified JSON artifacts until domain-specific read-model importers are added.
 
 Production should run with:
 
@@ -90,7 +90,7 @@ Cached payloads include:
 - dataset discovery metadata,
 - release discovery metadata,
 - geography list and detail results served from the PostgreSQL read model,
-- verified universities and transport JSON artifact payloads used by current artifact-backed endpoints.
+- verified universities, transport, and telecom JSON artifact payloads used by current artifact-backed endpoints.
 
 Geography read-model cache keys include the active release id, release version, release status, generated timestamp, published timestamp, and normalized query or detail parameters. A newly imported release therefore uses different cache keys immediately.
 

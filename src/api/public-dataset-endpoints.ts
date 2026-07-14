@@ -48,6 +48,25 @@ export const publicDatasetEndpointContracts = [
       '/api/v1/transport/route-snapshots/{routeSnapshotId}',
     ],
   },
+  {
+    owner: 'Open-Syria',
+    repository: 'data-telecom',
+    datasetId: 'opensyria-telecom',
+    slug: 'telecom',
+    openApiDocumentPath: '/openapi/telecom.json',
+    routes: [
+      '/api/v1/telecom/country-numbering-plans',
+      '/api/v1/telecom/country-numbering-plans/{countryNumberingPlanId}',
+      '/api/v1/telecom/operators',
+      '/api/v1/telecom/operators/{operatorId}',
+      '/api/v1/telecom/fixed-area-codes',
+      '/api/v1/telecom/fixed-area-codes/{fixedAreaCodeId}',
+      '/api/v1/telecom/mobile-prefixes',
+      '/api/v1/telecom/mobile-prefixes/{mobilePrefixId}',
+      '/api/v1/telecom/number-ranges',
+      '/api/v1/telecom/number-ranges/{numberRangeId}',
+    ],
+  },
 ] as const satisfies readonly PublicDatasetEndpointContract[];
 
 export function findPublicDatasetEndpointContract(owner: string, repository: string) {

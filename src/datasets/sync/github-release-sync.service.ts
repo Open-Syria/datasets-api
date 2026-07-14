@@ -42,6 +42,7 @@ const readinessLevelOrder: Record<DatasetReadinessLevel, number> = {
   identity_seed_ready: 1,
   public_directory_ready: 2,
   profile_ready: 3,
+  api_ready: 4,
 };
 
 export type GitHubReleaseSyncOptions = {

@@ -50,6 +50,15 @@ describe('dataset release source utils', () => {
               publicApi: 'approved',
             },
           },
+          {
+            owner: 'Open-Syria',
+            repository: 'data-telecom',
+            tag: 'v0.1.0',
+            requiredReadiness: {
+              minimumLevel: 'api_ready',
+              publicApi: 'approved',
+            },
+          },
         ],
       }),
     ).toEqual([
@@ -64,6 +73,15 @@ describe('dataset release source utils', () => {
         tag: 'v0.2.2',
         requiredReadiness: {
           minimumLevel: 'profile_ready',
+          publicApi: 'approved',
+        },
+      },
+      {
+        owner: 'Open-Syria',
+        repository: 'data-telecom',
+        tag: 'v0.1.0',
+        requiredReadiness: {
+          minimumLevel: 'api_ready',
           publicApi: 'approved',
         },
       },

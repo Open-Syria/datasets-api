@@ -38,6 +38,18 @@
       "routeSnapshotsFetched": "Transport route snapshots fetched successfully",
       "statusSnapshotFetched": "Transport status snapshot fetched successfully",
       "statusSnapshotsFetched": "Transport status snapshots fetched successfully"
+    },
+    "telecom": {
+      "countryNumberingPlanFetched": "Telecom country numbering plan fetched successfully",
+      "countryNumberingPlansFetched": "Telecom country numbering plans fetched successfully",
+      "fixedAreaCodeFetched": "Telecom fixed area code fetched successfully",
+      "fixedAreaCodesFetched": "Telecom fixed area codes fetched successfully",
+      "mobilePrefixFetched": "Telecom mobile prefix fetched successfully",
+      "mobilePrefixesFetched": "Telecom mobile prefixes fetched successfully",
+      "numberRangeFetched": "Telecom number range fetched successfully",
+      "numberRangesFetched": "Telecom number ranges fetched successfully",
+      "operatorFetched": "Telecom operator fetched successfully",
+      "operatorsFetched": "Telecom operators fetched successfully"
     }
   }
 }
