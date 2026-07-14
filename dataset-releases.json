@@ -22,6 +22,15 @@
         "minimumLevel": "public_directory_ready",
         "publicApi": "approved"
       }
+    },
+    {
+      "owner": "Open-Syria",
+      "repository": "data-telecom",
+      "tag": "v0.1.0",
+      "requiredReadiness": {
+        "minimumLevel": "api_ready",
+        "publicApi": "approved"
+      }
     }
   ]
 }

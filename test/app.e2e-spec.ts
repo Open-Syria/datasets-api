@@ -830,6 +830,10 @@ describe('AppController (e2e)', () => {
       method: 'GET',
       url: '/openapi/transport.json',
     });
+    const telecomResponse = await app.inject({
+      method: 'GET',
+      url: '/openapi/telecom.json',
+    });
     const educationResponse = await app.inject({
       method: 'GET',
       url: '/openapi/education.json',
@@ -842,6 +846,7 @@ describe('AppController (e2e)', () => {
     const geographyDocument = geographyResponse.json<OpenApiResponseBody>();
     const universitiesDocument = universitiesResponse.json<OpenApiResponseBody>();
     const transportDocument = transportResponse.json<OpenApiResponseBody>();
+    const telecomDocument = telecomResponse.json<OpenApiResponseBody>();
 
     expect(defaultDocument.tags?.map((tag) => tag.name)).toEqual([
       'Health',
@@ -850,6 +855,7 @@ describe('AppController (e2e)', () => {
       'Geography',
       'Universities',
       'Transport',
+      'Telecom',
     ]);
     expect(defaultDocument.info).toMatchObject({
       title: 'OpenSyria Datasets API',
@@ -858,7 +864,7 @@ describe('AppController (e2e)', () => {
       'Public read-only API for stable, versioned OpenSyria reference datasets.',
     );
     expect(defaultDocument.tags?.map((tag) => tag.name)).not.toEqual(
-      expect.arrayContaining(['Heritage', 'Telecom']),
+      expect.arrayContaining(['Heritage']),
     );
     for (const pathItem of Object.values(defaultDocument.paths)) {
       const operationTags = getOperationTags(pathItem);
@@ -885,6 +891,9 @@ describe('AppController (e2e)', () => {
     expect(getOperationTags(defaultDocument.paths['/api/v1/transport/locations'])).toEqual([
       'Transport',
     ]);
+    expect(getOperationTags(defaultDocument.paths['/api/v1/telecom/mobile-prefixes'])).toEqual([
+      'Telecom',
+    ]);
     expect(defaultDocument.paths).toHaveProperty('/health');
     expect(defaultDocument.paths).toHaveProperty('/health/live');
     expect(defaultDocument.paths).toHaveProperty('/health/ready');
@@ -906,6 +915,22 @@ describe('AppController (e2e)', () => {
     expect(defaultDocument.paths).toHaveProperty(
       '/api/v1/transport/route-snapshots/{routeSnapshotId}',
     );
+    expect(defaultDocument.paths).toHaveProperty('/api/v1/telecom/country-numbering-plans');
+    expect(defaultDocument.paths).toHaveProperty(
+      '/api/v1/telecom/country-numbering-plans/{countryNumberingPlanId}',
+    );
+    expect(defaultDocument.paths).toHaveProperty('/api/v1/telecom/operators');
+    expect(defaultDocument.paths).toHaveProperty('/api/v1/telecom/operators/{operatorId}');
+    expect(defaultDocument.paths).toHaveProperty('/api/v1/telecom/fixed-area-codes');
+    expect(defaultDocument.paths).toHaveProperty(
+      '/api/v1/telecom/fixed-area-codes/{fixedAreaCodeId}',
+    );
+    expect(defaultDocument.paths).toHaveProperty('/api/v1/telecom/mobile-prefixes');
+    expect(defaultDocument.paths).toHaveProperty(
+      '/api/v1/telecom/mobile-prefixes/{mobilePrefixId}',
+    );
+    expect(defaultDocument.paths).toHaveProperty('/api/v1/telecom/number-ranges');
+    expect(defaultDocument.paths).toHaveProperty('/api/v1/telecom/number-ranges/{numberRangeId}');
     expect(
       defaultDocument.components?.schemas?.DatasetSummaryListResponse_Output?.properties?.status
         ?.example,
@@ -1098,6 +1123,42 @@ describe('AppController (e2e)', () => {
       ]),
     );
     expect(transportDocument.paths).not.toHaveProperty('/api/v1/universities');
+    expect(telecomResponse.statusCode).toBe(200);
+    expect(telecomDocument.tags?.map((tag) => tag.name)).toEqual(['Health', 'Telecom']);
+    expect(telecomDocument.paths).toHaveProperty('/api/v1/telecom/country-numbering-plans');
+    expect(telecomDocument.paths).toHaveProperty(
+      '/api/v1/telecom/country-numbering-plans/{countryNumberingPlanId}',
+    );
+    expect(telecomDocument.paths).toHaveProperty('/api/v1/telecom/operators');
+    expect(telecomDocument.paths).toHaveProperty('/api/v1/telecom/operators/{operatorId}');
+    expect(telecomDocument.paths).toHaveProperty('/api/v1/telecom/fixed-area-codes');
+    expect(telecomDocument.paths).toHaveProperty(
+      '/api/v1/telecom/fixed-area-codes/{fixedAreaCodeId}',
+    );
+    expect(telecomDocument.paths).toHaveProperty('/api/v1/telecom/mobile-prefixes');
+    expect(telecomDocument.paths).toHaveProperty(
+      '/api/v1/telecom/mobile-prefixes/{mobilePrefixId}',
+    );
+    expect(telecomDocument.paths).toHaveProperty('/api/v1/telecom/number-ranges');
+    expect(telecomDocument.paths).toHaveProperty('/api/v1/telecom/number-ranges/{numberRangeId}');
+    expect(
+      getQueryParameters(telecomDocument.paths['/api/v1/telecom/mobile-prefixes']).map(
+        (parameter) => parameter.name,
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        'page',
+        'limit',
+        'q',
+        'order',
+        'prefix',
+        'dialingPrefix',
+        'operatorId',
+        'assignmentStatus',
+        'sourceStatus',
+      ]),
+    );
+    expect(telecomDocument.paths).not.toHaveProperty('/api/v1/transport/locations');
     expect(educationResponse.statusCode).toBe(404);
   });
 

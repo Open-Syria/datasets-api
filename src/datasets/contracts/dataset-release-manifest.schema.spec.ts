@@ -47,6 +47,17 @@ describe('datasetReleaseManifestSchema', () => {
           license: 'CC0-1.0',
         },
       ],
+      readiness: {
+        level: 'api_ready',
+        publicApi: {
+          status: 'approved',
+          minimumLevel: 'api_ready',
+          reason: 'Public endpoints are implemented and covered by API bridge checks.',
+        },
+        checks: [],
+        domains: [],
+        blockers: [],
+      },
     });
 
     expect(result.success).toBe(true);

@@ -167,9 +167,10 @@ opensyria-transport
 
 The governorates, districts, subdistricts, localities, universities, university
 assets, university rankings, transport locations, transport status snapshots,
-and transport route snapshots JSON artifacts may be either arrays of records or
-objects with an `items` array. Each record should match the matching public
-schema exposed by the API.
+transport route snapshots, telecom country numbering plans, telecom operators,
+telecom fixed area codes, telecom mobile prefixes, and telecom number ranges
+JSON artifacts may be either arrays of records or objects with an `items` array.
+Each record should match the matching public schema exposed by the API.
 
 The API should not parse CSV, SQL, YAML, XML, GeoJSON, or SQLite artifacts for runtime endpoint serving unless a future importer intentionally adds that support. Those artifacts are still useful in the manifest because clients can discover and verify public downloads from one release contract.
 
@@ -194,6 +195,20 @@ Lock-file entries may include `requiredReadiness`, for example:
   "tag": "v0.1.1",
   "requiredReadiness": {
     "minimumLevel": "public_directory_ready",
+    "publicApi": "approved"
+  }
+}
+```
+
+Telecom endpoint pins can require the stricter `api_ready` level:
+
+```json
+{
+  "owner": "Open-Syria",
+  "repository": "data-telecom",
+  "tag": "v0.1.0",
+  "requiredReadiness": {
+    "minimumLevel": "api_ready",
     "publicApi": "approved"
   }
 }

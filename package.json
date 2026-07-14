@@ -43,6 +43,8 @@
     "smoke:geography": "ts-node -r tsconfig-paths/register src/cli/smoke-geography-release.ts",
     "smoke:transport": "ts-node -r tsconfig-paths/register src/cli/smoke-transport-release.ts",
     "smoke:transport:prod": "node dist/cli/smoke-transport-release.js",
+    "smoke:telecom": "ts-node -r tsconfig-paths/register src/cli/smoke-telecom-release.ts",
+    "smoke:telecom:prod": "node dist/cli/smoke-telecom-release.js",
     "audit:prod": "pnpm audit --prod",
     "release:check": "node scripts/check-release.js",
     "release:check:public-api-bridge": "node scripts/check-public-api-bridge.js",

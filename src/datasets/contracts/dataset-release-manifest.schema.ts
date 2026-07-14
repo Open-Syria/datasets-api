@@ -9,6 +9,7 @@ export const datasetReadinessLevelSchema = z.enum([
   'identity_seed_ready',
   'public_directory_ready',
   'profile_ready',
+  'api_ready',
 ]);
 export const datasetPublicApiStatusSchema = z.enum(['not_approved', 'approved']);
 export const datasetArtifactFormatSchema = z.enum([

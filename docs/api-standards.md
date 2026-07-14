@@ -106,6 +106,8 @@ GET /api/v1/universities/:universityId
 GET /api/v1/transport/locations
 GET /api/v1/transport/status-snapshots
 GET /api/v1/transport/route-snapshots
+GET /api/v1/telecom/mobile-prefixes
+GET /api/v1/telecom/fixed-area-codes
 ```
 
 Avoid:
@@ -257,13 +259,13 @@ Releases
 Geography
 Universities
 Transport
+Telecom
 ```
 
 Reserved future tags:
 
 ```text
 Heritage
-Telecom
 Sources
 ```
 
@@ -692,6 +694,16 @@ api.responses.transport.statusSnapshotsFetched
 api.responses.transport.statusSnapshotFetched
 api.responses.transport.routeSnapshotsFetched
 api.responses.transport.routeSnapshotFetched
+api.responses.telecom.countryNumberingPlansFetched
+api.responses.telecom.countryNumberingPlanFetched
+api.responses.telecom.operatorsFetched
+api.responses.telecom.operatorFetched
+api.responses.telecom.fixedAreaCodesFetched
+api.responses.telecom.fixedAreaCodeFetched
+api.responses.telecom.mobilePrefixesFetched
+api.responses.telecom.mobilePrefixFetched
+api.responses.telecom.numberRangesFetched
+api.responses.telecom.numberRangeFetched
 api.errors.validationFailed
 api.errors.notFound
 api.errors.internalServerError
@@ -724,6 +736,7 @@ Core API        /openapi/core.json
 Geography API   /openapi/geography.json
 Universities API /openapi/universities.json
 Transport API   /openapi/transport.json
+Telecom API     /openapi/telecom.json
 ```
 
 Rules:

@@ -30,7 +30,7 @@ The manifest contract is documented in [`release-manifest.md`](./release-manifes
    - source attribution summary
 5. `datasets-api` is configured to consume specific release versions.
 6. During build, deploy, or a controlled sync step, the API downloads the manifests and artifacts, then verifies checksums and schema versions.
-7. Geography releases are imported into the PostgreSQL read model; universities and transport endpoints currently read verified JSON artifacts directly until domain-specific read models are added.
+7. Geography releases are imported into the PostgreSQL read model; universities, transport, and telecom endpoints currently read verified JSON artifacts directly until domain-specific read models are added.
 8. Runtime requests should not call GitHub for every request.
 
 ## Generated Exports
@@ -76,7 +76,7 @@ The loader also supports a direct release directory such as:
 
 In that mode, artifacts are resolved relative to the directory containing `release-manifest.json`. This is useful for local development before a dataset repository publishes a GitHub Release.
 
-For example, `GET /api/v1/geography/governorates` reads `artifacts/governorates.json`, `GET /api/v1/geography/districts` reads `artifacts/districts.json`, `GET /api/v1/geography/subdistricts` reads `artifacts/subdistricts.json`, and `GET /api/v1/geography/localities` reads `artifacts/localities.json`, when the active `opensyria-geography` manifest includes matching JSON artifacts. University endpoints read `artifacts/universities.json`, `artifacts/assets.json`, and `artifacts/rankings.json` from the active `opensyria-universities` manifest. Transport endpoints read `artifacts/locations.json`, `artifacts/status-snapshots.json`, and `artifacts/route-snapshots.json` from the active `opensyria-transport` manifest.
+For example, `GET /api/v1/geography/governorates` reads `artifacts/governorates.json`, `GET /api/v1/geography/districts` reads `artifacts/districts.json`, `GET /api/v1/geography/subdistricts` reads `artifacts/subdistricts.json`, and `GET /api/v1/geography/localities` reads `artifacts/localities.json`, when the active `opensyria-geography` manifest includes matching JSON artifacts. University endpoints read `artifacts/universities.json`, `artifacts/assets.json`, and `artifacts/rankings.json` from the active `opensyria-universities` manifest. Transport endpoints read `artifacts/locations.json`, `artifacts/status-snapshots.json`, and `artifacts/route-snapshots.json` from the active `opensyria-transport` manifest. Telecom endpoints read `artifacts/country-numbering-plans.json`, `artifacts/operators.json`, `artifacts/fixed-area-codes.json`, `artifacts/mobile-prefixes.json`, and `artifacts/number-ranges.json` from the active `opensyria-telecom` manifest.
 
 Before parsing an artifact, the API verifies:
 
@@ -88,7 +88,7 @@ Before parsing an artifact, the API verifies:
 Current public record schemas require record-level `sourceIds`, dated
 `sourceReferences`, and `sourceStatus`. Time-varying datasets may add domain
 records such as status snapshots, but provenance fields stay consistent across
-geography, universities, and transport.
+geography, universities, transport, and telecom.
 
 ## Syncing GitHub Releases
 
@@ -124,6 +124,15 @@ The lock file uses this shape:
       "tag": "v0.1.1",
       "requiredReadiness": {
         "minimumLevel": "public_directory_ready",
+        "publicApi": "approved"
+      }
+    },
+    {
+      "owner": "Open-Syria",
+      "repository": "data-telecom",
+      "tag": "v0.1.0",
+      "requiredReadiness": {
+        "minimumLevel": "api_ready",
         "publicApi": "approved"
       }
     }
@@ -169,7 +178,7 @@ Set `GEOGRAPHY_RELEASE_DIR` to use a different local release directory.
 
 ## Production Runtime
 
-Production deployments should sync pinned release artifacts, import geography into the database read model, and require release manifests before marking the API ready. Universities and transport are currently served from verified JSON artifacts after manifest, checksum, size, and schema validation.
+Production deployments should sync pinned release artifacts, import geography into the database read model, and require release manifests before marking the API ready. Universities, transport, and telecom are currently served from verified JSON artifacts after manifest, checksum, size, and schema validation.
 
 The current production dataset releases are:
 
@@ -177,6 +186,7 @@ The current production dataset releases are:
 Open-Syria/data-geography@v0.1.4
 Open-Syria/data-universities@v0.2.2
 Open-Syria/data-transport@v0.1.1
+Open-Syria/data-telecom@v0.1.0
 ```
 
 The source of truth for this pin is `dataset-releases.json`; CI release checks
@@ -207,11 +217,20 @@ responses against the prepared release:
 pnpm run smoke:transport
 ```
 
+For telecom, verify the country numbering plan, operators, fixed area codes,
+mobile prefixes, number ranges, dataset discovery, and `/openapi/telecom.json`
+responses against the prepared release:
+
+```bash
+pnpm run smoke:telecom
+```
+
 In the production runtime image, use the compiled smoke command after syncing
 pinned releases:
 
 ```bash
 TRANSPORT_RELEASE_DIR=data/releases/transport/v0.1.1 pnpm run smoke:transport:prod
+TELECOM_RELEASE_DIR=data/releases/telecom/v0.1.0 pnpm run smoke:telecom:prod
 ```
 
 ## Why Not Read `main` Directly?
