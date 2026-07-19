@@ -107,7 +107,7 @@ The lock file uses this shape:
     {
       "owner": "Open-Syria",
       "repository": "data-geography",
-      "tag": "v0.1.4"
+      "tag": "v0.1.5"
     },
     {
       "owner": "Open-Syria",
@@ -142,7 +142,7 @@ The lock file uses this shape:
 
 For one-off operations, set `DATASETS_RELEASE_SOURCES_OVERRIDE=true` and pass a
 comma-separated `DATASETS_RELEASE_SOURCES` value such as
-`Open-Syria/data-geography@v0.1.4,Open-Syria/another-dataset@v0.1.0`.
+`Open-Syria/data-geography@v0.1.5,Open-Syria/another-dataset@v0.1.0`.
 
 The sync command:
 
@@ -183,7 +183,7 @@ Production deployments should sync pinned release artifacts, import geography in
 The current production dataset releases are:
 
 ```text
-Open-Syria/data-geography@v0.1.4
+Open-Syria/data-geography@v0.1.5
 Open-Syria/data-universities@v0.2.2
 Open-Syria/data-transport@v0.1.1
 Open-Syria/data-telecom@v0.1.0

@@ -29,8 +29,8 @@ Run these from a full checkout or CI release job with dev dependencies installed
 ```bash
 pnpm install --frozen-lockfile
 pnpm run release:check -- \
-  --geography-release v0.1.4 \
-  --dataset-sources Open-Syria/data-geography@v0.1.4,Open-Syria/data-universities@v0.2.2,Open-Syria/data-transport@v0.1.1,Open-Syria/data-telecom@v0.1.0 \
+  --geography-release v0.1.5 \
+  --dataset-sources Open-Syria/data-geography@v0.1.5,Open-Syria/data-universities@v0.2.2,Open-Syria/data-transport@v0.1.1,Open-Syria/data-telecom@v0.1.0 \
   --require-all-dataset-sources
 pnpm run db:migrate:deploy
 pnpm run datasets:sync

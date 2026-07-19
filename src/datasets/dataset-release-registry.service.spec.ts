@@ -74,7 +74,7 @@ describe('DatasetReleaseRegistryService', () => {
   it('keeps the newest manifest per dataset when multiple release versions are present', async () => {
     const service = createService([
       createRegistration(createManifest({ version: 'v0.1.0' })),
-      createRegistration(createManifest({ version: 'v0.1.4' })),
+      createRegistration(createManifest({ version: 'v0.1.5' })),
       createRegistration(
         createManifest({
           category: 'education',
@@ -94,7 +94,7 @@ describe('DatasetReleaseRegistryService', () => {
       'opensyria-geography',
       'opensyria-universities',
     ]);
-    expect(service.getManifestByDatasetId('opensyria-geography')?.release.version).toBe('v0.1.4');
+    expect(service.getManifestByDatasetId('opensyria-geography')?.release.version).toBe('v0.1.5');
   });
 
   it('uses timestamps as a tie-breaker when versions match', async () => {
@@ -102,13 +102,13 @@ describe('DatasetReleaseRegistryService', () => {
       createRegistration(
         createManifest({
           generatedAt: '2026-06-28T00:00:00.000Z',
-          version: 'v0.1.4',
+          version: 'v0.1.5',
         }),
       ),
       createRegistration(
         createManifest({
           generatedAt: '2026-06-29T00:00:00.000Z',
-          version: 'v0.1.4',
+          version: 'v0.1.5',
         }),
       ),
     ]);

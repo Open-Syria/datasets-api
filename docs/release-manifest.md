@@ -46,9 +46,9 @@ The current manifest schema version is:
     }
   },
   "release": {
-    "version": "v0.1.4",
+    "version": "v0.1.5",
     "status": "released",
-    "publishedAt": "2026-07-08T00:00:00.000Z",
+    "publishedAt": "2026-07-19T00:00:00.000Z",
     "notes": "Verified geography release with dated record-level provenance."
   },
   "artifacts": [
@@ -56,7 +56,7 @@ The current manifest schema version is:
       "name": "governorates",
       "format": "json",
       "path": "artifacts/governorates.json",
-      "url": "https://github.com/Open-Syria/data-geography/releases/download/v0.1.4/governorates.json",
+      "url": "https://github.com/Open-Syria/data-geography/releases/download/v0.1.5/governorates.json",
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
       "sizeBytes": 1024,
       "recordCount": 14,

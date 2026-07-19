@@ -24,9 +24,9 @@ const geographyManifest: DatasetReleaseManifest = {
     },
   },
   release: {
-    version: 'v0.1.4',
+    version: 'v0.1.5',
     status: 'released',
-    publishedAt: '2026-07-08T00:00:00.000Z',
+    publishedAt: '2026-07-19T00:00:00.000Z',
     notes: 'Released geography fixture.',
   },
   artifacts: [],
@@ -106,8 +106,8 @@ describe('DatasetsService', () => {
     expect(result.items[0]).toMatchObject({
       id: 'opensyria-geography',
       status: 'released',
-      version: 'v0.1.4',
-      updatedAt: '2026-07-08T00:00:00.000Z',
+      version: 'v0.1.5',
+      updatedAt: '2026-07-19T00:00:00.000Z',
     });
     expect(result.items.find((item) => item.id === 'opensyria-universities')).toMatchObject({
       id: 'opensyria-universities',

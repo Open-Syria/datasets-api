@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  GEOGRAPHY_RELEASE: v0.1.4
+  GEOGRAPHY_RELEASE: v0.1.5
   UNIVERSITIES_RELEASE: v0.2.2
   TRANSPORT_RELEASE: v0.1.1
   TELECOM_RELEASE: v0.1.0
