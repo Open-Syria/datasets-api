@@ -7,6 +7,18 @@
 * expose transport locations, status snapshots, and route snapshots through public API endpoints
 * add transport OpenAPI, dataset discovery, release pin, and fixture-backed e2e coverage
 
+## [0.3.0](https://github.com/Open-Syria/datasets-api/compare/v0.2.1...v0.3.0) (2026-07-19)
+
+
+### Features
+
+* expose telecom dataset endpoints ([da3f06c](https://github.com/Open-Syria/datasets-api/commit/da3f06c25992cfad26caa27f00dc22233154897c))
+
+
+### Bug Fixes
+
+* pin geography dataset v0.1.5 ([28ba890](https://github.com/Open-Syria/datasets-api/commit/28ba890ba5aa307211d9fda4ec235ae0ab39b1d5))
+
 ## [0.2.1](https://github.com/Open-Syria/datasets-api/compare/v0.2.0...v0.2.1) (2026-07-08)
 
 
