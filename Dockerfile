@@ -11,23 +11,28 @@ RUN corepack enable pnpm
 
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 FROM deps AS build
 COPY . .
 RUN pnpm run build
 
-FROM deps AS migrations
+FROM base AS production-deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+  pnpm install --prod --frozen-lockfile --ignore-scripts
+
+FROM production-deps AS migrations
 ENV NODE_ENV=production
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+  pnpm add --save-prod --prod --save-exact --ignore-scripts prisma@7.9.0
 COPY prisma ./prisma
 COPY prisma.config.ts tsconfig.json ./
 COPY src/config/load-env.ts ./src/config/load-env.ts
 CMD ["pnpm", "run", "db:migrate:deploy"]
 
-FROM base AS runtime
+FROM production-deps AS runtime
 ENV NODE_ENV=production
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --prod --frozen-lockfile --ignore-scripts
 COPY --from=build /app/dist ./dist
 COPY dataset-releases.json ./
 COPY public ./public

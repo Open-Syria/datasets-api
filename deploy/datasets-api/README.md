@@ -21,3 +21,7 @@ every artifact-backed dataset collection and filtered OpenAPI document, starts
 the inactive API slot, checks readiness, reloads nginx to the new slot, and
 stops the old slot after a short drain. The GitHub workflow then verifies the
 same pins through the public `https://api.opensyria.org` ingress.
+
+Runtime and migration images share their production dependency layer. Registry
+authentication is refreshed between image pulls, and transient pull failures
+are retried before migrations begin.

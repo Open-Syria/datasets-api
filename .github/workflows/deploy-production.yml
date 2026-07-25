@@ -179,7 +179,7 @@ jobs:
     name: Deploy To opensyria-prod
     needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     environment:
       name: production
       url: https://api.opensyria.org/health

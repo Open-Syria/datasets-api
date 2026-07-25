@@ -32,6 +32,41 @@ cleanup() {
 
 trap cleanup EXIT
 
+login_to_ghcr() {
+  if [ -z "${GHCR_USERNAME:-}" ] || [ -z "${GHCR_TOKEN:-}" ]; then
+    return 0
+  fi
+
+  if [ "$ghcr_logged_in" -eq 1 ]; then
+    docker logout ghcr.io >/dev/null 2>&1 || true
+  fi
+
+  printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
+  ghcr_logged_in=1
+}
+
+pull_image() {
+  image="$1"
+  max_attempts="${IMAGE_PULL_ATTEMPTS:-3}"
+  attempt=1
+
+  while true; do
+    if docker pull "$image"; then
+      return 0
+    fi
+
+    if [ "$attempt" -ge "$max_attempts" ]; then
+      echo "Failed to pull $image after $attempt attempt(s)." >&2
+      return 1
+    fi
+
+    echo "Image pull failed for $image; refreshing registry authentication before retry $((attempt + 1))/$max_attempts." >&2
+    login_to_ghcr
+    sleep "$((attempt * 5))"
+    attempt=$((attempt + 1))
+  done
+}
+
 set_env_var() {
   key="$1"
   value="$2"
@@ -112,10 +147,7 @@ set_env_var "MIGRATIONS_IMAGE" "$migrations_image"
 
 write_upstream "${current_slot:-$target_slot}"
 
-if [ -n "${GHCR_USERNAME:-}" ] && [ -n "${GHCR_TOKEN:-}" ]; then
-  printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
-  ghcr_logged_in=1
-fi
+login_to_ghcr
 
 docker compose config --quiet
 
@@ -127,8 +159,9 @@ docker compose up -d postgres redis proxy
 wait_for_service_health postgres 180
 wait_for_service_health redis 120
 
-docker pull "$migrations_image"
-docker pull "$runtime_image"
+pull_image "$migrations_image"
+login_to_ghcr
+pull_image "$runtime_image"
 
 docker compose --profile ops run --rm migrate
 docker compose run --rm --no-deps "api-$target_slot" pnpm run datasets:sync:prod

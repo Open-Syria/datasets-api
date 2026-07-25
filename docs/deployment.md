@@ -205,6 +205,10 @@ ghcr.io/open-syria/datasets-api:main-migrations
 ```
 
 The server pulls the SHA-pinned tags produced by the current workflow run.
+Runtime and migration images share the production dependency layer so a cold
+host does not download two independent dependency graphs. The deploy script
+refreshes GHCR authentication between images and retries transient pull
+failures before any migration or traffic switch.
 
 Required production environment secrets:
 
