@@ -14,6 +14,7 @@
 * stage verified JSON-only release syncs and reject mismatched release identities
 * verify the public production ingress after blue/green deployment
 * update vulnerable runtime dependencies, constrain patched transitives, and audit the complete graph during validation
+* share production image layers, refresh and retry registry pulls, and allow bounded cold ARM pulls to finish
 
 ## [0.2.1](https://github.com/Open-Syria/datasets-api/compare/v0.2.0...v0.2.1) (2026-07-08)
 
