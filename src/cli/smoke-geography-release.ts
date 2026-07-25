@@ -1,4 +1,4 @@
-import { access } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import type { Type } from '@nestjs/common';
@@ -53,9 +53,16 @@ const expectedTotals = [
   },
 ];
 
-async function assertDirectoryExists(directory: string) {
+async function readReleaseSource(directory: string) {
   try {
-    await access(path.join(directory, 'release-manifest.json'));
+    const manifest = JSON.parse(
+      await readFile(path.join(directory, 'release-manifest.json'), 'utf8'),
+    ) as {
+      dataset: { repository: string };
+      release: { version: string };
+    };
+
+    return `Open-Syria/${manifest.dataset.repository}@${manifest.release.version}`;
   } catch {
     throw new Error(
       `No release-manifest.json found in ${directory}. Run the data-geography release build first, or set GEOGRAPHY_RELEASE_DIR.`,
@@ -132,12 +139,14 @@ async function main() {
     process.env.GEOGRAPHY_RELEASE_DIR ?? '../data-geography/dist/release',
   );
 
-  await assertDirectoryExists(releaseDirectory);
+  const releaseSource = await readReleaseSource(releaseDirectory);
 
   process.env.NODE_ENV = 'test';
   process.env.APP_DOCS_ENABLED = 'false';
   process.env.DATASETS_RELEASES_DIR = releaseDirectory;
   process.env.DATASETS_REQUIRE_RELEASES = 'true';
+  process.env.DATASETS_RELEASE_SOURCES = releaseSource;
+  process.env.DATASETS_RELEASE_SOURCES_OVERRIDE = 'true';
 
   const { AppModule } = requireFromSmokeScript('../app.module') as { AppModule: Type<unknown> };
   const app = await createApp(AppModule);

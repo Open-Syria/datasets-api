@@ -29,7 +29,9 @@ The manifest contract is documented in [`release-manifest.md`](./release-manifes
    - schema version
    - source attribution summary
 5. `datasets-api` is configured to consume specific release versions.
-6. During build, deploy, or a controlled sync step, the API downloads the manifests and artifacts, then verifies checksums and schema versions.
+6. During build, deploy, or a controlled sync step, the API verifies GitHub tag,
+   manifest repository/version/status, readiness, and every JSON artifact before
+   publishing a staged local release directory.
 7. Geography releases are imported into the PostgreSQL read model; universities, transport, and telecom endpoints currently read verified JSON artifacts directly until domain-specific read models are added.
 8. Runtime requests should not call GitHub for every request.
 
@@ -60,7 +62,11 @@ The local loader reads release manifests and JSON artifacts from:
 DATASETS_RELEASES_DIR=data/releases
 ```
 
-It recursively searches for files named `release-manifest.json`, validates them with the Zod manifest contract, and registers them in memory for API services to consume.
+It recursively searches for files named `release-manifest.json`, validates them
+with the strict Zod manifest contract, and registers them in memory for API
+services to consume. When release sources are configured, the registry selects
+only the exact repository/tag pins; newer files retained in the release volume
+cannot silently advance or defeat a rollback.
 
 Runtime dataset endpoints then resolve artifacts from the synced release layout:
 
@@ -149,9 +155,11 @@ The sync command:
 - fetches each pinned GitHub Release,
 - downloads `release-manifest.json`,
 - validates the manifest schema,
-- downloads artifacts listed by the manifest,
+- downloads only JSON ingestion artifacts while retaining all public artifact
+  metadata in the manifest,
 - verifies artifact SHA-256 checksums and file sizes,
-- writes the verified files under `DATASETS_RELEASES_DIR`.
+- writes the manifest only after all selected artifacts verify, then promotes
+  the staged directory under `DATASETS_RELEASES_DIR`.
 
 Set `DATASETS_SYNC_DOWNLOAD_ARTIFACTS=false` to sync manifests only.
 
@@ -179,6 +187,11 @@ Set `GEOGRAPHY_RELEASE_DIR` to use a different local release directory.
 ## Production Runtime
 
 Production deployments should sync pinned release artifacts, import geography into the database read model, and require release manifests before marking the API ready. Universities, transport, and telecom are currently served from verified JSON artifacts after manifest, checksum, size, and schema validation.
+
+When `DATASETS_REQUIRE_RELEASES=true`, startup fails if even one configured
+repository/tag is absent. Health exposes the loaded `count`, configured
+`expectedCount`, and `missing` source labels; a partial set is `incomplete`, not
+`loaded`.
 
 The current production dataset releases are:
 
@@ -225,13 +238,15 @@ responses against the prepared release:
 pnpm run smoke:telecom
 ```
 
-In the production runtime image, use the compiled smoke command after syncing
-pinned releases:
+In the production runtime image, verify the complete lock after syncing pinned
+releases:
 
 ```bash
-TRANSPORT_RELEASE_DIR=data/releases/transport/v0.1.1 pnpm run smoke:transport:prod
-TELECOM_RELEASE_DIR=data/releases/telecom/v0.1.0 pnpm run smoke:telecom:prod
+pnpm run smoke:datasets:prod
 ```
+
+The deployment workflow repeats an equivalent check through the public API host
+after the private blue/green health check.
 
 ## Why Not Read `main` Directly?
 

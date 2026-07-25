@@ -54,10 +54,22 @@ function createRegistration(manifest: DatasetReleaseManifest): LoadedDatasetRele
   };
 }
 
-function createService(registrations: LoadedDatasetReleaseManifest[]) {
+function createService(
+  registrations: LoadedDatasetReleaseManifest[],
+  config: {
+    releaseSources?: Array<{
+      owner: string;
+      repository: string;
+      tag: string;
+    }>;
+    requireReleases?: boolean;
+  } = {},
+) {
   const configService: ConfigServiceMock = {
     getOrThrow: jest.fn(() => ({
-      requireReleases: false,
+      releasesDirectory: 'data/releases',
+      releaseSources: config.releaseSources ?? [],
+      requireReleases: config.requireReleases ?? false,
     })),
   };
   const localDatasetManifestLoader: LocalDatasetManifestLoaderMock = {
@@ -117,6 +129,84 @@ describe('DatasetReleaseRegistryService', () => {
 
     expect(service.getManifestByDatasetId('opensyria-geography')?.generatedAt).toBe(
       '2026-06-29T00:00:00.000Z',
+    );
+  });
+
+  it('loads the exact configured repository and tag instead of a newer cached release', async () => {
+    const service = createService(
+      [
+        createRegistration(createManifest({ version: 'v0.1.5' })),
+        createRegistration(createManifest({ version: 'v0.2.0' })),
+      ],
+      {
+        releaseSources: [
+          {
+            owner: 'Open-Syria',
+            repository: 'data-geography',
+            tag: 'v0.1.5',
+          },
+        ],
+      },
+    );
+
+    await service.onModuleInit();
+
+    expect(service.getManifestByDatasetId('opensyria-geography')?.release.version).toBe('v0.1.5');
+    expect(service.getHealth()).toEqual({
+      status: 'loaded',
+      required: false,
+      count: 1,
+      expectedCount: 1,
+      missing: [],
+    });
+  });
+
+  it('reports every missing configured release when releases are optional', async () => {
+    const service = createService([createRegistration(createManifest({ version: 'v0.1.5' }))], {
+      releaseSources: [
+        {
+          owner: 'Open-Syria',
+          repository: 'data-geography',
+          tag: 'v0.1.5',
+        },
+        {
+          owner: 'Open-Syria',
+          repository: 'data-telecom',
+          tag: 'v0.1.0',
+        },
+      ],
+    });
+
+    await service.onModuleInit();
+
+    expect(service.getHealth()).toEqual({
+      status: 'incomplete',
+      required: false,
+      count: 1,
+      expectedCount: 2,
+      missing: ['Open-Syria/data-telecom@v0.1.0'],
+    });
+  });
+
+  it('refuses to start when any required configured release is missing', async () => {
+    const service = createService([createRegistration(createManifest({ version: 'v0.1.5' }))], {
+      releaseSources: [
+        {
+          owner: 'Open-Syria',
+          repository: 'data-geography',
+          tag: 'v0.1.5',
+        },
+        {
+          owner: 'Open-Syria',
+          repository: 'data-telecom',
+          tag: 'v0.1.0',
+        },
+      ],
+      requireReleases: true,
+    });
+
+    await expect(service.onModuleInit()).rejects.toThrow(
+      'Missing configured dataset releases in data/releases: Open-Syria/data-telecom@v0.1.0',
     );
   });
 });

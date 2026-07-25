@@ -43,6 +43,8 @@ The goal is that every endpoint looks and behaves like it belongs to the same AP
 - Use shared Swagger decorators instead of writing raw `@ApiResponse()` blocks in every controller.
 - Localize response messages through i18n keys and provide English fallback messages.
 - Keep canonical dataset names and aliases in the data model; do not invent translations in i18n files.
+- Health release status must distinguish `loaded`, `incomplete`, `missing`, and
+  `not_required`, and expose loaded count, expected count, and missing pins.
 
 ## File Naming
 

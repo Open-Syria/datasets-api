@@ -1,5 +1,5 @@
-import { createHash } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { createHash, randomUUID } from 'node:crypto';
+import { mkdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
 import {
@@ -26,6 +26,8 @@ const githubReleaseAssetSchema = z.object({
 
 const githubReleaseSchema = z.object({
   tag_name: z.string(),
+  draft: z.boolean(),
+  prerelease: z.boolean(),
   assets: z.array(githubReleaseAssetSchema),
 });
 
@@ -95,6 +97,14 @@ function formatUnknownError(error: unknown): string {
   return String(error);
 }
 
+function getNodeErrorCode(error: unknown): string | undefined {
+  if (typeof error !== 'object' || error === null || !('code' in error)) {
+    return undefined;
+  }
+
+  return typeof error.code === 'string' ? error.code : undefined;
+}
+
 function getRetryDelay(attempt: number, baseDelayMs: number) {
   return baseDelayMs * 2 ** (attempt - 1);
 }
@@ -142,6 +152,7 @@ export class GitHubReleaseSyncService {
       JSON.parse(manifestBuffer.toString('utf8')),
     );
 
+    this.assertReleaseIdentity(source, release, manifest);
     this.assertReadiness(source, manifest);
 
     const releaseDirectory = resolveDatasetReleaseDirectory(
@@ -149,27 +160,35 @@ export class GitHubReleaseSyncService {
       manifest,
     );
     const manifestPath = safeResolveDatasetReleasePath(releaseDirectory, RELEASE_MANIFEST_FILE);
+    const stagingDirectory = path.join(
+      path.dirname(releaseDirectory),
+      `.${path.basename(releaseDirectory)}.sync-${randomUUID()}`,
+    );
 
-    await mkdir(path.dirname(manifestPath), { recursive: true });
-    await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
+    await mkdir(stagingDirectory, { recursive: true });
 
-    if (!this.options.downloadArtifacts) {
+    try {
+      const artifactsDownloaded = this.options.downloadArtifacts
+        ? await this.downloadArtifacts(release, manifest, stagingDirectory)
+        : 0;
+      const stagingManifestPath = safeResolveDatasetReleasePath(
+        stagingDirectory,
+        RELEASE_MANIFEST_FILE,
+      );
+
+      await writeFile(stagingManifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+      await this.replaceReleaseDirectory(stagingDirectory, releaseDirectory);
+
       return {
-        source: formatDatasetReleaseSource(source),
+        source: sourceLabel,
         manifestPath,
-        artifactsDownloaded: 0,
-        artifactsSkipped: manifest.artifacts.length,
+        artifactsDownloaded,
+        artifactsSkipped: manifest.artifacts.length - artifactsDownloaded,
       };
+    } catch (error) {
+      await rm(stagingDirectory, { force: true, recursive: true });
+      throw error;
     }
-
-    const artifactsDownloaded = await this.downloadArtifacts(release, manifest, releaseDirectory);
-
-    return {
-      source: formatDatasetReleaseSource(source),
-      manifestPath,
-      artifactsDownloaded,
-      artifactsSkipped: manifest.artifacts.length - artifactsDownloaded,
-    };
   }
 
   private async downloadArtifacts(
@@ -179,13 +198,20 @@ export class GitHubReleaseSyncService {
   ) {
     let downloaded = 0;
 
-    for (const artifact of manifest.artifacts) {
+    for (const artifact of manifest.artifacts.filter(({ format }) => format === 'json')) {
       const assetName = getArtifactAssetName(artifact);
       const asset = this.getRequiredAsset(release, assetName, {
         owner: manifest.dataset.repository,
         repository: manifest.dataset.repository,
         tag: manifest.release.version,
       });
+
+      if (asset.size !== artifact.sizeBytes) {
+        throw new Error(
+          `GitHub asset size mismatch for ${assetName}: expected ${artifact.sizeBytes}, got ${asset.size}`,
+        );
+      }
+
       const artifactBuffer = await this.downloadAsset(
         asset.browser_download_url,
         `${manifest.dataset.repository}@${manifest.release.version} ${assetName}`,
@@ -212,6 +238,75 @@ export class GitHubReleaseSyncService {
     }
 
     return downloaded;
+  }
+
+  private assertReleaseIdentity(
+    source: DatasetReleaseSource,
+    release: GitHubRelease,
+    manifest: DatasetReleaseManifest,
+  ) {
+    const sourceLabel = formatDatasetReleaseSource(source);
+
+    if (release.tag_name !== source.tag) {
+      throw new Error(
+        `${sourceLabel} returned GitHub release tag ${release.tag_name}, expected ${source.tag}`,
+      );
+    }
+
+    if (release.draft || release.prerelease) {
+      throw new Error(`${sourceLabel} must be a published, non-prerelease GitHub release`);
+    }
+
+    if (manifest.dataset.repository !== source.repository) {
+      throw new Error(
+        `${sourceLabel} manifest repository is ${manifest.dataset.repository}, expected ${source.repository}`,
+      );
+    }
+
+    if (manifest.release.version !== source.tag) {
+      throw new Error(
+        `${sourceLabel} manifest version is ${manifest.release.version}, expected ${source.tag}`,
+      );
+    }
+
+    if (manifest.release.status !== 'released') {
+      throw new Error(
+        `${sourceLabel} manifest status is ${manifest.release.status}, expected released`,
+      );
+    }
+  }
+
+  private async replaceReleaseDirectory(stagingDirectory: string, releaseDirectory: string) {
+    const backupDirectory = path.join(
+      path.dirname(releaseDirectory),
+      `.${path.basename(releaseDirectory)}.backup-${randomUUID()}`,
+    );
+    let hasBackup = false;
+
+    await mkdir(path.dirname(releaseDirectory), { recursive: true });
+
+    try {
+      await rename(releaseDirectory, backupDirectory);
+      hasBackup = true;
+    } catch (error) {
+      if (getNodeErrorCode(error) !== 'ENOENT') {
+        throw error;
+      }
+    }
+
+    try {
+      await rename(stagingDirectory, releaseDirectory);
+    } catch (error) {
+      if (hasBackup) {
+        await rename(backupDirectory, releaseDirectory);
+      }
+
+      throw error;
+    }
+
+    if (hasBackup) {
+      await rm(backupDirectory, { force: true, recursive: true });
+    }
   }
 
   private assertReadiness(source: DatasetReleaseSource, manifest: DatasetReleaseManifest) {

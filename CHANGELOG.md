@@ -6,6 +6,14 @@
 
 * expose transport locations, status snapshots, and route snapshots through public API endpoints
 * add transport OpenAPI, dataset discovery, release pin, and fixture-backed e2e coverage
+* verify every exact dataset pin, collection endpoint, and filtered OpenAPI document during deployment
+
+### Bug Fixes
+
+* prevent partial or newer cached dataset releases from being reported as the configured production set
+* stage verified JSON-only release syncs and reject mismatched release identities
+* verify the public production ingress after blue/green deployment
+* update vulnerable runtime dependencies, constrain patched transitives, and audit the complete graph during validation
 
 ## [0.2.1](https://github.com/Open-Syria/datasets-api/compare/v0.2.0...v0.2.1) (2026-07-08)
 

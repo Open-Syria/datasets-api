@@ -105,7 +105,12 @@ The current manifest schema version is:
 
 - `schemaVersion` must match the API-supported manifest schema.
 - `dataset.id` must be stable across releases.
-- `release.version` should match the GitHub Release tag.
+- `release.version` must be a `v`-prefixed SemVer tag and match both the
+  configured pin and GitHub Release tag.
+- Released manifests must have a non-null `release.publishedAt`.
+- `dataset.repository` must match the configured repository.
+- Manifest objects reject undeclared fields, and artifact paths plus
+  name/format pairs must be unique.
 - Artifact `sha256` must be the lowercase 64-character hex checksum of the file.
 - Artifact `url` should point to an immutable release asset, not a branch file.
 - `sources` must describe the reusable sources behind the release.
@@ -124,6 +129,8 @@ data/releases
 ```
 
 The local loader recursively searches for files named `release-manifest.json`.
+Configured sources select exact repository/tag matches; cached newer releases
+are ignored rather than selected automatically.
 
 JSON artifacts are resolved relative to the release directory that contains the manifest. The first supported endpoint artifacts are:
 
@@ -214,12 +221,18 @@ Telecom endpoint pins can require the stricter `api_ready` level:
 }
 ```
 
-When present, sync fails if the manifest omits readiness metadata, has a lower
-readiness level, or declares a different public API status. The release check
+Sync also fails for draft/prerelease GitHub releases, a mismatched GitHub tag,
+manifest repository, manifest version, or non-released status. When readiness
+requirements are present, sync fails if the manifest omits readiness metadata,
+has a lower readiness level, or declares a different public API status. The release check
 also boots the built API and verifies approved datasets against their public
 endpoint contract, so a dataset cannot be marked API-approved while missing
 controllers or generated docs.
 
-The command expects every pinned release to include `release-manifest.json` as a release asset. Artifact files listed in the manifest are matched by the basename of `artifacts[].path`.
+The command expects every pinned release to include `release-manifest.json` as a
+release asset. JSON artifact files are matched by the basename of
+`artifacts[].path`, verified in a staging directory, and promoted only after the
+complete selected set succeeds. Other formats remain discoverable through the
+manifest without being copied into the API runtime volume.
 
 Runtime HTTP requests should still read local verified data, not GitHub directly.
