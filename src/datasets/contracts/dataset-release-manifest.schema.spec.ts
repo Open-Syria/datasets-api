@@ -7,7 +7,7 @@ describe('datasetReleaseManifestSchema', () => {
   it('parses a valid release manifest', () => {
     const result = datasetReleaseManifestSchema.safeParse({
       schemaVersion: datasetReleaseManifestSchemaVersion,
-      generatedAt: '2026-06-27T00:00:00.000Z',
+      generatedAt: '2026-06-27T03:00:00.000+03:00',
       dataset: {
         id: 'opensyria-geography',
         slug: 'geography',
@@ -20,7 +20,7 @@ describe('datasetReleaseManifestSchema', () => {
       release: {
         version: 'v0.1.0',
         status: 'released',
-        publishedAt: '2026-06-27T00:00:00.000Z',
+        publishedAt: '2026-06-27T03:00:00.000+03:00',
       },
       artifacts: [
         {
@@ -45,6 +45,7 @@ describe('datasetReleaseManifestSchema', () => {
           id: 'source-1',
           title: 'Example source',
           license: 'CC0-1.0',
+          accessedAt: '2026-06-27T03:00:00.000+03:00',
         },
       ],
       readiness: {
@@ -61,5 +62,69 @@ describe('datasetReleaseManifestSchema', () => {
     });
 
     expect(result.success).toBe(true);
+  });
+
+  it('rejects released manifests without a publication timestamp', () => {
+    const result = datasetReleaseManifestSchema.safeParse({
+      schemaVersion: datasetReleaseManifestSchemaVersion,
+      generatedAt: '2026-06-27T00:00:00.000Z',
+      dataset: {
+        id: 'opensyria-geography',
+        slug: 'geography',
+        repository: 'data-geography',
+        category: 'geography',
+        title: {
+          en: 'Administrative Geography',
+        },
+      },
+      release: {
+        version: 'v0.1.0',
+        status: 'released',
+        publishedAt: null,
+      },
+      artifacts: [],
+      sources: [],
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects duplicate artifact paths', () => {
+    const artifact = {
+      name: 'governorates',
+      format: 'json',
+      path: 'artifacts/governorates.json',
+      sha256: '0'.repeat(64),
+      sizeBytes: 1024,
+      recordCount: 14,
+    };
+    const result = datasetReleaseManifestSchema.safeParse({
+      schemaVersion: datasetReleaseManifestSchemaVersion,
+      generatedAt: '2026-06-27T00:00:00.000Z',
+      dataset: {
+        id: 'opensyria-geography',
+        slug: 'geography',
+        repository: 'data-geography',
+        category: 'geography',
+        title: {
+          en: 'Administrative Geography',
+        },
+      },
+      release: {
+        version: 'v0.1.0',
+        status: 'released',
+        publishedAt: '2026-06-27T00:00:00.000Z',
+      },
+      artifacts: [
+        artifact,
+        {
+          ...artifact,
+          name: 'districts',
+        },
+      ],
+      sources: [],
+    });
+
+    expect(result.success).toBe(false);
   });
 });

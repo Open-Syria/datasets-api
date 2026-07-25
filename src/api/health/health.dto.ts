@@ -19,9 +19,11 @@ export const redisHealthStatusSchema = z.discriminatedUnion('status', [
 ]);
 
 export const datasetReleasesHealthStatusSchema = z.object({
-  status: z.enum(['loaded', 'missing', 'not_required']),
+  status: z.enum(['loaded', 'incomplete', 'missing', 'not_required']),
   required: z.boolean(),
   count: z.number().int().nonnegative(),
+  expectedCount: z.number().int().nonnegative(),
+  missing: z.array(z.string()),
 });
 
 export const databaseHealthStatusSchema = z.discriminatedUnion('status', [

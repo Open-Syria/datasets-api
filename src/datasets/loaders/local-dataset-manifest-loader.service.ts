@@ -43,6 +43,10 @@ async function findManifestFiles(directory: string): Promise<string[]> {
     const entryPath = path.join(directory, entry.name);
 
     if (entry.isDirectory()) {
+      if (entry.name.startsWith('.')) {
+        continue;
+      }
+
       manifestFiles.push(...(await findManifestFiles(entryPath)));
       continue;
     }

@@ -322,10 +322,6 @@ function assertGeographyReleaseReferences(geographyReleaseTag, datasetSources, r
     ['docs/dataset-loading.md', 'src/datasets/sync/dataset-release-source.utils.spec.ts'],
     expectedSource,
   );
-  assertFilesContain(
-    ['.github/workflows/deploy-production.yml'],
-    `GEOGRAPHY_RELEASE: ${geographyReleaseTag}`,
-  );
 
   const lockSource = findDatasetSource(releaseLockSources, 'Open-Syria', 'data-geography');
 
@@ -379,6 +375,8 @@ function assertProductionScripts(packageJson) {
     'datasets:sync:prod',
     'read-model:import:geography:prod',
     'read-model:refresh:geography:prod',
+    'smoke:datasets:prod',
+    'production:check',
   ];
 
   for (const script of requiredScripts) {
@@ -397,7 +395,7 @@ function assertDistRuntimeFiles() {
     'dist/i18n/messages/ar/api.json',
     'dist/cli/sync-dataset-releases.js',
     'dist/cli/import-geography-read-model.js',
-    'dist/cli/smoke-telecom-release.js',
+    'dist/cli/smoke-dataset-releases.js',
   ]) {
     assertExists(relativePath);
   }
@@ -427,10 +425,13 @@ function main() {
   assertDockerfileReadiness();
   const releaseLockSources = readDatasetReleaseLockSources();
 
-  const datasetSources = parseDatasetSources(
-    options.get('dataset-sources') ?? process.env.DATASETS_RELEASE_SOURCES,
-  );
-  const requireAllDatasetSources = Boolean(options.get('require-all-dataset-sources'));
+  const explicitDatasetSources =
+    options.get('dataset-sources') ?? process.env.DATASETS_RELEASE_SOURCES;
+  const datasetSources = explicitDatasetSources
+    ? parseDatasetSources(explicitDatasetSources)
+    : releaseLockSources;
+  const requireAllDatasetSources =
+    Boolean(options.get('require-all-dataset-sources')) || !explicitDatasetSources;
 
   assertDatasetSourcesMatchReleaseLock(
     datasetSources,

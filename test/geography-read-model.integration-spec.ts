@@ -49,6 +49,8 @@ describe('geography read model database integration', () => {
     appDocsEnabled: process.env.APP_DOCS_ENABLED,
     datasetsReleasesDirectory: process.env.DATASETS_RELEASES_DIR,
     datasetsRequireReleases: process.env.DATASETS_REQUIRE_RELEASES,
+    datasetsReleaseSources: process.env.DATASETS_RELEASE_SOURCES,
+    datasetsReleaseSourcesOverride: process.env.DATASETS_RELEASE_SOURCES_OVERRIDE,
     databaseEnabled: process.env.DATABASE_ENABLED,
     databaseRequired: process.env.DATABASE_REQUIRED,
     redisEnabled: process.env.REDIS_ENABLED,
@@ -73,6 +75,8 @@ describe('geography read model database integration', () => {
     process.env.REDIS_ENABLED = 'false';
     process.env.DATASETS_RELEASES_DIR = importReleaseDirectory;
     process.env.DATASETS_REQUIRE_RELEASES = 'true';
+    process.env.DATASETS_RELEASE_SOURCES = `Open-Syria/data-geography@${TEST_RELEASE_VERSION}`;
+    process.env.DATASETS_RELEASE_SOURCES_OVERRIDE = 'true';
 
     const importModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -85,6 +89,7 @@ describe('geography read model database integration', () => {
     await rm(importReleaseDirectory, { force: true, recursive: true });
     process.env.DATASETS_RELEASES_DIR = runtimeReleaseDirectory;
     process.env.DATASETS_REQUIRE_RELEASES = 'false';
+    process.env.DATASETS_RELEASE_SOURCES = '';
 
     moduleFixture = await Test.createTestingModule({
       imports: [AppModule],
@@ -112,6 +117,8 @@ describe('geography read model database integration', () => {
     setEnv('APP_DOCS_ENABLED', originalEnv.appDocsEnabled);
     setEnv('DATASETS_RELEASES_DIR', originalEnv.datasetsReleasesDirectory);
     setEnv('DATASETS_REQUIRE_RELEASES', originalEnv.datasetsRequireReleases);
+    setEnv('DATASETS_RELEASE_SOURCES', originalEnv.datasetsReleaseSources);
+    setEnv('DATASETS_RELEASE_SOURCES_OVERRIDE', originalEnv.datasetsReleaseSourcesOverride);
     setEnv('DATABASE_ENABLED', originalEnv.databaseEnabled);
     setEnv('DATABASE_REQUIRED', originalEnv.databaseRequired);
     setEnv('REDIS_ENABLED', originalEnv.redisEnabled);

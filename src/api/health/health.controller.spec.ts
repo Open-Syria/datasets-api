@@ -26,6 +26,8 @@ const readyHealth: HealthResponseData = {
     status: 'loaded',
     required: true,
     count: 1,
+    expectedCount: 1,
+    missing: [],
   },
 };
 

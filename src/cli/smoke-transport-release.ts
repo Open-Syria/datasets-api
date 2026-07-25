@@ -1,4 +1,4 @@
-import { access } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import type { Type } from '@nestjs/common';
@@ -70,9 +70,16 @@ const expectedOpenApiPaths = [
   '/api/v1/transport/route-snapshots/{routeSnapshotId}',
 ];
 
-async function assertDirectoryExists(directory: string) {
+async function readReleaseSource(directory: string) {
   try {
-    await access(path.join(directory, 'release-manifest.json'));
+    const manifest = JSON.parse(
+      await readFile(path.join(directory, 'release-manifest.json'), 'utf8'),
+    ) as {
+      dataset: { repository: string };
+      release: { version: string };
+    };
+
+    return `Open-Syria/${manifest.dataset.repository}@${manifest.release.version}`;
   } catch {
     throw new Error(
       `No release-manifest.json found in ${directory}. Run the data-transport release prepare command first, or set TRANSPORT_RELEASE_DIR.`,
@@ -199,12 +206,14 @@ async function main() {
     process.env.TRANSPORT_RELEASE_DIR ?? '../data-transport/dist/release',
   );
 
-  await assertDirectoryExists(releaseDirectory);
+  const releaseSource = await readReleaseSource(releaseDirectory);
 
   process.env.NODE_ENV = 'test';
   process.env.APP_DOCS_ENABLED = 'true';
   process.env.DATASETS_RELEASES_DIR = releaseDirectory;
   process.env.DATASETS_REQUIRE_RELEASES = 'true';
+  process.env.DATASETS_RELEASE_SOURCES = releaseSource;
+  process.env.DATASETS_RELEASE_SOURCES_OVERRIDE = 'true';
   process.env.DATABASE_ENABLED = 'false';
   process.env.DATABASE_REQUIRED = 'false';
   process.env.REDIS_ENABLED = 'false';

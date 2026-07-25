@@ -48,9 +48,12 @@ The production flow is:
 dataset repositories -> versioned release artifacts -> verified JSON artifacts/read model -> public API responses
 ```
 
-Dataset repositories own canonical JSON data, source attribution, validation rules, generated export files, and release manifests. `datasets-api` consumes pinned releases, verifies checksums and schemas, imports domains with read-model support into read tables, and serves artifact-backed domains from verified JSON until a dedicated read model exists.
+Dataset repositories own canonical JSON data, source attribution, validation rules, generated export files, and release manifests. `datasets-api` consumes every exact repository/tag pin, verifies release identity, checksums, sizes, and schemas, imports domains with read-model support into read tables, and serves artifact-backed domains from verified JSON until a dedicated read model exists.
 
 The pinned dataset release sources live in [`dataset-releases.json`](dataset-releases.json). Production does not automatically follow the latest GitHub release; changing the served dataset version is a reviewed code change plus a sync/import step.
+
+Release readiness reports `count`, `expectedCount`, and `missing`. A required
+runtime cannot start or become ready unless every configured pin is present.
 
 See [docs/dataset-loading.md](docs/dataset-loading.md), [docs/release-manifest.md](docs/release-manifest.md), and [docs/read-model-architecture.md](docs/read-model-architecture.md).
 
@@ -257,6 +260,13 @@ Run the telecom release smoke test after building `../data-telecom/dist/release`
 pnpm run smoke:telecom
 ```
 
+After syncing the complete release lock, verify every configured dataset,
+collection route, discovery version, and filtered OpenAPI document together:
+
+```bash
+pnpm run smoke:datasets
+```
+
 Or smoke-check the transport artifact endpoints manually:
 
 ```bash
@@ -274,7 +284,8 @@ curl "http://localhost:3000/openapi/telecom.json"
 pnpm run validate
 ```
 
-This runs Prisma generation, Biome checks, ESLint, TypeScript type checking, unit tests, e2e tests, build verification, and a production dependency audit.
+This runs Prisma generation, Biome checks, ESLint, TypeScript type checking,
+unit tests, e2e tests, build verification, and a complete dependency audit.
 
 Useful focused commands:
 
@@ -286,7 +297,9 @@ pnpm run test
 pnpm run test:e2e
 pnpm run test:integration:db
 pnpm run build
+pnpm run audit:dependencies
 pnpm run audit:prod
+pnpm run production:check -- --base-url https://api.opensyria.org
 ```
 
 ## Deployment

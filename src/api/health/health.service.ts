@@ -42,7 +42,10 @@ export class HealthService {
     const database = await this.prismaService.checkHealth();
     const datasetReleases = this.datasetReleaseRegistryService.getHealth();
     const isDegraded =
-      redis.status === 'down' || database.status === 'down' || datasetReleases.status === 'missing';
+      redis.status === 'down' ||
+      database.status === 'down' ||
+      datasetReleases.status === 'missing' ||
+      datasetReleases.status === 'incomplete';
 
     return {
       ...liveness,

@@ -13,12 +13,6 @@ concurrency:
   group: production-datasets-api
   cancel-in-progress: false
 
-env:
-  GEOGRAPHY_RELEASE: v0.1.5
-  UNIVERSITIES_RELEASE: v0.2.2
-  TRANSPORT_RELEASE: v0.1.1
-  TELECOM_RELEASE: v0.1.0
-
 jobs:
   deploy-policy:
     name: Resolve Deploy Policy
@@ -98,11 +92,7 @@ jobs:
         run: pnpm run validate
 
       - name: Check release readiness
-        run: |
-          pnpm run release:check -- \
-            --geography-release "$GEOGRAPHY_RELEASE" \
-            --dataset-sources "Open-Syria/data-geography@$GEOGRAPHY_RELEASE,Open-Syria/data-universities@$UNIVERSITIES_RELEASE,Open-Syria/data-transport@$TRANSPORT_RELEASE,Open-Syria/data-telecom@$TELECOM_RELEASE" \
-            --require-all-dataset-sources
+        run: pnpm run release:check
 
   build:
     name: Build And Push Images
@@ -294,7 +284,6 @@ jobs:
           THROTTLE_FREE_TIER_DAILY_LIMIT: ${{ vars.THROTTLE_FREE_TIER_DAILY_LIMIT }}
           THROTTLE_FREE_TIER_DAILY_TTL_SECONDS: ${{ vars.THROTTLE_FREE_TIER_DAILY_TTL_SECONDS }}
           GITHUB_TOKEN_FOR_DATASETS: ${{ secrets.DATASETS_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
-          TRANSPORT_RELEASE: ${{ env.TRANSPORT_RELEASE }}
         run: |
           test -n "$POSTGRES_PASSWORD"
 
@@ -326,8 +315,6 @@ jobs:
             write_env DATASETS_RELEASE_SOURCES ''
             write_env DATASETS_RELEASE_SOURCES_OVERRIDE false
             write_env DATASETS_SYNC_DOWNLOAD_ARTIFACTS true
-            write_env TRANSPORT_RELEASE_DIR "data/releases/transport/${TRANSPORT_RELEASE:-v0.1.1}"
-            write_env TELECOM_RELEASE_DIR "data/releases/telecom/${TELECOM_RELEASE:-v0.1.0}"
             write_env DATABASE_ENABLED true
             write_env DATABASE_REQUIRED true
             write_env DATABASE_LOG_QUERIES false
@@ -382,3 +369,6 @@ jobs:
             -o StrictHostKeyChecking=yes \
             "${DEPLOY_USER}@${DEPLOY_HOST}" \
             'cd /srv/opensyria/datasets-api && bin/check.sh'
+
+      - name: Verify public production releases
+        run: node scripts/check-production.js --base-url https://api.opensyria.org

@@ -1,4 +1,5 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { access, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { DatasetReleaseManifest } from '../contracts/dataset-release-manifest.schema';
@@ -12,6 +13,8 @@ const source = {
 
 const release = {
   tag_name: 'v0.1.5',
+  draft: false,
+  prerelease: false,
   assets: [
     {
       name: 'release-manifest.json',
@@ -127,5 +130,145 @@ describe('GitHubReleaseSyncService', () => {
       /https:\/\/api\.github\.com\/repos\/Open-Syria\/data-geography\/releases\/tags\/v0\.1\.5/,
     );
     await expect(service.syncSources([source])).rejects.toThrow(/ENOTFOUND/);
+  });
+
+  it('downloads only verified JSON artifacts and stages the manifest last', async () => {
+    const fetchMock = createFetchMock();
+    const artifactBuffer = Buffer.from('[{"id":"governorate-1"}]');
+    const releaseWithArtifacts = {
+      ...release,
+      assets: [
+        ...release.assets,
+        {
+          name: 'governorates.json',
+          browser_download_url:
+            'https://github.com/Open-Syria/data-geography/releases/download/v0.1.5/governorates.json',
+          size: artifactBuffer.byteLength,
+        },
+        {
+          name: 'governorates.csv',
+          browser_download_url:
+            'https://github.com/Open-Syria/data-geography/releases/download/v0.1.5/governorates.csv',
+          size: 20,
+        },
+      ],
+    };
+    const manifestWithArtifacts: DatasetReleaseManifest = {
+      ...manifest,
+      artifacts: [
+        {
+          name: 'governorates',
+          format: 'json',
+          path: 'artifacts/governorates.json',
+          sha256: createHash('sha256').update(artifactBuffer).digest('hex'),
+          sizeBytes: artifactBuffer.byteLength,
+          recordCount: 1,
+        },
+        {
+          name: 'governorates',
+          format: 'csv',
+          path: 'artifacts/governorates.csv',
+          sha256: '0'.repeat(64),
+          sizeBytes: 20,
+          recordCount: 1,
+        },
+      ],
+    };
+
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(releaseWithArtifacts))
+      .mockResolvedValueOnce(jsonResponse(manifestWithArtifacts))
+      .mockResolvedValueOnce(new Response(artifactBuffer, { status: 200 }));
+
+    const service = new GitHubReleaseSyncService({
+      releasesDirectory,
+      downloadArtifacts: true,
+    });
+    const [result] = await service.syncSources([source]);
+    const releaseDirectory = path.join(releasesDirectory, 'geography', 'v0.1.5');
+
+    expect(result).toMatchObject({
+      artifactsDownloaded: 1,
+      artifactsSkipped: 1,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(await readFile(path.join(releaseDirectory, 'artifacts/governorates.json'))).toEqual(
+      artifactBuffer,
+    );
+    await expect(
+      access(path.join(releaseDirectory, 'artifacts/governorates.csv')),
+    ).rejects.toThrow();
+    await expect(
+      access(path.join(releaseDirectory, 'release-manifest.json')),
+    ).resolves.toBeUndefined();
+  });
+
+  it('rejects a manifest that does not match the configured repository', async () => {
+    const fetchMock = createFetchMock();
+
+    fetchMock.mockResolvedValueOnce(jsonResponse(release)).mockResolvedValueOnce(
+      jsonResponse({
+        ...manifest,
+        dataset: {
+          ...manifest.dataset,
+          repository: 'data-telecom',
+        },
+      }),
+    );
+
+    const service = new GitHubReleaseSyncService({
+      releasesDirectory,
+      downloadArtifacts: true,
+    });
+
+    await expect(service.syncSources([source])).rejects.toThrow(
+      'manifest repository is data-telecom, expected data-geography',
+    );
+  });
+
+  it('does not register a manifest when a JSON artifact fails verification', async () => {
+    const fetchMock = createFetchMock();
+    const artifactBuffer = Buffer.from('[]');
+    const manifestWithArtifact: DatasetReleaseManifest = {
+      ...manifest,
+      artifacts: [
+        {
+          name: 'governorates',
+          format: 'json',
+          path: 'artifacts/governorates.json',
+          sha256: '0'.repeat(64),
+          sizeBytes: artifactBuffer.byteLength,
+          recordCount: 0,
+        },
+      ],
+    };
+
+    fetchMock
+      .mockResolvedValueOnce(
+        jsonResponse({
+          ...release,
+          assets: [
+            ...release.assets,
+            {
+              name: 'governorates.json',
+              browser_download_url:
+                'https://github.com/Open-Syria/data-geography/releases/download/v0.1.5/governorates.json',
+              size: artifactBuffer.byteLength,
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(jsonResponse(manifestWithArtifact))
+      .mockResolvedValueOnce(new Response(artifactBuffer, { status: 200 }));
+
+    const service = new GitHubReleaseSyncService({
+      releasesDirectory,
+      downloadArtifacts: true,
+    });
+
+    await expect(service.syncSources([source])).rejects.toThrow('Checksum mismatch');
+    await expect(
+      access(path.join(releasesDirectory, 'geography', 'v0.1.5', 'release-manifest.json')),
+    ).rejects.toThrow();
   });
 });

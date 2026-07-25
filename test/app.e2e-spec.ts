@@ -156,6 +156,8 @@ describe('AppController (e2e)', () => {
   const freeTierDailyTtlSeconds = '86400';
   const originalDatasetsReleasesDirectory = process.env.DATASETS_RELEASES_DIR;
   const originalDatasetsRequireReleases = process.env.DATASETS_REQUIRE_RELEASES;
+  const originalDatasetsReleaseSources = process.env.DATASETS_RELEASE_SOURCES;
+  const originalDatasetsReleaseSourcesOverride = process.env.DATASETS_RELEASE_SOURCES_OVERRIDE;
 
   beforeEach(async () => {
     tempReleasesDirectory = await mkdtemp(path.join(tmpdir(), 'opensyria-empty-releases-'));
@@ -164,6 +166,8 @@ describe('AppController (e2e)', () => {
     process.env.APP_TRUST_PROXY = appTrustProxy;
     process.env.DATASETS_RELEASES_DIR = tempReleasesDirectory;
     process.env.DATASETS_REQUIRE_RELEASES = 'false';
+    process.env.DATASETS_RELEASE_SOURCES = '';
+    process.env.DATASETS_RELEASE_SOURCES_OVERRIDE = 'true';
     process.env.THROTTLE_FREE_TIER_DAILY_LIMIT = freeTierDailyLimit;
     process.env.THROTTLE_FREE_TIER_DAILY_TTL_SECONDS = freeTierDailyTtlSeconds;
 
@@ -1270,6 +1274,18 @@ describe('AppController (e2e)', () => {
       process.env.DATASETS_REQUIRE_RELEASES = originalDatasetsRequireReleases;
     } else {
       delete process.env.DATASETS_REQUIRE_RELEASES;
+    }
+
+    if (originalDatasetsReleaseSources !== undefined) {
+      process.env.DATASETS_RELEASE_SOURCES = originalDatasetsReleaseSources;
+    } else {
+      delete process.env.DATASETS_RELEASE_SOURCES;
+    }
+
+    if (originalDatasetsReleaseSourcesOverride !== undefined) {
+      process.env.DATASETS_RELEASE_SOURCES_OVERRIDE = originalDatasetsReleaseSourcesOverride;
+    } else {
+      delete process.env.DATASETS_RELEASE_SOURCES_OVERRIDE;
     }
 
     delete process.env.APP_DOCS_ENABLED;

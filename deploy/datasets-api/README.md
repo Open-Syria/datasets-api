@@ -16,6 +16,8 @@ bin/deploy-blue-green.sh ghcr.io/open-syria/datasets-api:<tag> ghcr.io/open-syri
 ```
 
 The deploy script runs migrations, syncs/imports the release sources pinned in
-the runtime image's `dataset-releases.json`, smoke-checks artifact-backed
-transport and telecom endpoints, starts the inactive API slot, checks readiness,
-reloads nginx to the new slot, and stops the old slot after a short drain.
+the runtime image's `dataset-releases.json`, smoke-checks the exact pins plus
+every artifact-backed dataset collection and filtered OpenAPI document, starts
+the inactive API slot, checks readiness, reloads nginx to the new slot, and
+stops the old slot after a short drain. The GitHub workflow then verifies the
+same pins through the public `https://api.opensyria.org` ingress.

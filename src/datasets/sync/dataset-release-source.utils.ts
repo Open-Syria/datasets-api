@@ -11,16 +11,37 @@ export const datasetReleaseReadinessRequirementSchema = z
   })
   .strict();
 
-export const datasetReleaseSourceSchema = z.object({
-  owner: z.string().min(1),
-  repository: z.string().min(1),
-  tag: z.string().min(1),
-  requiredReadiness: datasetReleaseReadinessRequirementSchema.optional(),
-});
+export const datasetReleaseSourceSchema = z
+  .object({
+    owner: z.string().min(1),
+    repository: z.string().min(1),
+    tag: z.string().regex(/^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/),
+    requiredReadiness: datasetReleaseReadinessRequirementSchema.optional(),
+  })
+  .strict();
 
-export const datasetReleaseSourcesConfigSchema = z.object({
-  sources: z.array(datasetReleaseSourceSchema),
-});
+export const datasetReleaseSourcesConfigSchema = z
+  .object({
+    sources: z.array(datasetReleaseSourceSchema),
+  })
+  .strict()
+  .superRefine(({ sources }, context) => {
+    const configuredSources = new Set<string>();
+
+    for (const [index, source] of sources.entries()) {
+      const key = formatDatasetReleaseSource(source);
+
+      if (configuredSources.has(key)) {
+        context.addIssue({
+          code: 'custom',
+          message: `Duplicate dataset release source: ${key}`,
+          path: ['sources', index],
+        });
+      }
+
+      configuredSources.add(key);
+    }
+  });
 
 export type DatasetReleaseSource = z.infer<typeof datasetReleaseSourceSchema>;
 

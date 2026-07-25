@@ -54,6 +54,8 @@ describe('transport release loading (e2e)', () => {
   let tempDirectory: string;
   const originalDatasetsReleasesDirectory = process.env.DATASETS_RELEASES_DIR;
   const originalDatasetsRequireReleases = process.env.DATASETS_REQUIRE_RELEASES;
+  const originalDatasetsReleaseSources = process.env.DATASETS_RELEASE_SOURCES;
+  const originalDatasetsReleaseSourcesOverride = process.env.DATASETS_RELEASE_SOURCES_OVERRIDE;
 
   beforeEach(async () => {
     tempDirectory = await mkdtemp(path.join(tmpdir(), 'opensyria-transport-release-'));
@@ -62,6 +64,8 @@ describe('transport release loading (e2e)', () => {
     process.env.APP_DOCS_ENABLED = 'true';
     process.env.DATASETS_RELEASES_DIR = tempDirectory;
     process.env.DATASETS_REQUIRE_RELEASES = 'true';
+    process.env.DATASETS_RELEASE_SOURCES = 'Open-Syria/data-transport@v0.1.1';
+    process.env.DATASETS_RELEASE_SOURCES_OVERRIDE = 'true';
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -87,6 +91,18 @@ describe('transport release loading (e2e)', () => {
       process.env.DATASETS_REQUIRE_RELEASES = originalDatasetsRequireReleases;
     } else {
       delete process.env.DATASETS_REQUIRE_RELEASES;
+    }
+
+    if (originalDatasetsReleaseSources !== undefined) {
+      process.env.DATASETS_RELEASE_SOURCES = originalDatasetsReleaseSources;
+    } else {
+      delete process.env.DATASETS_RELEASE_SOURCES;
+    }
+
+    if (originalDatasetsReleaseSourcesOverride !== undefined) {
+      process.env.DATASETS_RELEASE_SOURCES_OVERRIDE = originalDatasetsReleaseSourcesOverride;
+    } else {
+      delete process.env.DATASETS_RELEASE_SOURCES_OVERRIDE;
     }
 
     delete process.env.APP_DOCS_ENABLED;

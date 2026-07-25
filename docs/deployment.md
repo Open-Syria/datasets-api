@@ -28,14 +28,10 @@ Run these from a full checkout or CI release job with dev dependencies installed
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm run release:check -- \
-  --geography-release v0.1.5 \
-  --dataset-sources Open-Syria/data-geography@v0.1.5,Open-Syria/data-universities@v0.2.2,Open-Syria/data-transport@v0.1.1,Open-Syria/data-telecom@v0.1.0 \
-  --require-all-dataset-sources
+pnpm run release:check
 pnpm run db:migrate:deploy
 pnpm run datasets:sync
-TRANSPORT_RELEASE_DIR=data/releases/transport/v0.1.1 pnpm run smoke:transport
-TELECOM_RELEASE_DIR=data/releases/telecom/v0.1.0 pnpm run smoke:telecom
+pnpm run smoke:datasets
 DATABASE_ENABLED=true pnpm run read-model:import:geography
 ```
 
@@ -50,10 +46,9 @@ locally.
 
 The geography import step must finish before a production instance is marked ready. Universities, transport, and telecom are served from verified release artifacts until dedicated read-model importers are added.
 
-Run `smoke:transport` after `datasets:sync` whenever the transport release pin
-changes. Run `smoke:telecom` whenever the telecom release pin changes. The smoke
-commands boot the API against the synced release artifacts and check public
-endpoints, dataset discovery, readiness, and filtered OpenAPI documents.
+Run `smoke:datasets` after every sync or pin change. It boots the API against the
+synced release artifacts and checks all exact pins, collection endpoints,
+dataset discovery, readiness, and filtered OpenAPI documents.
 
 `release:check` builds the API and runs the public API bridge check. Pinned
 datasets with `requiredReadiness.publicApi: "approved"` must have declared
@@ -105,8 +100,7 @@ If the Docker/runtime image is used for release sync or read-model import, use t
 
 ```bash
 pnpm run datasets:sync:prod
-TRANSPORT_RELEASE_DIR=data/releases/transport/v0.1.1 pnpm run smoke:transport:prod
-TELECOM_RELEASE_DIR=data/releases/telecom/v0.1.0 pnpm run smoke:telecom:prod
+pnpm run smoke:datasets:prod
 DATABASE_ENABLED=true pnpm run read-model:import:geography:prod
 ```
 
@@ -178,17 +172,21 @@ The workflow:
 4. Pushes both images to GitHub Container Registry.
 5. Joins the tailnet with `tailscale/github-action@v4`.
 6. Copies `deploy/datasets-api` to `/srv/opensyria/datasets-api`.
-7. Writes runtime release-sync settings, including `TRANSPORT_RELEASE_DIR` and `TELECOM_RELEASE_DIR`.
+7. Writes runtime release-sync settings; release versions come only from
+   `dataset-releases.json`.
 8. Runs the blue/green deployment script on the server.
+9. Verifies all pinned versions and representative data through the public API
+   ingress.
 
 Dataset release pins are stored in `dataset-releases.json` and copied into the
 runtime image. Server `.env` values can only override the lock file when
 `DATASETS_RELEASE_SOURCES_OVERRIDE=true` is set deliberately.
 
-The blue/green script syncs pinned dataset artifacts, runs
-`smoke:transport:prod` and `smoke:telecom:prod` against the synced release
-artifacts, imports geography into the read model, then starts the inactive API
-color and verifies readiness before traffic flips.
+The blue/green script syncs pinned JSON artifacts, runs `smoke:datasets:prod`
+against every configured release, imports geography into the read model, then
+starts the inactive API color and verifies readiness before traffic flips. The
+workflow subsequently runs `production:check` against
+`https://api.opensyria.org`.
 
 Images are pushed to GHCR using the built-in `GITHUB_TOKEN` with `packages: write`.
 
@@ -294,7 +292,10 @@ Manual Redis cleanup should only be needed after operational mistakes, such as i
 - `GET /health/ready` checks runtime dependencies and release readiness.
 - `GET /health` returns the aggregate public health payload.
 
-`/health/ready` returns HTTP 503 when a required dependency is unavailable. Optional dependencies may still mark the body as `degraded` without failing the readiness probe.
+`/health/ready` returns HTTP 503 when a required dependency is unavailable or a
+configured dataset release is missing. Dataset release health includes
+`count`, `expectedCount`, and `missing`; a partial release set is reported as
+`incomplete`.
 
 ## Production Notes
 
