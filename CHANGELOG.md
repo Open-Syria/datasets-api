@@ -16,6 +16,26 @@
 * update vulnerable runtime dependencies, constrain patched transitives, and audit the complete graph during validation
 * share production image layers, refresh and retry registry pulls, and allow bounded cold ARM pulls to finish
 
+## [0.3.0](https://github.com/Open-Syria/datasets-api/compare/v0.2.1...v0.3.0) (2026-07-31)
+
+
+### Features
+
+* **deploy:** harden OpenSyria production API ([7c9b656](https://github.com/Open-Syria/datasets-api/commit/7c9b656f439590a6485d6ff7a10e9bf72bc44023))
+* **deploy:** harden OpenSyria production API ([#29](https://github.com/Open-Syria/datasets-api/issues/29)) ([b142c25](https://github.com/Open-Syria/datasets-api/commit/b142c25b53244991fb193f11895005b99115885b))
+* expose telecom dataset endpoints ([da3f06c](https://github.com/Open-Syria/datasets-api/commit/da3f06c25992cfad26caa27f00dc22233154897c))
+
+
+### Bug Fixes
+
+* **ci:** allow automatic production deploy job ([327a675](https://github.com/Open-Syria/datasets-api/commit/327a6753664a308b5a6daa3dfffdf499ff8f4c54))
+* **ci:** run automatic production deploy after image build ([75d4614](https://github.com/Open-Syria/datasets-api/commit/75d461472ebb986ce4c3128f740b892c8b5e3ad3))
+* **deploy:** serialize and stabilize nginx cutovers ([32c8e0b](https://github.com/Open-Syria/datasets-api/commit/32c8e0b42a5c9a2a42d5ecdbd480e88beadd7646))
+* **deploy:** stabilize shared nginx cutovers ([d2d3c90](https://github.com/Open-Syria/datasets-api/commit/d2d3c90503ed7ba1f3bd286f97e0bb364ac1409c))
+* enforce pinned dataset deployment integrity ([48bedb7](https://github.com/Open-Syria/datasets-api/commit/48bedb72fcb3f5bd64e5fe9ecb4d3466c22b45a5))
+* make production image pulls resilient ([2225f73](https://github.com/Open-Syria/datasets-api/commit/2225f730c256d82bfe674bb1bf457fe7764e2c1e))
+* pin geography dataset v0.1.5 ([28ba890](https://github.com/Open-Syria/datasets-api/commit/28ba890ba5aa307211d9fda4ec235ae0ab39b1d5))
+
 ## [0.2.1](https://github.com/Open-Syria/datasets-api/compare/v0.2.0...v0.2.1) (2026-07-08)
 
 
