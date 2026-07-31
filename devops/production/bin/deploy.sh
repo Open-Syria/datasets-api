@@ -26,6 +26,8 @@ DATA_NETWORK="opensyria-production-data"
 PUBLIC_HOST="api.opensyria.org"
 HEALTH_TIMEOUT_SECONDS="${HEALTH_TIMEOUT_SECONDS:-240}"
 DRAIN_SECONDS="${DRAIN_SECONDS:-30}"
+NGINX_LOCK_TIMEOUT_SECONDS="${NGINX_LOCK_TIMEOUT_SECONDS:-300}"
+NGINX_ROUTE_TIMEOUT_SECONDS="${NGINX_ROUTE_TIMEOUT_SECONDS:-15}"
 DOCKER_CONFIG_DIR=""
 RUNTIME_ENV_TEMP_FILE=""
 PREPARE_CLEANUP_SERVICE=""
@@ -236,7 +238,24 @@ NODE
 }
 
 verify_private_route() {
-  "${ROOT_DIR}/bin/check.sh" "$1"
+  local expected_release="$1"
+  local output started_at now
+
+  started_at="$(date +%s)"
+  while true; do
+    if output="$("${ROOT_DIR}/bin/check.sh" "${expected_release}" 2>&1)"; then
+      printf '%s\n' "${output}"
+      return 0
+    fi
+
+    now="$(date +%s)"
+    if ((now - started_at >= NGINX_ROUTE_TIMEOUT_SECONDS)); then
+      printf '%s\n' "${output}" >&2
+      echo "Private ${PUBLIC_HOST} route did not stabilize on ${expected_release} within ${NGINX_ROUTE_TIMEOUT_SECONDS}s" >&2
+      return 1
+    fi
+    sleep 1
+  done
 }
 
 verify_private_route_without_release() {
@@ -734,6 +753,10 @@ cleanup() {
 
 main() {
   require_command flock
+  [[ "${NGINX_LOCK_TIMEOUT_SECONDS}" =~ ^[1-9][0-9]{0,3}$ ]] \
+    || fail "NGINX_LOCK_TIMEOUT_SECONDS must be between 1 and 9999"
+  [[ "${NGINX_ROUTE_TIMEOUT_SECONDS}" =~ ^[1-9][0-9]{0,3}$ ]] \
+    || fail "NGINX_ROUTE_TIMEOUT_SECONDS must be between 1 and 9999"
   [[ -f "${DOCKER_WRAPPER}" && -x "${DOCKER_WRAPPER}" && ! -L "${DOCKER_WRAPPER}" ]] \
     || fail "Shared Docker wrapper is missing or unsafe: ${DOCKER_WRAPPER}"
   [[ -d "${ROOT_DIR}" && ! -L "${ROOT_DIR}" ]] \
@@ -755,8 +778,8 @@ main() {
   exec 8>"${NGINX_DEPLOY_LOCK_FILE}"
   chmod 600 "${NGINX_DEPLOY_LOCK_FILE}"
   require_private_regular_file "${NGINX_DEPLOY_LOCK_FILE}"
-  flock -n 8 \
-    || fail "Another deployment holds the shared nginx lock ${NGINX_DEPLOY_LOCK_FILE}"
+  flock -w "${NGINX_LOCK_TIMEOUT_SECONDS}" 8 \
+    || fail "Timed out waiting for the shared nginx lock ${NGINX_DEPLOY_LOCK_FILE}"
 
   case "${1:-}" in
     prepare)
