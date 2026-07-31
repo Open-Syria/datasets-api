@@ -173,7 +173,9 @@ The workflow and `devops/production/bin/deploy.sh` perform these steps:
 9. Verify container readiness, the application SHA, the exact pinned geography
    database release, and every manifest-declared geography artifact count.
 10. Atomically update the shared nginx upstream include, run `nginx -t`, reload,
-    and verify the private Host-routed origin.
+    and verify the private Host-routed origin. Shared nginx updates wait on the
+    cross-application lock, and verification retries across the graceful reload
+    window while old workers drain.
 11. Optionally verify `https://api.opensyria.org` before draining the old local
     slot. The protected `VERIFY_PUBLIC_DEPLOYMENT` variable controls automatic
     runs; manual dispatch can require or skip it explicitly.

@@ -34,7 +34,9 @@ bin/deploy.sh finalize
 The workflow drives `prepare`, `switch`, and `finalize` as separate locked
 phases. `prepare` requires an immutable GHCR `@sha256:` reference and a full
 commit SHA. Do not run server-side builds or write runtime secrets into
-`.deploy.env`; runtime configuration is exported from Infisical.
+`.deploy.env`; runtime configuration is exported from Infisical. Shared nginx
+changes wait for concurrent OpenSyria rollouts, and private verification retries
+briefly while old nginx workers drain after a graceful reload.
 
 Every pre-migration backup is validated with `pg_restore --list` and receives
 checksum and recovery sidecars. Destructive recovery is deliberately separate:
