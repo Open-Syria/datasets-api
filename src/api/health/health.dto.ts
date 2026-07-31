@@ -36,6 +36,8 @@ export const databaseHealthStatusSchema = z.discriminatedUnion('status', [
     status: z.literal('up'),
     required: z.boolean(),
     latencyMs: z.number().int().nonnegative(),
+    release: z.string().optional(),
+    recordCount: z.number().int().nonnegative().optional(),
   }),
   z.object({
     status: z.literal('down'),
@@ -50,6 +52,7 @@ export const livenessResponseDataSchema = z.object({
   app: z.object({
     name: z.string(),
     environment: z.enum(Environment),
+    release: z.string(),
   }),
   uptimeSeconds: z.number().nonnegative(),
 });
@@ -59,6 +62,7 @@ export const healthResponseDataSchema = z.object({
   app: z.object({
     name: z.string(),
     environment: z.enum(Environment),
+    release: z.string(),
   }),
   uptimeSeconds: z.number().nonnegative(),
   redis: redisHealthStatusSchema,

@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type { Cache } from 'cache-manager';
+import type { GlobalConfig } from '../../config/config.type';
 
 const PUBLIC_DATA_CACHE_PREFIX = 'public-data:v1';
 
@@ -38,11 +40,16 @@ function formatCacheError(error: unknown) {
 @Injectable()
 export class PublicDataCacheService {
   private readonly logger = new Logger(PublicDataCacheService.name);
+  private readonly release: string;
 
   constructor(
     @Inject(CACHE_MANAGER)
     private readonly cacheManager: Cache,
-  ) {}
+    @Inject(ConfigService)
+    configService: ConfigService<GlobalConfig>,
+  ) {
+    this.release = configService.getOrThrow('app', { infer: true }).release;
+  }
 
   async getOrSet<TValue>(
     scope: string,
@@ -85,6 +92,6 @@ export class PublicDataCacheService {
   }
 
   private buildKey(scope: string, payload: unknown) {
-    return `${PUBLIC_DATA_CACHE_PREFIX}:${scope}:${hashCacheKeyPayload(payload)}`;
+    return `${PUBLIC_DATA_CACHE_PREFIX}:${this.release}:${scope}:${hashCacheKeyPayload(payload)}`;
   }
 }

@@ -54,6 +54,8 @@ The pinned dataset release sources live in [`dataset-releases.json`](dataset-rel
 
 Release readiness reports `count`, `expectedCount`, and `missing`. A required
 runtime cannot start or become ready unless every configured pin is present.
+The production database path also resolves geography by that exact pin rather
+than by newest import time, which keeps image rollback deterministic.
 
 See [docs/dataset-loading.md](docs/dataset-loading.md), [docs/release-manifest.md](docs/release-manifest.md), and [docs/read-model-architecture.md](docs/read-model-architecture.md).
 
@@ -284,7 +286,7 @@ curl "http://localhost:3000/openapi/telecom.json"
 pnpm run validate
 ```
 
-This runs Prisma generation, Biome checks, ESLint, TypeScript type checking,
+This runs Prisma generation, Biome checks, TypeScript type checking,
 unit tests, e2e tests, build verification, and a complete dependency audit.
 
 Useful focused commands:

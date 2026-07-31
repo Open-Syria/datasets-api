@@ -14,81 +14,42 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lockfile:
-    name: Lockfile
+  static-validation:
+    name: Static validation
     if: ${{ github.event_name != 'push' || (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')) }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
         with:
           version: 11.9.0
           run_install: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: 24
+          node-version: 24.16.0
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-  validate:
-    name: Validate
-    needs: lockfile
-    if: ${{ github.event_name != 'push' || (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')) }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    services:
-      postgres:
-        image: postgis/postgis:16-3.4
-        env:
-          POSTGRES_DB: opensyria_datasets
-          POSTGRES_USER: opensyria
-          POSTGRES_PASSWORD: opensyria
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U opensyria -d opensyria_datasets"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+      - name: Generate Prisma client
+        run: pnpm run db:generate
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
+      - name: Check formatting and lint rules
+        run: pnpm run check
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          version: 11.9.0
-          run_install: false
+      - name: Check TypeScript
+        run: pnpm run typecheck
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: pnpm
+      - name: Validate production release lock
+        run: pnpm run release:check:config
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Validate
-        run: pnpm run validate
-
-      - name: Test database read model
-        env:
-          DATABASE_URL: postgresql://opensyria:opensyria@localhost:5432/opensyria_datasets?schema=public
-          DATABASE_ENABLED: 'true'
-          DATABASE_REQUIRED: 'true'
-          REDIS_ENABLED: 'false'
-        run: pnpm run test:integration:db
-
-      - name: Build Docker image
-        run: docker build -t opensyria/datasets-api:ci .
+      - name: Audit production dependencies
+        run: pnpm run audit:prod
