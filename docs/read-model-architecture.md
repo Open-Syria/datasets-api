@@ -68,7 +68,7 @@ The API response contract does not need to expose every raw dataset field immedi
 
 ## Serving Strategy
 
-For local development, endpoints may fall back to verified local artifacts when the database read model is disabled. In production, geography should be imported into the read model before marking the API ready. Universities, transport, and telecom currently serve from verified JSON artifacts until domain-specific read-model importers are added.
+For local development, endpoints may fall back to verified local artifacts when the database read model is disabled. In production, geography is imported into the read model before the API is marked ready. Runtime queries select the exact geography release pinned by their bundled `dataset-releases.json`; they do not select the newest database row. Older release rows remain available so an older application image can be rolled back deterministically. Universities, transport, and telecom currently serve from verified JSON artifacts until domain-specific read-model importers are added.
 
 Production should run with:
 
@@ -79,7 +79,8 @@ DATASETS_REQUIRE_RELEASES=true
 REDIS_REQUIRED=true
 ```
 
-This makes readiness fail if the read model, release artifacts, or Redis are unavailable.
+This makes readiness fail if Redis, any pinned release artifact, the exact pinned
+geography database release, or its records are unavailable.
 
 ## Redis Cache Strategy
 

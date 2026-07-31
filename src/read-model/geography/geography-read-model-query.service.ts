@@ -28,6 +28,7 @@ import {
   type DatasetReleaseManifest,
   datasetReleaseManifestSchemaVersion,
 } from '../../datasets/contracts/dataset-release-manifest.schema';
+import { DatasetReleaseRegistryService } from '../../datasets/dataset-release-registry.service';
 import type {
   DatasetRelease,
   DatasetSource,
@@ -155,6 +156,8 @@ export class GeographyReadModelQueryService {
     private readonly prismaService: PrismaService,
     @Inject(PublicDataCacheService)
     private readonly publicDataCacheService: PublicDataCacheService,
+    @Inject(DatasetReleaseRegistryService)
+    private readonly datasetReleaseRegistryService: DatasetReleaseRegistryService,
   ) {}
 
   async listGovernorates(
@@ -442,21 +445,20 @@ export class GeographyReadModelQueryService {
     }
 
     const client = this.prismaService.getClient();
-    const release = await client.datasetRelease.findFirst({
+    const pinnedManifest =
+      this.datasetReleaseRegistryService.getManifestByDatasetId(GEOGRAPHY_DATASET_ID);
+
+    if (!pinnedManifest) {
+      return null;
+    }
+
+    const release = await client.datasetRelease.findUnique({
       where: {
-        datasetId: GEOGRAPHY_DATASET_ID,
-        status: {
-          not: 'deprecated',
-        },
+        id: `${pinnedManifest.dataset.id}:${pinnedManifest.release.version}`,
       },
       include: {
         sources: true,
       },
-      orderBy: [
-        {
-          generatedAt: 'desc',
-        },
-      ],
     });
 
     if (!release) {

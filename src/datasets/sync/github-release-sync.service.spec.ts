@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { access, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { DatasetReleaseManifest } from '../contracts/dataset-release-manifest.schema';
@@ -130,6 +130,180 @@ describe('GitHubReleaseSyncService', () => {
       /https:\/\/api\.github\.com\/repos\/Open-Syria\/data-geography\/releases\/tags\/v0\.1\.5/,
     );
     await expect(service.syncSources([source])).rejects.toThrow(/ENOTFOUND/);
+  });
+
+  it('rejects a release manifest that differs from its pinned checksum', async () => {
+    const fetchMock = createFetchMock();
+
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(release))
+      .mockResolvedValueOnce(jsonResponse(manifest));
+
+    const service = new GitHubReleaseSyncService({
+      releasesDirectory,
+      downloadArtifacts: true,
+      fetchMaxAttempts: 1,
+      fetchRetryDelayMs: 0,
+      fetchTimeoutMs: 1_000,
+    });
+
+    await expect(
+      service.syncSources([{ ...source, manifestSha256: '0'.repeat(64) }]),
+    ).rejects.toThrow(/Checksum mismatch for .* release-manifest\.json/);
+  });
+
+  it('refuses to replace a previously synced tag with different manifest content', async () => {
+    const fetchMock = createFetchMock();
+    const replacementManifest = {
+      ...manifest,
+      generatedAt: '2026-06-28T00:00:00.000Z',
+    };
+
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(release))
+      .mockResolvedValueOnce(jsonResponse(manifest))
+      .mockResolvedValueOnce(jsonResponse(release))
+      .mockResolvedValueOnce(jsonResponse(replacementManifest));
+
+    const service = new GitHubReleaseSyncService({
+      releasesDirectory,
+      downloadArtifacts: true,
+      fetchMaxAttempts: 1,
+      fetchRetryDelayMs: 0,
+      fetchTimeoutMs: 1_000,
+    });
+
+    await service.syncSources([source]);
+    await expect(service.syncSources([source])).rejects.toThrow(
+      /publish a new release tag instead of replacing an existing tag/,
+    );
+  });
+
+  it('verifies and preserves an identical existing release in place', async () => {
+    const fetchMock = createFetchMock();
+    const artifactBuffer = Buffer.from('[{"id":"governorate-1"}]');
+    const releaseWithArtifact = {
+      ...release,
+      assets: [
+        ...release.assets,
+        {
+          name: 'governorates.json',
+          browser_download_url:
+            'https://github.com/Open-Syria/data-geography/releases/download/v0.1.5/governorates.json',
+          size: artifactBuffer.byteLength,
+        },
+      ],
+    };
+    const manifestWithArtifact: DatasetReleaseManifest = {
+      ...manifest,
+      artifacts: [
+        {
+          name: 'governorates',
+          format: 'json',
+          path: 'artifacts/governorates.json',
+          sha256: createHash('sha256').update(artifactBuffer).digest('hex'),
+          sizeBytes: artifactBuffer.byteLength,
+          recordCount: 1,
+        },
+      ],
+    };
+
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(releaseWithArtifact))
+      .mockResolvedValueOnce(jsonResponse(manifestWithArtifact))
+      .mockResolvedValueOnce(new Response(artifactBuffer, { status: 200 }))
+      .mockResolvedValueOnce(jsonResponse(releaseWithArtifact))
+      .mockResolvedValueOnce(jsonResponse(manifestWithArtifact));
+
+    const service = new GitHubReleaseSyncService({
+      releasesDirectory,
+      downloadArtifacts: true,
+    });
+
+    await service.syncSources([source]);
+    const [result] = await service.syncSources([source]);
+
+    expect(result).toMatchObject({
+      artifactsDownloaded: 0,
+      artifactsSkipped: 1,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+    await expect(
+      readFile(path.join(releasesDirectory, 'geography', 'v0.1.5', 'artifacts/governorates.json')),
+    ).resolves.toEqual(artifactBuffer);
+  });
+
+  it('fails closed when an existing release artifact is corrupt', async () => {
+    const fetchMock = createFetchMock();
+    const artifactBuffer = Buffer.from('[{"id":"governorate-1"}]');
+    const releaseWithArtifact = {
+      ...release,
+      assets: [
+        ...release.assets,
+        {
+          name: 'governorates.json',
+          browser_download_url:
+            'https://github.com/Open-Syria/data-geography/releases/download/v0.1.5/governorates.json',
+          size: artifactBuffer.byteLength,
+        },
+      ],
+    };
+    const manifestWithArtifact: DatasetReleaseManifest = {
+      ...manifest,
+      artifacts: [
+        {
+          name: 'governorates',
+          format: 'json',
+          path: 'artifacts/governorates.json',
+          sha256: createHash('sha256').update(artifactBuffer).digest('hex'),
+          sizeBytes: artifactBuffer.byteLength,
+          recordCount: 1,
+        },
+      ],
+    };
+
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(releaseWithArtifact))
+      .mockResolvedValueOnce(jsonResponse(manifestWithArtifact))
+      .mockResolvedValueOnce(new Response(artifactBuffer, { status: 200 }))
+      .mockResolvedValueOnce(jsonResponse(releaseWithArtifact))
+      .mockResolvedValueOnce(jsonResponse(manifestWithArtifact));
+
+    const service = new GitHubReleaseSyncService({
+      releasesDirectory,
+      downloadArtifacts: true,
+    });
+
+    await service.syncSources([source]);
+    await writeFile(
+      path.join(releasesDirectory, 'geography', 'v0.1.5', 'artifacts/governorates.json'),
+      'corrupt',
+    );
+
+    await expect(service.syncSources([source])).rejects.toThrow(
+      /corrupt local artifact artifacts\/governorates\.json/,
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+  });
+
+  it('fails closed when an existing release directory has no manifest', async () => {
+    const fetchMock = createFetchMock();
+
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(release))
+      .mockResolvedValueOnce(jsonResponse(manifest));
+    await mkdir(path.join(releasesDirectory, 'geography', 'v0.1.5'), {
+      recursive: true,
+    });
+
+    const service = new GitHubReleaseSyncService({
+      releasesDirectory,
+      downloadArtifacts: true,
+    });
+
+    await expect(service.syncSources([source])).rejects.toThrow(
+      /incomplete local release directory/,
+    );
   });
 
   it('downloads only verified JSON artifacts and stages the manifest last', async () => {

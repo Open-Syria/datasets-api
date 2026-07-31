@@ -41,8 +41,8 @@ export class GlobalHttpExceptionFilter implements ExceptionFilter {
     const context = host.switchToHttp();
     const reply = context.getResponse<FastifyReply>();
     const i18n = I18nContext.current(host);
-    const isProduction =
-      this.configService.get('app.nodeEnv', { infer: true }) === Environment.Production;
+    const nodeEnv = this.configService.get('app.nodeEnv', { infer: true });
+    const includeStack = nodeEnv === Environment.Local || nodeEnv === Environment.Development;
 
     if (reply.sent) {
       this.logger.error(
@@ -100,7 +100,7 @@ export class GlobalHttpExceptionFilter implements ExceptionFilter {
       message,
       details,
       timestamp: new Date().toISOString(),
-      ...(isProduction ? {} : { stack: exception.stack }),
+      ...(includeStack ? { stack: exception.stack } : {}),
     });
   }
 }

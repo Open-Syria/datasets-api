@@ -1,0 +1,6 @@
+.deploy.env
+.infisical.env
+data/
+env/*.env
+state/
+bin/__pycache__/

@@ -45,6 +45,7 @@ describe('datasets config', () => {
             owner: 'Open-Syria',
             repository: 'data-geography',
             tag: 'v0.1.5',
+            manifestSha256: '0'.repeat(64),
           },
         ],
       }),
@@ -56,6 +57,7 @@ describe('datasets config', () => {
         owner: 'Open-Syria',
         repository: 'data-geography',
         tag: 'v0.1.5',
+        manifestSha256: '0'.repeat(64),
       },
     ]);
   });
@@ -81,6 +83,7 @@ describe('datasets config', () => {
             owner: 'Open-Syria',
             repository: 'data-geography',
             tag: 'v0.1.5',
+            manifestSha256: '0'.repeat(64),
           },
         ],
       }),

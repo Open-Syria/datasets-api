@@ -4,6 +4,7 @@ export type AppCorsOrigin = false | true | '*' | string[];
 
 export type AppConfig = {
   name: string;
+  release: string;
   nodeEnv: Environment;
   port: number;
   url: string;

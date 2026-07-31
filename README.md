@@ -54,6 +54,8 @@ The pinned dataset release sources live in [`dataset-releases.json`](dataset-rel
 
 Release readiness reports `count`, `expectedCount`, and `missing`. A required
 runtime cannot start or become ready unless every configured pin is present.
+The production database path also resolves geography by that exact pin rather
+than by newest import time, which keeps image rollback deterministic.
 
 See [docs/dataset-loading.md](docs/dataset-loading.md), [docs/release-manifest.md](docs/release-manifest.md), and [docs/read-model-architecture.md](docs/read-model-architecture.md).
 
@@ -284,7 +286,7 @@ curl "http://localhost:3000/openapi/telecom.json"
 pnpm run validate
 ```
 
-This runs Prisma generation, Biome checks, ESLint, TypeScript type checking,
+This runs Prisma generation, Biome checks, TypeScript type checking,
 unit tests, e2e tests, build verification, and a complete dependency audit.
 
 Useful focused commands:
@@ -306,7 +308,8 @@ pnpm run production:check -- --base-url https://api.opensyria.org
 
 Deployment notes live in [docs/deployment.md](docs/deployment.md).
 
-Production deployments should normally set:
+Production runtime values come from Infisical project `opensyria`, environment
+`production`, path `/datasets-api`. Production deployments set:
 
 ```text
 NODE_ENV=production
@@ -319,6 +322,11 @@ DATASETS_REQUIRE_RELEASES=true
 ```
 
 Set `APP_TRUST_PROXY=true` only when the service is behind a trusted reverse proxy or load balancer.
+
+GitHub Actions builds one immutable Linux AMD64 image and the server only pulls
+it; application builds never run on `syr-prod`. See
+[`docs/deployment.md`](docs/deployment.md) for the shared PostgreSQL, dedicated
+Redis, Infisical, blue/green, and rollback contracts.
 
 Build the Docker image:
 

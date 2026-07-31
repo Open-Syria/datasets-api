@@ -45,6 +45,9 @@ The goal is that every endpoint looks and behaves like it belongs to the same AP
 - Keep canonical dataset names and aliases in the data model; do not invent translations in i18n files.
 - Health release status must distinguish `loaded`, `incomplete`, `missing`, and
   `not_required`, and expose loaded count, expected count, and missing pins.
+- Health must expose the immutable application release. Production database
+  readiness must identify the exact image-pinned geography release and confirm
+  that its read model is non-empty without returning raw dependency errors.
 
 ## File Naming
 

@@ -1,4 +1,5 @@
 import type { PrismaService } from '../../database/prisma.service';
+import type { DatasetReleaseRegistryService } from '../../datasets/dataset-release-registry.service';
 import type { PublicDataCacheService } from '../../shared/cache/public-data-cache.service';
 import { GeographyReadModelQueryService } from './geography-read-model-query.service';
 
@@ -44,6 +45,17 @@ const release = {
     },
   ],
 };
+
+const datasetReleaseRegistryService = {
+  getManifestByDatasetId: jest.fn().mockReturnValue({
+    dataset: {
+      id: release.datasetId,
+    },
+    release: {
+      version: release.version,
+    },
+  }),
+} as unknown as DatasetReleaseRegistryService;
 
 const locality = {
   id: 'sy-damascus-damascus-damascus-damascus',
@@ -125,7 +137,7 @@ function createService() {
   const client = {
     $transaction: transaction,
     datasetRelease: {
-      findFirst: jest.fn().mockResolvedValue(release),
+      findUnique: jest.fn().mockResolvedValue(release),
     },
     geographyLocality: {
       count: countLocalities,
@@ -142,6 +154,7 @@ function createService() {
     service: new GeographyReadModelQueryService(
       prismaService,
       publicDataCacheService as unknown as PublicDataCacheService,
+      datasetReleaseRegistryService,
     ),
     client,
     countLocalities,
@@ -161,6 +174,7 @@ describe('GeographyReadModelQueryService', () => {
     const service = new GeographyReadModelQueryService(
       prismaService,
       createPublicDataCacheService() as unknown as PublicDataCacheService,
+      datasetReleaseRegistryService,
     );
 
     await expect(

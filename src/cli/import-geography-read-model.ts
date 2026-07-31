@@ -3,6 +3,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import appConfig from '../config/app/app.config';
 import cacheConfig from '../config/cache/cache.config';
 import useCacheFactory from '../config/cache/cache.factory';
 import databaseConfig from '../config/database/database.config';
@@ -16,7 +17,7 @@ import { GeographyReadModelImportService } from '../read-model/geography/geograp
     ConfigModule.forRoot({
       isGlobal: true,
       ignoreEnvFile: true,
-      load: [redisConfig, cacheConfig, datasetsConfig, databaseConfig],
+      load: [appConfig, redisConfig, cacheConfig, datasetsConfig, databaseConfig],
     }),
     CacheModule.registerAsync({
       isGlobal: true,

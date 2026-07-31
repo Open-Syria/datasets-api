@@ -13,6 +13,7 @@ const portEnvSchema = z.coerce.number().int().min(1).max(65_535);
 const envSchema = z.object({
   NODE_ENV: z.enum(Environment).optional().default(Environment.Development),
   APP_NAME: z.string().min(1).optional().default('opensyria-datasets-api'),
+  APP_RELEASE: z.string().min(1).optional().default('development'),
   APP_PORT: portEnvSchema.optional(),
   PORT: portEnvSchema.optional(),
   APP_URL: z.url().optional(),
@@ -85,6 +86,7 @@ export function getConfig(): AppConfig {
 
   return {
     name: env.APP_NAME,
+    release: env.APP_RELEASE,
     nodeEnv: env.NODE_ENV,
     port,
     url: env.APP_URL ?? `http://localhost:${port}`,

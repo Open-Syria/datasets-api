@@ -1,0 +1,144 @@
+name: opensyria-datasets-api-production
+
+x-service-defaults: &service-defaults
+  init: true
+  restart: unless-stopped
+  read_only: true
+  stop_grace_period: 30s
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  pids_limit: 256
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,nodev,size=64m
+  environment:
+    HOME: /tmp
+    XDG_CACHE_HOME: /tmp/.cache
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+
+x-api-defaults: &api-defaults
+  <<: *service-defaults
+  env_file:
+    - ./env/api.env
+  cpus: "1.0"
+  mem_limit: 1g
+  volumes:
+    - ./data/releases:/app/data/releases:ro
+  networks:
+    edge: {}
+    data: {}
+  healthcheck:
+    test:
+      [
+        "CMD-SHELL",
+        "node -e \"fetch('http://127.0.0.1:3000/health/ready').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))\"",
+      ]
+    interval: 10s
+    timeout: 5s
+    retries: 9
+    start_period: 30s
+
+services:
+  api-blue:
+    <<: *api-defaults
+    image: ${API_BLUE_IMAGE:?API_BLUE_IMAGE is required}
+    container_name: opensyria-production-api-blue
+    environment:
+      APP_RELEASE: ${API_BLUE_RELEASE:?API_BLUE_RELEASE is required}
+      HOME: /tmp
+      XDG_CACHE_HOME: /tmp/.cache
+    networks:
+      edge:
+        aliases:
+          - opensyria-production-api-blue
+      data: {}
+    profiles:
+      - blue
+
+  api-green:
+    <<: *api-defaults
+    image: ${API_GREEN_IMAGE:?API_GREEN_IMAGE is required}
+    container_name: opensyria-production-api-green
+    environment:
+      APP_RELEASE: ${API_GREEN_RELEASE:?API_GREEN_RELEASE is required}
+      HOME: /tmp
+      XDG_CACHE_HOME: /tmp/.cache
+    networks:
+      edge:
+        aliases:
+          - opensyria-production-api-green
+      data: {}
+    profiles:
+      - green
+
+  migrate:
+    <<: *service-defaults
+    image: ${OPERATIONS_IMAGE:?OPERATIONS_IMAGE is required}
+    env_file:
+      - ./env/migrate.env
+    restart: "no"
+    cpus: "1.0"
+    mem_limit: 1g
+    networks:
+      - data
+    environment:
+      APP_RELEASE: ${DEPLOYMENT_VERSION:?DEPLOYMENT_VERSION is required}
+      HOME: /tmp
+      XDG_CACHE_HOME: /tmp/.cache
+    command:
+      - ./node_modules/.bin/prisma
+      - migrate
+      - deploy
+    profiles:
+      - ops
+
+  sync:
+    <<: *service-defaults
+    image: ${OPERATIONS_IMAGE:?OPERATIONS_IMAGE is required}
+    restart: "no"
+    cpus: "2.0"
+    mem_limit: 1536m
+    pids_limit: 384
+    env_file:
+      - ./env/datasets.env
+    volumes:
+      - ./data/releases:/app/data/releases
+    environment:
+      APP_RELEASE: ${DEPLOYMENT_VERSION:?DEPLOYMENT_VERSION is required}
+      HOME: /tmp
+      XDG_CACHE_HOME: /tmp/.cache
+    profiles:
+      - ops
+
+  import:
+    <<: *service-defaults
+    image: ${OPERATIONS_IMAGE:?OPERATIONS_IMAGE is required}
+    restart: "no"
+    cpus: "2.0"
+    mem_limit: 1536m
+    pids_limit: 384
+    env_file:
+      - ./env/import.env
+    volumes:
+      - ./data/releases:/app/data/releases:ro
+    networks:
+      - data
+    environment:
+      APP_RELEASE: ${DEPLOYMENT_VERSION:?DEPLOYMENT_VERSION is required}
+      HOME: /tmp
+      XDG_CACHE_HOME: /tmp/.cache
+    profiles:
+      - ops
+
+networks:
+  edge:
+    external: true
+    name: syr-staging-edge
+  data:
+    external: true
+    name: opensyria-production-data
