@@ -1,318 +1,244 @@
-# Deployment
+# Production deployment
 
-`datasets-api` serves the public read-only OpenSyria dataset API and is deployed separately from website and administrative services.
+`datasets-api` is deployed directly to production at `api.opensyria.org`. The
+application bundle is separate from the website bundle, while both use the
+shared host platform on `syr-prod`.
 
-## Table of Contents
-
-- [Runtime Requirements](#runtime-requirements)
-- [Release Commands](#release-commands)
-- [Runtime Environment](#runtime-environment)
-- [Runtime Commands](#runtime-commands)
-- [Docker](#docker)
-- [GitHub Actions Deployment](#github-actions-deployment)
-- [Redis Cache](#redis-cache)
-- [Health Checks](#health-checks)
-- [Production Notes](#production-notes)
-
-## Runtime Requirements
-
-- Node.js 24 or the provided Docker image
-- pnpm 11 for local builds
-- Redis when `REDIS_ENABLED=true`
-- Synced dataset release artifacts when public dataset endpoints should serve real records
-- PostgreSQL/PostGIS when `DATABASE_ENABLED=true`
-
-## Release Commands
-
-Run these from a full checkout or CI release job with dev dependencies installed:
-
-```bash
-pnpm install --frozen-lockfile
-pnpm run release:check
-pnpm run db:migrate:deploy
-pnpm run datasets:sync
-pnpm run smoke:datasets
-DATABASE_ENABLED=true pnpm run read-model:import:geography
-```
-
-Before deploying a new `dataset-releases.json` pin, confirm that the matching
-GitHub Release exists and includes `release-manifest.json` plus the referenced
-artifact assets. A public repository alone is not enough for `datasets:sync`;
-the sync job resolves the pinned release tag and downloads release assets.
-
-Use the same release arguments with `pnpm run release:check:docker --` when
-Docker is available and the release job should also build the runtime image
-locally.
-
-The geography import step must finish before a production instance is marked ready. Universities, transport, and telecom are served from verified release artifacts until dedicated read-model importers are added.
-
-Run `smoke:datasets` after every sync or pin change. It boots the API against the
-synced release artifacts and checks all exact pins, collection endpoints,
-dataset discovery, readiness, and filtered OpenAPI documents.
-
-`release:check` builds the API and runs the public API bridge check. Pinned
-datasets with `requiredReadiness.publicApi: "approved"` must have declared
-endpoint contracts, generated OpenAPI paths, filtered OpenAPI docs, and matching
-`/api/v1/datasets` endpoint metadata.
-
-For local or CI verification against PostgreSQL:
-
-```bash
-DATABASE_URL="postgresql://opensyria:opensyria@localhost:5432/opensyria_datasets?schema=public" pnpm run test:integration:db
-```
-
-## Runtime Environment
-
-The GitHub production deployment writes `/srv/opensyria/datasets-api/.env` on
-the server before running the blue/green deployment script. Do not hand-edit the
-server `.env` for normal production changes; update GitHub production
-environment variables/secrets instead.
-
-The generated runtime `.env` enables:
+## Architecture
 
 ```text
-NODE_ENV=production
-APP_URL=https://api.opensyria.org
-APP_TRUST_PROXY=true
-IS_HTTPS=true
-DATASETS_REQUIRE_RELEASES=true
-DATABASE_ENABLED=true
-DATABASE_REQUIRED=true
-REDIS_ENABLED=true
-REDIS_REQUIRED=true
+GitHub Actions
+  build one linux/amd64 image
+  push it to GHCR and resolve its digest
+  join Tailscale and upload devops/production
+  invoke the host deploy script
+            |
+            v
+/opt/syr/apps/opensyria/production/datasets-api
+  isolated release sync/smoke jobs
+  migrate/import jobs
+  api-blue or api-green
+            |
+            +-- opensyria-production-data
+            |     +-- infra-postgres / opensyria_datasets_production
+            |     +-- opensyria-production-redis
+            |
+            +-- syr-staging-edge -> infra-nginx -> Cloudflare Tunnel
 ```
 
-Dataset release pins still come from `dataset-releases.json` in the runtime
-image. `DATASETS_RELEASE_SOURCES_OVERRIDE` remains `false` unless a deliberate
-one-off operational override is needed.
+The physical PostgreSQL container is shared with Jobara and Infisical, but the
+OpenSyria database and login role are dedicated. Redis is a separate container,
+password, network attachment, memory limit, and volume. Neither data service is
+published publicly. Release sync and smoke jobs use only an isolated project
+bridge with outbound HTTPS; they cannot resolve or reach the production data
+network.
 
-Set `GITHUB_TOKEN` when pinned dataset releases live in private repositories or when higher GitHub API limits are needed.
+The shared service directory remains `/opt/syr/services/staging` and its edge
+network remains `syr-staging-edge` for historical Jobara reasons. Those names do
+not change OpenSyria's production environment.
 
-## Runtime Commands
+## Runtime image
 
-Start an already-built app:
+The `runtime` Docker target contains the compiled API, production dependencies,
+Prisma CLI/schema, the release lock, and public assets. The same immutable image
+runs the API, migrations, release sync, smoke check, and read-model import. It
+runs as the image's unprivileged `node` user.
 
-```bash
-pnpm run start:prod
-```
+Every source in the release lock pins both a GitHub release tag and the SHA-256
+of `release-manifest.json`. Production rejects a manifest whose digest differs,
+even if the mutable GitHub tag and its other assets were replaced together.
+It also refuses to overwrite an already-synced tag with different manifest
+content, preserving the release files used by the rollback slot.
 
-If the Docker/runtime image is used for release sync or read-model import, use the production scripts. They run compiled `dist` files and do not rebuild the app:
+GitHub builds exactly one `linux/amd64` image and deploys it as
+`ghcr.io/open-syria/datasets-api@sha256:...`. The server only pulls images; it
+does not clone the repository, install dependencies, or build application code.
 
-```bash
-pnpm run datasets:sync:prod
-pnpm run smoke:datasets:prod
-DATABASE_ENABLED=true pnpm run read-model:import:geography:prod
-```
+## Secret ownership
 
-## Docker
-
-Build:
-
-```bash
-docker build -t opensyria/datasets-api .
-```
-
-Build the production runtime target:
-
-```bash
-docker build --target runtime -t opensyria/datasets-api .
-```
-
-Build the migration target:
-
-```bash
-docker build --target migrations -t opensyria/datasets-api:migrations .
-```
-
-Run without Redis:
-
-```bash
-docker run --rm -p 3000:3000 --env-file .env opensyria/datasets-api
-```
-
-Mount synced release artifacts:
-
-```bash
-docker run --rm -p 3000:3000 --env-file .env -v "$(pwd)/data/releases:/app/data/releases:ro" opensyria/datasets-api
-```
-
-Run a one-off import job from the built image after migrations have already been applied:
-
-```bash
-docker run --rm --env-file .env -v "$(pwd)/data/releases:/app/data/releases:ro" opensyria/datasets-api pnpm run read-model:import:geography:prod
-```
-
-Run a one-off sync job into a writable release volume:
-
-```bash
-docker run --rm --env-file .env -v "$(pwd)/data/releases:/app/data/releases" opensyria/datasets-api pnpm run datasets:sync:prod
-```
-
-## GitHub Actions Deployment
-
-Production deployment is handled by `.github/workflows/deploy-production.yml`.
-
-Repository release metadata is handled separately by
-[releases.md](releases.md) and `.github/workflows/release-please.yml`.
-Release-please tags and GitHub Releases do not select the production image;
-production deploys continue to use SHA-pinned GHCR images built by the deploy
-workflow.
-
-Push commits containing `[skip ci]` or `[ci skip]` skip the CI, CodeQL push job,
-and production deployment workflow jobs. The production deployment workflow also
-skips pushes associated with pull requests opened by `dependabot[bot]`, while
-normal CI can still run. Manual `workflow_dispatch` deployments and scheduled
-CodeQL analysis still run.
-
-The workflow:
-
-1. Runs the release readiness check.
-2. Builds a Linux ARM64 runtime image for `opensyria-prod`.
-3. Builds a Linux ARM64 migration image from the Docker `migrations` target.
-4. Pushes both images to GitHub Container Registry.
-5. Joins the tailnet with `tailscale/github-action@v4`.
-6. Copies `deploy/datasets-api` to `/srv/opensyria/datasets-api`.
-7. Writes runtime release-sync settings; release versions come only from
-   `dataset-releases.json`.
-8. Runs the blue/green deployment script on the server.
-9. Verifies all pinned versions and representative data through the public API
-   ingress.
-
-Dataset release pins are stored in `dataset-releases.json` and copied into the
-runtime image. Server `.env` values can only override the lock file when
-`DATASETS_RELEASE_SOURCES_OVERRIDE=true` is set deliberately.
-
-The blue/green script syncs pinned JSON artifacts, runs `smoke:datasets:prod`
-against every configured release, imports geography into the read model, then
-starts the inactive API color and verifies readiness before traffic flips. The
-workflow subsequently runs `production:check` against
-`https://api.opensyria.org`.
-
-Images are pushed to GHCR using the built-in `GITHUB_TOKEN` with `packages: write`.
-
-Runtime image tags:
+Application runtime configuration lives in the self-hosted Infisical project
+`opensyria`, environment `production`, path `/datasets-api`. The server uses a
+read-only, path-scoped Universal Auth identity stored at:
 
 ```text
-ghcr.io/open-syria/datasets-api:sha-<short-sha>
-ghcr.io/open-syria/datasets-api:main
+/opt/syr/apps/opensyria/production/datasets-api/.infisical.env
 ```
 
-Migration image tags:
+The file must be owned by `mustafa`, mode `0600`, and contain only Infisical
+connection/identity settings. `bin/deploy.sh` obtains a short-lived token from
+the loopback Infisical API and exports `/datasets-api` to a mode-`0600` runtime
+env file. It parses `.infisical.env` with an exact key allowlist instead of
+executing it as shell code. Never store the Infisical access token, GHCR token,
+or dataset GitHub token in that file.
 
-```text
-ghcr.io/open-syria/datasets-api:sha-<short-sha>-migrations
-ghcr.io/open-syria/datasets-api:main-migrations
-```
-
-The server pulls the SHA-pinned tags produced by the current workflow run.
-Runtime and migration images share the production dependency layer so a cold
-host does not download two independent dependency graphs. The deploy script
-refreshes GHCR authentication between images and retries transient pull
-failures before any migration or traffic switch.
-
-Required production environment secrets:
+GitHub's protected `production` environment retains only bootstrap credentials
+that are needed before the private host or Infisical can be reached:
 
 ```text
 TS_OAUTH_CLIENT_ID
 TS_AUDIENCE
 DEPLOY_SSH_PRIVATE_KEY
 DEPLOY_SSH_KNOWN_HOSTS
-POSTGRES_PASSWORD
 ```
 
-Required production environment variables:
+Required GitHub environment variables:
 
 ```text
-DEPLOY_HOST
-DEPLOY_USER
+DEPLOY_HOST=syr-prod
+DEPLOY_USER=mustafa
+DEPLOY_ROOT=/opt/syr/apps/opensyria/production/datasets-api
 ```
 
-Optional production environment variables:
+The repository `GITHUB_TOKEN` authenticates the current GHCR pull and the
+one-off public GitHub Release sync. It is passed only to the deployment process;
+it is not written to the runtime env or injected into long-lived API containers.
+
+## Infisical `/datasets-api` keys
+
+The production path should contain the complete runtime contract:
 
 ```text
-POSTGRES_DB=opensyria_datasets
-POSTGRES_USER=opensyria
+APP_ENV=production
+NODE_ENV=production
+APP_NAME=opensyria-datasets-api
+APP_PORT=3000
 APP_URL=https://api.opensyria.org
-APP_CORS_ORIGIN=*
+APP_API_PREFIX=api
+APP_API_VERSION=1
+APP_BODY_LIMIT_BYTES=65536
+APP_CORS_ORIGIN=https://opensyria.org
+APP_CORS_CREDENTIALS=false
 APP_DOCS_ENABLED=true
+APP_DEBUG=false
+APP_LOG_LEVEL=info
+APP_LOG_PRETTY=false
+APP_TRUST_PROXY=true
+IS_HTTPS=true
+APP_FALLBACK_LANGUAGE=en
+DATASETS_RELEASES_DIR=data/releases
+DATASETS_REQUIRE_RELEASES=true
+DATASETS_RELEASE_SOURCES_FILE=dataset-releases.json
+DATASETS_RELEASE_SOURCES_OVERRIDE=false
+DATASETS_SYNC_DOWNLOAD_ARTIFACTS=true
+DATABASE_URL=postgresql://<encoded-role>:<encoded-password>@infra-postgres:5432/opensyria_datasets_production?schema=public
+DATABASE_ENABLED=true
+DATABASE_REQUIRED=true
+DATABASE_LOG_QUERIES=false
+REDIS_URL=redis://:<encoded-password>@opensyria-production-redis:6379/0
+REDIS_ENABLED=true
+REDIS_REQUIRED=true
+CACHE_TTL_SECONDS=300
 THROTTLE_FREE_TIER_DAILY_LIMIT=500
 THROTTLE_FREE_TIER_DAILY_TTL_SECONDS=86400
 ```
 
-Optional production environment secrets:
+`APP_RELEASE` is deliberately absent: Compose injects the full Git commit SHA
+for each deployment. `GITHUB_TOKEN` is deliberately absent because only the
+ephemeral sync job receives it. Percent-encode the database username/password
+and Redis password in their URLs.
 
-```text
-DATASETS_GITHUB_TOKEN
+## Existing PostgreSQL cluster prerequisite
+
+The checked-in PostgreSQL init script only runs on a fresh data volume. Before
+the first OpenSyria deployment to the existing cluster:
+
+1. Take and verify a current cluster backup.
+2. Generate a strong OpenSyria database password and add the four protected
+   `OPEN_SYRIA_*` values documented in the host-platform bundle.
+3. As the PostgreSQL administrator, create the non-superuser role and owned
+   `opensyria_datasets_production` database.
+4. Revoke database access from `PUBLIC` and verify the role has no privileges on
+   Jobara or Infisical databases.
+5. Enable PostGIS in the OpenSyria database as the administrator.
+6. Use the same encoded credential in Infisical's `DATABASE_URL`.
+
+Do not grant the application role superuser or extension-creation privileges.
+
+## Deployment sequence
+
+The workflow and `devops/production/bin/deploy.sh` perform these steps:
+
+1. Validate the exact host, user, path, protected Infisical file, networks, and
+   infrastructure containers.
+2. Pull the immutable image digest with short-lived GHCR authentication.
+3. Take a custom-format pre-migration dump in
+   `/opt/syr/backups/production/opensyria/postgres`.
+4. Run `prisma migrate deploy` from the runtime image.
+5. Sync every exact pin in `dataset-releases.json`; the GitHub token is scoped
+   to this job only.
+6. Smoke-check the verified release artifacts with database and Redis disabled.
+7. Import the pinned geography release with Redis disabled.
+8. Start the inactive API slot with a read-only root filesystem and read-only
+   release mount.
+9. Verify container readiness, the application SHA, the exact pinned geography
+   database release, and every manifest-declared geography artifact count.
+10. Atomically update the shared nginx upstream include, run `nginx -t`, reload,
+    and verify the private Host-routed origin.
+11. Optionally verify `https://api.opensyria.org` before draining the old local
+    slot. The protected `VERIFY_PUBLIC_DEPLOYMENT` variable controls automatic
+    runs; manual dispatch can require or skip it explicitly.
+
+The old external OpenSyria server remains an independent rollback target until
+the Cloudflare cutover has been validated.
+
+## Rollback contract
+
+Database rows for older geography releases are retained. Runtime queries select
+the exact release pinned in their own `dataset-releases.json`, never the newest
+row in PostgreSQL. This makes application-image rollback deterministic after a
+newer release has been imported.
+
+If private or public verification fails after the switch, the deployment script
+restores the previous nginx include and stops the failed slot. Migrations are
+forward-only; review every migration for compatibility with the previous image.
+Restoring the pre-migration dump is a separate, explicitly confirmed operator
+action, not an automatic rollback.
+
+Backups use PostgreSQL custom format, exclude the administrator-owned PostGIS
+extension, pass `pg_restore --list`, and are atomically published with SHA-256
+and recovery sidecars. `bin/restore-postgres.sh` accepts only those OpenSyria
+production dumps, requires the literal `RESTORE_OPEN_SYRIA_PRODUCTION`
+confirmation, refuses to race deployments/backups or active API slots, and
+validates the restricted role before acting. It force-drops and recreates only
+`opensyria_datasets_production`, revokes `PUBLIC`, recreates administrator-owned
+PostGIS, and then restores as the application role. Resetting the dedicated
+database first guarantees that objects introduced after the selected backup do
+not survive and conflict with restored Prisma migration history. Keep a tested
+off-host copy and verify readiness before restarting public traffic.
+
+## CI policy
+
+`.github/workflows/ci.yml` installs the frozen lockfile, generates Prisma code,
+runs Biome, checks TypeScript, and audits production dependencies. Tests and
+application builds are intentionally local-only. The deployment workflow builds
+the runtime image exactly once because an image is the deployment artifact; it
+does not repeat unit/E2E tests or build on the server.
+
+Automatic production deployment starts only from a successful `CI` workflow
+run for a same-repository push to `main`. Commits with `[skip ci]`/`[ci skip]`
+and Dependabot-associated commits are not automatically deployed. A protected
+manual dispatch remains available for deliberate branch rollouts.
+
+Useful local checks:
+
+```bash
+pnpm run check
+pnpm run typecheck
+pnpm run test
+pnpm run test:e2e
+pnpm run build
 ```
 
-`DATASETS_GITHUB_TOKEN` is only needed when syncing private dataset releases or
-when a longer-lived token is preferred. If it is not set, the production
-workflow writes the short-lived repository `GITHUB_TOKEN` for the controlled
-release sync step so public GitHub API rate limits do not block deployment.
+## Health and edge behavior
 
-Secret placement recommendation:
+- `GET /health/live` reports process liveness and the application SHA.
+- `GET /health/ready` requires Redis, the database, every pinned artifact
+  release, the exact pinned geography row identity, and exact per-artifact row
+  counts from its verified manifest.
+- `GET /health` exposes the same aggregate dependency state.
 
-- Use GitHub `production` environment secrets for this first deployment. They are only exposed to jobs that target the production environment and can later be protected with required reviewers.
-- Keep application/runtime secrets in the `production` environment as well.
-- Use organization secrets only when multiple OpenSyria repositories need the same value. If organization secrets are used, restrict them to selected repositories instead of all repositories.
-- Prefer Tailscale workload identity federation over a long-lived Tailscale OAuth secret.
-
-Tailscale requirements:
-
-- Create a GitHub Actions Tailscale identity that can use `tag:ci`.
-- Allow `tag:ci` to reach `opensyria-prod` on TCP port `22`.
-- Keep the deploy runner ephemeral.
-
-GHCR requirements:
-
-- The workflow can push to GHCR with the repository `GITHUB_TOKEN`.
-- The deploy job has `packages: read` and passes the short-lived repository `GITHUB_TOKEN` to the server for `docker login ghcr.io` during the pull.
-- No separate GHCR PAT is required for the normal deployment path.
-- If the package is later made public, authenticated pulls still work and can be kept for consistency.
-
-Blue/green runtime:
-
-- The local nginx proxy binds to `127.0.0.1:3000`.
-- `api-blue` binds to `127.0.0.1:3001`.
-- `api-green` binds to `127.0.0.1:3002`.
-- Deployments start the inactive color, verify readiness, reload nginx, then stop the old color after a short drain.
-
-## Redis Cache
-
-Runtime Redis is used for the public daily quota and for cache-manager-backed public data caches. The cache namespace stores endpoint data payloads and verified artifact payloads; throttling keys use a separate prefix.
-
-Cache invalidation should normally be automatic:
-
-- `CACHE_TTL_SECONDS` sets normal expiry.
-- Geography read-model imports clear the application cache after a successful import.
-- Geography endpoint keys include the active release id and generated timestamp, so a newly imported release bypasses old keys even before TTL expiry.
-- Artifact fallback keys include artifact checksums.
-
-Manual Redis cleanup should only be needed after operational mistakes, such as importing the wrong release and then restoring the correct one outside the normal import command.
-
-## Health Checks
-
-- `GET /health/live` checks that the process is alive.
-- `GET /health/ready` checks runtime dependencies and release readiness.
-- `GET /health` returns the aggregate public health payload.
-
-`/health/ready` returns HTTP 503 when a required dependency is unavailable or a
-configured dataset release is missing. Dataset release health includes
-`count`, `expectedCount`, and `missing`; a partial release set is reported as
-`incomplete`.
-
-## Production Notes
-
-- Keep `APP_DOCS_ENABLED=true` only if public API documentation should be exposed by that environment.
-- Keep `/robots.txt` and `X-Robots-Tag: noindex, nofollow` enabled for the API host so search engines do not index JSON endpoint responses.
-- Set `APP_CORS_ORIGIN` to the exact frontend origins that should call the API from browsers.
-- Browser CORS preflight is intentionally limited to `GET`, `HEAD`, and `OPTIONS` with the approved public API headers.
-- Keep `APP_BODY_LIMIT_BYTES` small unless a future endpoint genuinely needs larger request bodies.
-- Set `IS_HTTPS=true` behind an HTTPS-terminating proxy so HSTS is emitted.
-- Set `APP_TRUST_PROXY=true` only when the service is actually behind a trusted reverse proxy.
-- Keep `THROTTLE_FREE_TIER_DAILY_LIMIT=500` and `THROTTLE_FREE_TIER_DAILY_TTL_SECONDS=86400` for the public free tier unless a release intentionally changes the quota.
-- Set `REDIS_REQUIRED=true` when the deployment must fail closed if Redis is unavailable.
-- Keep `CACHE_TTL_SECONDS` short enough for operational recovery. The default is 300 seconds.
-- Set `DATABASE_ENABLED=true` and `DATABASE_REQUIRED=true` when endpoints should serve from the database read model.
-- Keep `DATASETS_REQUIRE_RELEASES=true` for environments that must not boot without synced dataset manifests.
-- Do not bake private tokens into the Docker image. Use runtime environment variables such as `GITHUB_TOKEN` only during controlled sync steps.
+Cloudflare terminates TLS and reaches `infra-nginx` through an outbound-only
+Tunnel. Nginx supplies production security headers, preserves the client IP
+contract, and marks the API host `noindex`. API documentation and OpenAPI routes
+remain public by design. Do not cache health, API JSON, documentation, or
+OpenAPI responses at Cloudflare; cache immutable website assets separately.

@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, rename, rm, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
 import {
@@ -148,6 +148,13 @@ export class GitHubReleaseSyncService {
       manifestAsset.browser_download_url,
       `${sourceLabel} ${RELEASE_MANIFEST_FILE}`,
     );
+    const manifestChecksum = sha256(manifestBuffer);
+
+    if (source.manifestSha256 && manifestChecksum !== source.manifestSha256) {
+      throw new Error(
+        `Checksum mismatch for ${sourceLabel} ${RELEASE_MANIFEST_FILE}: expected ${source.manifestSha256}, got ${manifestChecksum}`,
+      );
+    }
     const manifest = datasetReleaseManifestSchema.parse(
       JSON.parse(manifestBuffer.toString('utf8')),
     );
@@ -160,6 +167,22 @@ export class GitHubReleaseSyncService {
       manifest,
     );
     const manifestPath = safeResolveDatasetReleasePath(releaseDirectory, RELEASE_MANIFEST_FILE);
+    const releaseAlreadyExists = await this.validateExistingRelease(
+      releaseDirectory,
+      manifest,
+      manifestChecksum,
+      sourceLabel,
+    );
+
+    if (releaseAlreadyExists) {
+      return {
+        source: sourceLabel,
+        manifestPath,
+        artifactsDownloaded: 0,
+        artifactsSkipped: manifest.artifacts.length,
+      };
+    }
+
     const stagingDirectory = path.join(
       path.dirname(releaseDirectory),
       `.${path.basename(releaseDirectory)}.sync-${randomUUID()}`,
@@ -176,7 +199,7 @@ export class GitHubReleaseSyncService {
         RELEASE_MANIFEST_FILE,
       );
 
-      await writeFile(stagingManifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+      await writeFile(stagingManifestPath, manifestBuffer);
       await this.replaceReleaseDirectory(stagingDirectory, releaseDirectory);
 
       return {
@@ -306,6 +329,85 @@ export class GitHubReleaseSyncService {
 
     if (hasBackup) {
       await rm(backupDirectory, { force: true, recursive: true });
+    }
+  }
+
+  private async validateExistingRelease(
+    releaseDirectory: string,
+    manifest: DatasetReleaseManifest,
+    manifestChecksum: string,
+    sourceLabel: string,
+  ): Promise<boolean> {
+    const existingManifestPath = safeResolveDatasetReleasePath(
+      releaseDirectory,
+      RELEASE_MANIFEST_FILE,
+    );
+
+    try {
+      const existingManifest = await readFile(existingManifestPath);
+      const existingChecksum = sha256(existingManifest);
+
+      if (existingChecksum !== manifestChecksum) {
+        throw new Error(
+          `${sourceLabel} is already synced with a different release manifest; publish a new release tag instead of replacing an existing tag`,
+        );
+      }
+
+      if (this.options.downloadArtifacts) {
+        await this.validateExistingArtifacts(releaseDirectory, manifest, sourceLabel);
+      }
+
+      return true;
+    } catch (error) {
+      if (getNodeErrorCode(error) !== 'ENOENT') {
+        throw error;
+      }
+    }
+
+    try {
+      await lstat(releaseDirectory);
+    } catch (error) {
+      if (getNodeErrorCode(error) === 'ENOENT') {
+        return false;
+      }
+
+      throw error;
+    }
+
+    throw new Error(
+      `${sourceLabel} has an incomplete local release directory; repair it before syncing`,
+    );
+  }
+
+  private async validateExistingArtifacts(
+    releaseDirectory: string,
+    manifest: DatasetReleaseManifest,
+    sourceLabel: string,
+  ) {
+    for (const artifact of manifest.artifacts.filter(({ format }) => format === 'json')) {
+      const artifactPath = safeResolveDatasetReleasePath(releaseDirectory, artifact.path);
+      let artifactBuffer: Buffer;
+
+      try {
+        artifactBuffer = await readFile(artifactPath);
+      } catch (error) {
+        if (getNodeErrorCode(error) === 'ENOENT') {
+          throw new Error(
+            `${sourceLabel} has a missing local artifact ${artifact.path}; repair it before syncing`,
+          );
+        }
+
+        throw error;
+      }
+
+      if (
+        artifactBuffer.byteLength !== artifact.sizeBytes ||
+        sha256(artifactBuffer) !== artifact.sha256
+      ) {
+        throw new Error(
+          `${sourceLabel} has a corrupt local artifact ${artifact.path}; repair it before syncing`,
+        );
+      }
     }
   }
 

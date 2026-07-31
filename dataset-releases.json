@@ -3,12 +3,14 @@
     {
       "owner": "Open-Syria",
       "repository": "data-geography",
-      "tag": "v0.1.5"
+      "tag": "v0.1.5",
+      "manifestSha256": "0b0d4dad33b5ae9df86a884c3361bbb6c7c95a0a20d6ff4603940b9886a5804b"
     },
     {
       "owner": "Open-Syria",
       "repository": "data-universities",
       "tag": "v0.2.2",
+      "manifestSha256": "b87287791785fba22b6cf89cc4cea8a7a51792337fbd331546d326f1abb6ee72",
       "requiredReadiness": {
         "minimumLevel": "profile_ready",
         "publicApi": "approved"
@@ -18,6 +20,7 @@
       "owner": "Open-Syria",
       "repository": "data-transport",
       "tag": "v0.1.1",
+      "manifestSha256": "d21395f9ca7063e76e3c3fce1da5e39f51b8864ec956b587783f484703b7a730",
       "requiredReadiness": {
         "minimumLevel": "public_directory_ready",
         "publicApi": "approved"
@@ -27,6 +30,7 @@
       "owner": "Open-Syria",
       "repository": "data-telecom",
       "tag": "v0.1.0",
+      "manifestSha256": "de90dcd7cdf0d495724af95d13e08cc7da35d05bf28f170236356e551409c5da",
       "requiredReadiness": {
         "minimumLevel": "api_ready",
         "publicApi": "approved"

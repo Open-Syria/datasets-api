@@ -1,10 +1,22 @@
 name: Deploy Production
 
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
   workflow_dispatch:
+    inputs:
+      public_verification:
+        description: Verify api.opensyria.org after the private cutover
+        required: true
+        default: inherit
+        type: choice
+        options:
+          - inherit
+          - required
+          - skip
 
 permissions:
   contents: read
@@ -13,219 +25,236 @@ concurrency:
   group: production-datasets-api
   cancel-in-progress: false
 
+env:
+  RELEASE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
 jobs:
   deploy-policy:
-    name: Resolve Deploy Policy
-    runs-on: ubuntu-latest
+    name: Resolve deploy policy
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
       contents: read
       pull-requests: read
     outputs:
       should-deploy: ${{ steps.policy.outputs.should-deploy }}
-      reason: ${{ steps.policy.outputs.reason }}
 
     steps:
       - name: Decide whether to deploy
         id: policy
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          RELEASE_SHA: ${{ env.RELEASE_SHA }}
         with:
           script: |
             const setPolicy = (shouldDeploy, reason) => {
-              core.setOutput('should-deploy', String(shouldDeploy));
-              core.setOutput('reason', reason);
+              core.setOutput("should-deploy", String(shouldDeploy));
               core.notice(reason);
             };
 
-            if (context.eventName !== 'push') {
-              setPolicy(true, 'Manual dispatch is eligible for deployment.');
+            if (context.eventName === "workflow_dispatch") {
+              setPolicy(true, "Manual dispatch is eligible for deployment.");
               return;
             }
 
-            const message = context.payload.head_commit?.message ?? '';
-            if (message.includes('[skip ci]') || message.includes('[ci skip]')) {
-              setPolicy(false, 'Commit message requested CI skip.');
+            const commit = await github.rest.repos.getCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: process.env.RELEASE_SHA,
+            });
+            const message = commit.data.commit.message ?? "";
+            if (message.includes("[skip ci]") || message.includes("[ci skip]")) {
+              setPolicy(false, "Commit message requested CI skip.");
               return;
             }
 
             const pulls = await github.rest.repos.listPullRequestsAssociatedWithCommit({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              commit_sha: context.sha,
+              commit_sha: process.env.RELEASE_SHA,
             });
-
-            const dependabotPull = pulls.data.find((pull) => pull.user?.login === 'dependabot[bot]');
+            const dependabotPull = pulls.data.find(
+              (pull) => pull.user?.login === "dependabot[bot]",
+            );
             if (dependabotPull) {
-              setPolicy(false, `Push came from Dependabot PR #${dependabotPull.number}.`);
+              setPolicy(false, `Commit belongs to Dependabot PR #${dependabotPull.number}.`);
               return;
             }
 
-            setPolicy(true, 'Push is eligible for deployment.');
+            setPolicy(true, "The successful main-branch CI run is eligible for deployment.");
 
-  verify:
-    name: Verify Release
+  manual-validation:
+    name: Validate manual release
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     needs: deploy-policy
-    if: ${{ needs.deploy-policy.outputs.should-deploy == 'true' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
+      - name: Checkout selected release
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.RELEASE_SHA }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
         with:
           version: 11.9.0
           run_install: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: 24
+          node-version: 24.16.0
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Validate
-        run: pnpm run validate
+      - name: Generate Prisma client
+        run: pnpm run db:generate
 
-      - name: Check release readiness
-        run: pnpm run release:check
+      - name: Check formatting and lint rules
+        run: pnpm run check
+
+      - name: Check TypeScript
+        run: pnpm run typecheck
+
+      - name: Validate production release lock
+        run: pnpm run release:check:config
+
+      - name: Audit production dependencies
+        run: pnpm run audit:prod
 
   build:
-    name: Build And Push Images
-    needs: verify
-    runs-on: ubuntu-latest
+    name: Build and push immutable image
+    needs:
+      - deploy-policy
+      - manual-validation
+    if: >-
+      always() &&
+      needs.deploy-policy.result == 'success' &&
+      needs.deploy-policy.outputs.should-deploy == 'true' &&
+      (needs.manual-validation.result == 'success' || needs.manual-validation.result == 'skipped')
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
+    environment:
+      name: production
     permissions:
       contents: read
       packages: write
     outputs:
-      runtime-image: ${{ steps.images.outputs.runtime-image }}
-      migrations-image: ${{ steps.images.outputs.migrations-image }}
+      runtime-image: ${{ steps.reference.outputs.runtime-image }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
+      - name: Checkout validated release
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.RELEASE_SHA }}
 
-      - name: Prepare image names
-        id: images
+      - name: Prepare image name
+        id: image
         shell: bash
         run: |
-          repository="${GITHUB_REPOSITORY,,}"
-          image="ghcr.io/${repository}"
-          short_sha="${GITHUB_SHA::12}"
-
-          runtime_image="${image}:sha-${short_sha}"
-          migrations_image="${image}:sha-${short_sha}-migrations"
-
-          {
-            echo "runtime-image=${runtime_image}"
-            echo "migrations-image=${migrations_image}"
-            echo "runtime-tags<<EOF"
-            echo "${runtime_image}"
-            if [ "${GITHUB_REF_NAME}" = "main" ]; then
-              echo "${image}:main"
-            fi
-            echo "EOF"
-            echo "migrations-tags<<EOF"
-            echo "${migrations_image}"
-            if [ "${GITHUB_REF_NAME}" = "main" ]; then
-              echo "${image}:main-migrations"
-            fi
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Setup QEMU
-        uses: docker/setup-qemu-action@v4
-        with:
-          platforms: arm64
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          echo "image=${image}" >> "$GITHUB_OUTPUT"
+          echo "tag=${image}:sha-${RELEASE_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+        with:
+          version: v0.35.0
+          driver-opts: image=moby/buildkit@sha256:2f5adac4ecd194d9f8c10b7b5d7bceb5186853db1b26e5abd3a657af0b7e26ec
 
       - name: Login to GHCR
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push runtime image
-        uses: docker/build-push-action@v7
+        id: build
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
           context: .
           target: runtime
-          platforms: linux/arm64
+          platforms: linux/amd64
           push: true
-          tags: ${{ steps.images.outputs.runtime-tags }}
-          cache-from: type=gha,scope=datasets-api-runtime
-          cache-to: type=gha,mode=max,scope=datasets-api-runtime
+          tags: ${{ steps.image.outputs.tag }}
+          cache-from: type=gha,scope=datasets-api-production-amd64
+          cache-to: type=gha,mode=max,scope=datasets-api-production-amd64
+          provenance: mode=max
+          sbom: true
 
-      - name: Build and push migrations image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          target: migrations
-          platforms: linux/arm64
-          push: true
-          tags: ${{ steps.images.outputs.migrations-tags }}
-          cache-from: type=gha,scope=datasets-api-migrations
-          cache-to: type=gha,mode=max,scope=datasets-api-migrations
+      - name: Resolve immutable image reference
+        id: reference
+        shell: bash
+        env:
+          IMAGE: ${{ steps.image.outputs.image }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          echo "runtime-image=${IMAGE}@${DIGEST}" >> "$GITHUB_OUTPUT"
 
   deploy:
-    name: Deploy To opensyria-prod
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    name: Deploy to syr-prod
+    needs:
+      - deploy-policy
+      - build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
     environment:
       name: production
-      url: https://api.opensyria.org/health
+      url: https://api.opensyria.org/health/ready
     permissions:
       contents: read
       id-token: write
       packages: read
+    env:
+      DEPLOY_ROOT: /opt/syr/apps/opensyria/production/datasets-api
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Connect to tailnet
-        uses: tailscale/github-action@v4
+      - name: Checkout validated release
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          version: latest
-          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          audience: ${{ secrets.TS_AUDIENCE }}
-          tags: tag:ci
-          ping: ${{ vars.DEPLOY_HOST }}
+          ref: ${{ env.RELEASE_SHA }}
 
-      - name: Validate deploy host variable
+      - name: Validate deployment configuration
         shell: bash
         env:
           DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
-        run: test -n "$DEPLOY_HOST"
-
-      - name: Validate deploy user variable
-        shell: bash
-        env:
           DEPLOY_USER: ${{ vars.DEPLOY_USER }}
-        run: test -n "$DEPLOY_USER"
-
-      - name: Validate SSH private key secret
-        shell: bash
-        env:
+          CONFIGURED_DEPLOY_ROOT: ${{ vars.DEPLOY_ROOT }}
           DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
-        run: test -n "$DEPLOY_SSH_PRIVATE_KEY"
-
-      - name: Validate SSH known hosts secret
-        shell: bash
-        env:
           DEPLOY_SSH_KNOWN_HOSTS: ${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}
-        run: test -n "$DEPLOY_SSH_KNOWN_HOSTS"
+        run: |
+          test "$DEPLOY_HOST" = "syr-prod"
+          test "$DEPLOY_USER" = "mustafa"
+          test "${CONFIGURED_DEPLOY_ROOT:-$DEPLOY_ROOT}" = "$DEPLOY_ROOT"
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test -n "$DEPLOY_SSH_PRIVATE_KEY"
+          test -n "$DEPLOY_SSH_KNOWN_HOSTS"
 
-      - name: Install SSH key
+      - name: Connect to tailnet
+        uses: tailscale/github-action@780049a30b6ff5c378a9e7b389d15ece7a204888 # v4.1.3
+        with:
+          version: 1.98.10
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          audience: ${{ secrets.TS_AUDIENCE }}
+          tags: tag:ci
+          ping: syr-prod
+
+      - name: Install SSH credentials
         shell: bash
         env:
           DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
@@ -237,13 +266,132 @@ jobs:
           printf '%s\n' "$DEPLOY_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
-      - name: Validate SSH known host entry
+      - name: Validate SSH host and prepare application directory
         shell: bash
         env:
           DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
-        run: ssh-keygen -F "$DEPLOY_HOST" -f ~/.ssh/known_hosts >/dev/null
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+        run: |
+          ssh-keygen -F "$DEPLOY_HOST" -f ~/.ssh/known_hosts >/dev/null
+          ssh -i ~/.ssh/opensyria_deploy \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            'sudo -n /usr/bin/install -d -m 0750 -o mustafa -g mustafa /opt/syr/apps/opensyria /opt/syr/apps/opensyria/production /opt/syr/apps/opensyria/production/website /opt/syr/apps/opensyria/production/datasets-api'
+          ssh -i ~/.ssh/opensyria_deploy \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            'root=/opt/syr/apps/opensyria/production/datasets-api; test -d "$root" && test ! -L "$root" && test "$(readlink -f "$root")" = "$root"'
 
-      - name: Check SSH access
+      - name: Upload and atomically activate production bundle
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+        run: |
+          bundle="${RUNNER_TEMP}/opensyria-api-production.tgz"
+          tar -C devops/production -czf "$bundle" .
+          bundle_sha="$(sha256sum "$bundle" | cut -d ' ' -f 1)"
+          [[ "$bundle_sha" =~ ^[0-9a-f]{64}$ ]]
+
+          stage="$(
+            ssh -i ~/.ssh/opensyria_deploy \
+              -o BatchMode=yes \
+              -o IdentitiesOnly=yes \
+              -o StrictHostKeyChecking=yes \
+              "${DEPLOY_USER}@${DEPLOY_HOST}" \
+              'root=/opt/syr/apps/opensyria/production/datasets-api; install -d -m 0700 "$root/bundles"; mktemp -d "$root/bundles/.incoming-'"${RELEASE_SHA}"'.XXXXXX"'
+          )"
+          case "$stage" in
+            "${DEPLOY_ROOT}/bundles/.incoming-${RELEASE_SHA}."*) ;;
+            *) echo "::error::Unexpected remote bundle staging path"; exit 1 ;;
+          esac
+
+          scp -i ~/.ssh/opensyria_deploy \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            "$bundle" "${DEPLOY_USER}@${DEPLOY_HOST}:${stage}/bundle.tgz"
+
+          bundle_id="${RELEASE_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          printf -v root_q '%q' "$DEPLOY_ROOT"
+          printf -v stage_q '%q' "$stage"
+          printf -v bundle_id_q '%q' "$bundle_id"
+          printf -v bundle_sha_q '%q' "$bundle_sha"
+          ssh -i ~/.ssh/opensyria_deploy \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "bash -s -- ${root_q} ${stage_q} ${bundle_id_q} ${bundle_sha_q}" <<'REMOTE'
+          set -Eeuo pipefail
+          root="$1"
+          stage="$2"
+          bundle_id="$3"
+          expected_sha="$4"
+          umask 077
+
+          test "$root" = /opt/syr/apps/opensyria/production/datasets-api
+          test -d "$root" && test ! -L "$root"
+          test "$(readlink -f "$root")" = "$root"
+          case "$stage" in "$root"/bundles/.incoming-*) ;; *) exit 1 ;; esac
+          test -d "$stage" && test ! -L "$stage"
+          test "$(readlink -f "$stage")" = "$stage"
+          [[ "$bundle_id" =~ ^[0-9a-f]{40}-[0-9]+-[0-9]+$ ]]
+          [[ "$expected_sha" =~ ^[0-9a-f]{64}$ ]]
+
+          exec 9>"$root/.deploy.lock"
+          chmod 600 "$root/.deploy.lock"
+          flock -n 9
+          test ! -e "$root/state/pending.env"
+          test "$(sha256sum "$stage/bundle.tgz" | cut -d ' ' -f 1)" = "$expected_sha"
+
+          install -d -m 0700 "$stage/payload"
+          tar -xzf "$stage/bundle.tgz" --no-same-owner --no-same-permissions -C "$stage/payload"
+          test -z "$(find "$stage/payload" -type l -print -quit)"
+          test -f "$stage/payload/docker-compose.app.yml"
+          for helper in deploy.sh check.sh backup-postgres.sh restore-postgres.sh; do
+            test -f "$stage/payload/bin/$helper"
+            bash -n "$stage/payload/bin/$helper"
+          done
+          test -f "$stage/payload/bin/validate-runtime-env.py"
+          python3 - "$stage/payload/bin/validate-runtime-env.py" <<'PY'
+          import sys
+          from pathlib import Path
+          compile(Path(sys.argv[1]).read_text(encoding="utf-8"), sys.argv[1], "exec")
+          PY
+          chmod 700 "$stage/payload/bin"/*.sh "$stage/payload/bin"/*.py
+
+          final="$root/bundles/$bundle_id"
+          test ! -e "$final"
+          mv "$stage/payload" "$final"
+          rm -f "$stage/bundle.tgz"
+          rmdir "$stage"
+
+          ensure_link() {
+            local link="$1"
+            local target="$2"
+            if [ -e "$link" ] || [ -L "$link" ]; then
+              test -L "$link"
+              test "$(readlink "$link")" = "$target"
+            else
+              ln -s "$target" "$link"
+            fi
+          }
+          ensure_link "$root/bin" current-bundle/bin
+          ensure_link "$root/docker-compose.app.yml" current-bundle/docker-compose.app.yml
+          ensure_link "$root/README.md" current-bundle/README.md
+          ensure_link "$root/.infisical.env.example" current-bundle/.infisical.env.example
+
+          next_link="$root/.current-bundle.next-$bundle_id"
+          ln -s "bundles/$bundle_id" "$next_link"
+          mv -Tf "$next_link" "$root/current-bundle"
+          REMOTE
+
+      - name: Require host-side Infisical identity
         shell: bash
         env:
           DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
@@ -254,110 +402,61 @@ jobs:
             -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes \
             "${DEPLOY_USER}@${DEPLOY_HOST}" \
-            'test -w /srv/opensyria/datasets-api'
+            'file=/opt/syr/apps/opensyria/production/datasets-api/.infisical.env; test -f "$file" && test ! -L "$file" && test "$(stat -c %a "$file")" = 600'
 
-      - name: Copy deployment files
+      - name: Resolve public verification policy
+        id: public-policy
         shell: bash
         env:
-          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          DEFAULT_POLICY: ${{ vars.VERIFY_PUBLIC_DEPLOYMENT }}
+          MANUAL_POLICY: ${{ github.event.inputs.public_verification }}
         run: |
-          tar -C deploy/datasets-api -czf - . \
-            | ssh -i ~/.ssh/opensyria_deploy \
-                -o BatchMode=yes \
-                -o IdentitiesOnly=yes \
-                -o StrictHostKeyChecking=yes \
-                "${DEPLOY_USER}@${DEPLOY_HOST}" \
-                'mkdir -p /srv/opensyria/datasets-api && tar -xzf - -C /srv/opensyria/datasets-api && chmod 700 /srv/opensyria/datasets-api/bin/*.sh'
+          case "${MANUAL_POLICY:-inherit}" in
+            required) verify=true ;;
+            skip) verify=false ;;
+            inherit)
+              case "$DEFAULT_POLICY" in
+                true) verify=true ;;
+                false) verify=false ;;
+                *)
+                  echo "::error::VERIFY_PUBLIC_DEPLOYMENT must be exactly true or false."
+                  exit 1
+                  ;;
+              esac
+              ;;
+            *)
+              echo "::error::Invalid public verification policy."
+              exit 1
+              ;;
+          esac
+          echo "verify=${verify}" >> "$GITHUB_OUTPUT"
 
-      - name: Write runtime environment
-        shell: bash
-        env:
-          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
-          POSTGRES_DB: ${{ vars.POSTGRES_DB }}
-          POSTGRES_USER: ${{ vars.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          APP_URL: ${{ vars.APP_URL }}
-          APP_CORS_ORIGIN: ${{ vars.APP_CORS_ORIGIN }}
-          APP_DOCS_ENABLED: ${{ vars.APP_DOCS_ENABLED }}
-          THROTTLE_FREE_TIER_DAILY_LIMIT: ${{ vars.THROTTLE_FREE_TIER_DAILY_LIMIT }}
-          THROTTLE_FREE_TIER_DAILY_TTL_SECONDS: ${{ vars.THROTTLE_FREE_TIER_DAILY_TTL_SECONDS }}
-          GITHUB_TOKEN_FOR_DATASETS: ${{ secrets.DATASETS_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
-        run: |
-          test -n "$POSTGRES_PASSWORD"
-
-          write_env() {
-            printf '%s=%s\n' "$1" "$2"
-          }
-
-          {
-            write_env POSTGRES_DB "${POSTGRES_DB:-opensyria_datasets}"
-            write_env POSTGRES_USER "${POSTGRES_USER:-opensyria}"
-            write_env POSTGRES_PASSWORD "$POSTGRES_PASSWORD"
-            write_env NODE_ENV production
-            write_env APP_NAME opensyria-datasets-api
-            write_env APP_PORT 3000
-            write_env APP_URL "${APP_URL:-https://api.opensyria.org}"
-            write_env APP_API_PREFIX api
-            write_env APP_API_VERSION 1
-            write_env APP_BODY_LIMIT_BYTES 65536
-            write_env APP_CORS_ORIGIN "${APP_CORS_ORIGIN:-*}"
-            write_env APP_DOCS_ENABLED "${APP_DOCS_ENABLED:-true}"
-            write_env APP_LOG_LEVEL info
-            write_env APP_LOG_PRETTY false
-            write_env APP_TRUST_PROXY true
-            write_env IS_HTTPS true
-            write_env APP_FALLBACK_LANGUAGE en
-            write_env DATASETS_RELEASES_DIR data/releases
-            write_env DATASETS_REQUIRE_RELEASES true
-            write_env DATASETS_RELEASE_SOURCES_FILE dataset-releases.json
-            write_env DATASETS_RELEASE_SOURCES ''
-            write_env DATASETS_RELEASE_SOURCES_OVERRIDE false
-            write_env DATASETS_SYNC_DOWNLOAD_ARTIFACTS true
-            write_env DATABASE_ENABLED true
-            write_env DATABASE_REQUIRED true
-            write_env DATABASE_LOG_QUERIES false
-            write_env REDIS_ENABLED true
-            write_env REDIS_REQUIRED true
-            write_env CACHE_TTL_SECONDS 300
-            write_env CACHE_MAX_ITEMS 1000
-            write_env THROTTLE_FREE_TIER_DAILY_LIMIT "${THROTTLE_FREE_TIER_DAILY_LIMIT:-500}"
-            write_env THROTTLE_FREE_TIER_DAILY_TTL_SECONDS "${THROTTLE_FREE_TIER_DAILY_TTL_SECONDS:-86400}"
-            write_env API_PROXY_PORT 3000
-            write_env API_BLUE_HOST_PORT 3001
-            write_env API_GREEN_HOST_PORT 3002
-            if [ -n "${GITHUB_TOKEN_FOR_DATASETS:-}" ]; then
-              write_env GITHUB_TOKEN "$GITHUB_TOKEN_FOR_DATASETS"
-            fi
-          } | ssh -i ~/.ssh/opensyria_deploy \
-            -o BatchMode=yes \
-            -o IdentitiesOnly=yes \
-            -o StrictHostKeyChecking=yes \
-            "${DEPLOY_USER}@${DEPLOY_HOST}" \
-            'cd /srv/opensyria/datasets-api && umask 077 && tmp="$(mktemp .env.XXXXXX)" && cat > "$tmp" && chmod 600 "$tmp" && mv "$tmp" .env'
-
-      - name: Deploy image
+      - name: Prepare inactive slot
+        id: prepare
         shell: bash
         env:
           DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
           DEPLOY_USER: ${{ vars.DEPLOY_USER }}
           GHCR_USERNAME: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DATASETS_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUNTIME_IMAGE: ${{ needs.build.outputs.runtime-image }}
-          MIGRATIONS_IMAGE: ${{ needs.build.outputs.migrations-image }}
         run: |
-          printf -v ghcr_username_q '%q' "$GHCR_USERNAME"
-          printf -v ghcr_token_q '%q' "$GHCR_TOKEN"
+          [[ "$RUNTIME_IMAGE" =~ ^ghcr\.io/open-syria/datasets-api@sha256:[0-9a-f]{64}$ ]]
+          printf -v image_q '%q' "$RUNTIME_IMAGE"
+          printf -v release_q '%q' "$RELEASE_SHA"
+          printf -v username_q '%q' "$GHCR_USERNAME"
+          printf '%s\n%s\n' "$GHCR_TOKEN" "$DATASETS_GITHUB_TOKEN" \
+            | ssh -i ~/.ssh/opensyria_deploy \
+                -o BatchMode=yes \
+                -o IdentitiesOnly=yes \
+                -o StrictHostKeyChecking=yes \
+                "${DEPLOY_USER}@${DEPLOY_HOST}" \
+                "cd '${DEPLOY_ROOT}' && bin/deploy.sh prepare ${image_q} ${release_q} ${username_q}"
 
-          ssh -i ~/.ssh/opensyria_deploy \
-            -o BatchMode=yes \
-            -o IdentitiesOnly=yes \
-            -o StrictHostKeyChecking=yes \
-            "${DEPLOY_USER}@${DEPLOY_HOST}" \
-            "cd /srv/opensyria/datasets-api && GHCR_USERNAME=${ghcr_username_q} GHCR_TOKEN=${ghcr_token_q} bin/deploy-blue-green.sh '${RUNTIME_IMAGE}' '${MIGRATIONS_IMAGE}'"
-
-      - name: Verify private health
+      - name: Switch shared private routing
+        id: switch
+        continue-on-error: true
         shell: bash
         env:
           DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
@@ -368,7 +467,71 @@ jobs:
             -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes \
             "${DEPLOY_USER}@${DEPLOY_HOST}" \
-            'cd /srv/opensyria/datasets-api && bin/check.sh'
+            "cd '${DEPLOY_ROOT}' && bin/deploy.sh switch"
 
-      - name: Verify public production releases
-        run: node scripts/check-production.js --base-url https://api.opensyria.org
+      - name: Verify public production route
+        id: public
+        if: ${{ steps.switch.outcome == 'success' && steps.public-policy.outputs.verify == 'true' }}
+        continue-on-error: true
+        shell: bash
+        run: |
+          response="$(curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 -H 'Cache-Control: no-cache' https://api.opensyria.org/health/ready)"
+          jq -e --arg release "$RELEASE_SHA" '
+            .success == true and
+            .data.status == "ok" and
+            .data.app.release == $release and
+            .data.database.status == "up" and
+            (.data.database.release | length > 0) and
+            .data.database.recordCount > 0
+          ' <<<"$response" >/dev/null
+
+      - name: Finalize rollout
+        id: finalize
+        if: ${{ steps.switch.outcome == 'success' && steps.public.outcome != 'failure' }}
+        continue-on-error: true
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+        run: |
+          ssh -i ~/.ssh/opensyria_deploy \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "cd '${DEPLOY_ROOT}' && bin/deploy.sh finalize"
+
+      - name: Roll back failed rollout
+        if: ${{ always() && (steps.switch.outcome == 'failure' || steps.public.outcome == 'failure' || steps.finalize.outcome == 'failure') }}
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+        run: |
+          ssh -i ~/.ssh/opensyria_deploy \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "cd '${DEPLOY_ROOT}' && bin/deploy.sh rollback"
+
+      - name: Report rollout failure
+        if: ${{ always() && (steps.switch.outcome == 'failure' || steps.public.outcome == 'failure' || steps.finalize.outcome == 'failure') }}
+        shell: bash
+        run: |
+          echo "::error::Production rollout failed and rollback was attempted."
+          exit 1
+
+      - name: Show production status
+        if: ${{ always() }}
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+        run: |
+          ssh -i ~/.ssh/opensyria_deploy \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "cd '${DEPLOY_ROOT}' && bin/deploy.sh status" || true

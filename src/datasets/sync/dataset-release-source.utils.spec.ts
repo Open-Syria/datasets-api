@@ -40,11 +40,13 @@ describe('dataset release source utils', () => {
             owner: 'Open-Syria',
             repository: 'data-geography',
             tag: 'v0.1.5',
+            manifestSha256: '0'.repeat(64),
           },
           {
             owner: 'Open-Syria',
             repository: 'data-universities',
             tag: 'v0.2.2',
+            manifestSha256: '1'.repeat(64),
             requiredReadiness: {
               minimumLevel: 'profile_ready',
               publicApi: 'approved',
@@ -54,6 +56,7 @@ describe('dataset release source utils', () => {
             owner: 'Open-Syria',
             repository: 'data-telecom',
             tag: 'v0.1.0',
+            manifestSha256: '2'.repeat(64),
             requiredReadiness: {
               minimumLevel: 'api_ready',
               publicApi: 'approved',
@@ -66,11 +69,13 @@ describe('dataset release source utils', () => {
         owner: 'Open-Syria',
         repository: 'data-geography',
         tag: 'v0.1.5',
+        manifestSha256: '0'.repeat(64),
       },
       {
         owner: 'Open-Syria',
         repository: 'data-universities',
         tag: 'v0.2.2',
+        manifestSha256: '1'.repeat(64),
         requiredReadiness: {
           minimumLevel: 'profile_ready',
           publicApi: 'approved',
@@ -80,6 +85,7 @@ describe('dataset release source utils', () => {
         owner: 'Open-Syria',
         repository: 'data-telecom',
         tag: 'v0.1.0',
+        manifestSha256: '2'.repeat(64),
         requiredReadiness: {
           minimumLevel: 'api_ready',
           publicApi: 'approved',

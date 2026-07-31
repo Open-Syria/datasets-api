@@ -113,7 +113,8 @@ The lock file uses this shape:
     {
       "owner": "Open-Syria",
       "repository": "data-geography",
-      "tag": "v0.1.5"
+      "tag": "v0.1.5",
+      "manifestSha256": "<64-character-sha256>"
     },
     {
       "owner": "Open-Syria",
@@ -153,7 +154,7 @@ comma-separated `DATASETS_RELEASE_SOURCES` value such as
 The sync command:
 
 - fetches each pinned GitHub Release,
-- downloads `release-manifest.json`,
+- downloads `release-manifest.json` and verifies its SHA-256 against the lock,
 - validates the manifest schema,
 - downloads only JSON ingestion artifacts while retaining all public artifact
   metadata in the manifest,
@@ -161,9 +162,23 @@ The sync command:
 - writes the manifest only after all selected artifacts verify, then promotes
   the staged directory under `DATASETS_RELEASES_DIR`.
 
+GitHub release tags are mutable unless the source repository enables immutable
+releases. The independent `manifestSha256` pin prevents a replaced tag from
+silently replacing both the manifest and all checksums declared inside it.
+Once a tag has been synced, the API also refuses to replace its on-disk manifest
+with different content. Publish and pin a new semantic-version tag for every
+dataset change; do not reuse release tags. If the remote manifest is identical,
+sync verifies every existing local JSON artifact's exact size and checksum and
+leaves the live directory untouched. A missing or corrupt local artifact fails
+closed for operator repair instead of replacing a directory used by live API
+requests.
+
 Set `DATASETS_SYNC_DOWNLOAD_ARTIFACTS=false` to sync manifests only.
 
-Set `GITHUB_TOKEN` when syncing private releases or when higher GitHub API limits are needed. The production deployment writes an authenticated token for the controlled sync step, even for public dataset repositories, so release downloads are not blocked by unauthenticated GitHub API limits.
+Set `GITHUB_TOKEN` when syncing private releases or when higher GitHub API limits
+are needed. Production passes the workflow's short-lived repository token only
+to the one-off sync container. It is not written to disk or injected into the
+long-lived API containers.
 
 ## Local Geography Smoke Test
 
