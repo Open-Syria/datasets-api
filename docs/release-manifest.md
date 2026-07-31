@@ -235,4 +235,9 @@ release asset. JSON artifact files are matched by the basename of
 complete selected set succeeds. Other formats remain discoverable through the
 manifest without being copied into the API runtime volume.
 
+An already-synced tag is immutable. A repeated sync with the same manifest
+verifies the existing JSON artifacts in place and does not rename or replace
+the live release directory. A changed manifest, missing artifact, or corrupt
+artifact fails closed and requires operator repair or a newly published tag.
+
 Runtime HTTP requests should still read local verified data, not GitHub directly.

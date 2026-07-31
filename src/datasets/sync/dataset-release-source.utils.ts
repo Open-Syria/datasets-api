@@ -16,13 +16,21 @@ export const datasetReleaseSourceSchema = z
     owner: z.string().min(1),
     repository: z.string().min(1),
     tag: z.string().regex(/^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/),
+    manifestSha256: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
     requiredReadiness: datasetReleaseReadinessRequirementSchema.optional(),
   })
   .strict();
 
+const trackedDatasetReleaseSourceSchema = datasetReleaseSourceSchema.extend({
+  manifestSha256: z.string().regex(/^[a-f0-9]{64}$/),
+});
+
 export const datasetReleaseSourcesConfigSchema = z
   .object({
-    sources: z.array(datasetReleaseSourceSchema),
+    sources: z.array(trackedDatasetReleaseSourceSchema),
   })
   .strict()
   .superRefine(({ sources }, context) => {

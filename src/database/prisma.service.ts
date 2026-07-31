@@ -25,6 +25,8 @@ export type DatabaseHealthCheck =
       status: 'up';
       required: boolean;
       latencyMs: number;
+      release?: string;
+      recordCount?: number;
     }
   | {
       status: 'down';
@@ -108,7 +110,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
         status: 'down',
         required: this.databaseConfig.required,
         latencyMs: Date.now() - startedAt,
-        message,
+        message: 'Database read model is unavailable',
       };
     }
   }

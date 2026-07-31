@@ -11,6 +11,7 @@ const readyHealth: HealthResponseData = {
   app: {
     name: 'opensyria-datasets-api',
     environment: Environment.Test,
+    release: 'test',
   },
   uptimeSeconds: 1,
   redis: {

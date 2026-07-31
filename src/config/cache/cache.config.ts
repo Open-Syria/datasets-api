@@ -4,7 +4,6 @@ import type { CacheConfig } from './cache-config.type';
 
 const envSchema = z.object({
   CACHE_TTL_SECONDS: z.coerce.number().int().positive().optional().default(300),
-  CACHE_MAX_ITEMS: z.coerce.number().int().positive().optional().default(1000),
 });
 
 function parseEnv() {
@@ -23,7 +22,6 @@ export function getConfig(): CacheConfig {
   const env = parseEnv();
 
   return {
-    maxItems: env.CACHE_MAX_ITEMS,
     ttlMs: env.CACHE_TTL_SECONDS * 1000,
   };
 }

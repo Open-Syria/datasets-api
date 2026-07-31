@@ -14,6 +14,7 @@ const readinessLevels = new Set([
 ]);
 const publicApiReadinessStatuses = new Set(['not_approved', 'approved']);
 const booleanOptions = new Set([
+  'config-only',
   'docker-build',
   'help',
   'require-all-dataset-sources',
@@ -31,6 +32,7 @@ Options:
   --geography-release <tag>       Expected data-geography tag in docs and examples.
   --dataset-sources <sources>     Comma-separated owner/repo@tag sources to validate.
   --require-all-dataset-sources   Require --dataset-sources to cover every pinned dataset.
+  --config-only                   Validate tracked production release configuration only.
   --skip-build                    Do not run pnpm run build before checking dist files.
   --docker-build                  Also run docker build. Requires a running Docker daemon.
 `.trim();
@@ -192,9 +194,13 @@ function readDatasetReleaseLockSources() {
       !source ||
       typeof source.owner !== 'string' ||
       typeof source.repository !== 'string' ||
-      typeof source.tag !== 'string'
+      typeof source.tag !== 'string' ||
+      typeof source.manifestSha256 !== 'string' ||
+      !/^[a-f0-9]{64}$/.test(source.manifestSha256)
     ) {
-      fail('dataset-releases.json sources must include owner, repository, and tag strings');
+      fail(
+        'dataset-releases.json sources must include owner, repository, tag, and manifestSha256 strings',
+      );
     }
 
     const requiredReadiness = source.requiredReadiness;
@@ -223,6 +229,7 @@ function readDatasetReleaseLockSources() {
       owner: source.owner,
       repository: source.repository,
       tag: normalizeReleaseTag(source.tag),
+      manifestSha256: source.manifestSha256,
       requiredReadiness,
       value: `${source.owner}/${source.repository}@${normalizeReleaseTag(source.tag)}`,
     };
@@ -451,6 +458,22 @@ function main() {
 
   if (geographyReleaseTag) {
     assertGeographyReleaseReferences(geographyReleaseTag, datasetSources, releaseLockSources);
+  }
+
+  if (options.get('config-only')) {
+    console.log(
+      JSON.stringify(
+        {
+          ok: true,
+          configOnly: true,
+          version: packageJson.version,
+          datasetSources: releaseLockSources.map((source) => source.value),
+        },
+        null,
+        2,
+      ),
+    );
+    return;
   }
 
   if (!options.get('skip-build')) {

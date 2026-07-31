@@ -94,6 +94,9 @@ importers:
       pino-http:
         specifier: ^11.0.0
         version: 11.0.0
+      prisma:
+        specifier: 7.9.0
+        version: 7.9.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.3)
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -146,9 +149,6 @@ importers:
       lint-staged:
         specifier: ^17.0.8
         version: 17.0.8
-      prisma:
-        specifier: ^7.9.0
-        version: 7.9.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.3)
       source-map-support:
         specifier: ^0.5.21
         version: 0.5.21

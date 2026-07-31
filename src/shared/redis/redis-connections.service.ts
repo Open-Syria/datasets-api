@@ -97,11 +97,11 @@ export class RedisConnectionsService implements OnModuleInit, OnModuleDestroy {
         status: 'up',
         latencyMs: Date.now() - startedAt,
       };
-    } catch (error) {
+    } catch {
       return {
         status: 'down',
         latencyMs: Date.now() - startedAt,
-        message: error instanceof Error ? error.message : String(error),
+        message: 'Redis is unavailable',
       };
     }
   }
