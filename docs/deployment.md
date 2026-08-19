@@ -125,12 +125,19 @@ DATABASE_ENABLED=true
 DATABASE_REQUIRED=true
 DATABASE_LOG_QUERIES=false
 REDIS_URL=redis://:<encoded-password>@opensyria-production-redis:6379/0
+REDIS_PASSWORD=<same-64-character-hex-password-as-REDIS_URL>
 REDIS_ENABLED=true
 REDIS_REQUIRED=true
 CACHE_TTL_SECONDS=300
 THROTTLE_FREE_TIER_DAILY_LIMIT=500
 THROTTLE_FREE_TIER_DAILY_TTL_SECONDS=86400
 ```
+
+`REDIS_PASSWORD` is retained in Infisical for the host recovery contract. The
+deployment validates that it matches the credential embedded in `REDIS_URL`,
+then omits the standalone password from `env/api.env` and every long-lived API
+container. A restored, already-sanitized `env/api.env` therefore contains only
+`REDIS_URL`.
 
 `APP_RELEASE` is deliberately absent: Compose injects the full Git commit SHA
 for each deployment. `GITHUB_TOKEN` is deliberately absent because only the

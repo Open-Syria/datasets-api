@@ -40,14 +40,16 @@ EXPECTED_VALUES = {
     "THROTTLE_FREE_TIER_DAILY_LIMIT": "500",
     "THROTTLE_FREE_TIER_DAILY_TTL_SECONDS": "86400",
 }
-EXPECTED_KEYS = set(EXPECTED_VALUES) | {"DATABASE_URL", "REDIS_URL"}
+RUNTIME_KEYS = set(EXPECTED_VALUES) | {"DATABASE_URL", "REDIS_URL"}
+OPTIONAL_SOURCE_KEYS = {"REDIS_PASSWORD"}
 DATABASE_URL_PATTERN = re.compile(
     r"postgresql://opensyria_datasets_production:[0-9a-f]{64}"
     r"@infra-postgres:5432/opensyria_datasets_production\?schema=public"
 )
 REDIS_URL_PATTERN = re.compile(
-    r"redis://:[0-9a-f]{64}@opensyria-production-redis:6379/0"
+    r"redis://:(?P<password>[0-9a-f]{64})@opensyria-production-redis:6379/0"
 )
+REDIS_PASSWORD_PATTERN = re.compile(r"[0-9a-f]{64}")
 DATASET_KEYS = {
     "DATASETS_RELEASES_DIR",
     "DATASETS_RELEASE_SOURCES_FILE",
@@ -93,9 +95,21 @@ def validate_database_url(value: str) -> None:
         fail("DATABASE_URL does not target the isolated OpenSyria production database")
 
 
-def validate_redis_url(value: str) -> None:
-    if not REDIS_URL_PATTERN.fullmatch(value):
+def validate_redis_url(value: str) -> str:
+    match = REDIS_URL_PATTERN.fullmatch(value)
+    if not match:
         fail("REDIS_URL does not target the dedicated OpenSyria production Redis database")
+    return match.group("password")
+
+
+def validate_redis_password(values: dict[str, str], url_password: str) -> None:
+    password = values.get("REDIS_PASSWORD")
+    if password is None:
+        return
+    if not REDIS_PASSWORD_PATTERN.fullmatch(password):
+        fail("REDIS_PASSWORD is not a 64-character hexadecimal secret")
+    if password != url_password:
+        fail("REDIS_PASSWORD does not match the credential in REDIS_URL")
 
 
 def write_subset(directory: Path, name: str, values: dict[str, str]) -> None:
@@ -120,6 +134,7 @@ def write_operation_envs(directory: Path, values: dict[str, str]) -> None:
         fail("operation environment directory must be a real directory")
     directory.chmod(0o700)
 
+    write_subset(directory, "api.env", {key: values[key] for key in RUNTIME_KEYS})
     write_subset(directory, "migrate.env", {"DATABASE_URL": values["DATABASE_URL"]})
     write_subset(directory, "datasets.env", {key: values[key] for key in DATASET_KEYS})
     write_subset(
@@ -151,8 +166,8 @@ def main() -> None:
         fail("the exported dotenv file must be a non-empty regular file")
 
     values = parse_dotenv(path)
-    missing = sorted(EXPECTED_KEYS - set(values))
-    unexpected = sorted(set(values) - EXPECTED_KEYS)
+    missing = sorted(RUNTIME_KEYS - set(values))
+    unexpected = sorted(set(values) - RUNTIME_KEYS - OPTIONAL_SOURCE_KEYS)
     if missing:
         fail(f"missing keys: {', '.join(missing)}")
     if unexpected:
@@ -165,7 +180,8 @@ def main() -> None:
         fail(f"incorrect values for: {', '.join(sorted(mismatched))}")
 
     validate_database_url(values["DATABASE_URL"])
-    validate_redis_url(values["REDIS_URL"])
+    redis_password = validate_redis_url(values["REDIS_URL"])
+    validate_redis_password(values, redis_password)
 
     if len(sys.argv) == 4:
         if sys.argv[2] != "--write-operation-envs":
