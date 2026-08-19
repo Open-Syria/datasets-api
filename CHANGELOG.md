@@ -16,6 +16,14 @@
 * update vulnerable runtime dependencies, constrain patched transitives, and audit the complete graph during validation
 * share production image layers, refresh and retry registry pulls, and allow bounded cold ARM pulls to finish
 
+## [0.3.3](https://github.com/Open-Syria/datasets-api/compare/v0.3.2...v0.3.3) (2026-08-19)
+
+
+### Bug Fixes
+
+* **deploy:** use approved container diagnostics ([0ed4f6b](https://github.com/Open-Syria/datasets-api/commit/0ed4f6b9666fac47870e9d91bc91b955e4120243))
+* **deploy:** use approved container diagnostics ([97d767a](https://github.com/Open-Syria/datasets-api/commit/97d767a947603d556bc8b4ae0633289a8eba4a1b))
+
 ## [0.3.2](https://github.com/Open-Syria/datasets-api/compare/v0.3.1...v0.3.2) (2026-08-19)
 
 
