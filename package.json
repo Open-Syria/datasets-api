@@ -33,6 +33,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:production-contract": "python3 -m unittest discover -s devops/production/bin -p 'test_*.py'",
     "test:integration:db": "pnpm run db:migrate:deploy && node --experimental-vm-modules ./node_modules/jest/bin/jest.js --config ./test/jest-integration.json --runInBand",
     "datasets:sync": "pnpm run build && node dist/cli/sync-dataset-releases.js",
     "datasets:sync:prod": "node dist/cli/sync-dataset-releases.js",
@@ -54,7 +55,7 @@
     "release:check:config": "node scripts/check-release.js --config-only",
     "release:check:public-api-bridge": "node scripts/check-public-api-bridge.js",
     "release:check:docker": "node scripts/check-release.js --docker-build",
-    "validate": "pnpm run db:generate && pnpm run check && pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run test:e2e && pnpm run build && pnpm run audit:dependencies",
+    "validate": "pnpm run db:generate && pnpm run check && pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run test:e2e && pnpm run test:production-contract && pnpm run build && pnpm run audit:dependencies",
     "prepare": "husky"
   },
   "dependencies": {

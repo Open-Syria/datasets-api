@@ -397,9 +397,9 @@ sync_runtime_env_from_infisical() {
   python3 "${ROOT_DIR}/bin/validate-runtime-env.py" \
     "${RUNTIME_ENV_TEMP_FILE}" \
     --write-operation-envs "${ROOT_DIR}/env"
-  chmod 600 "${RUNTIME_ENV_TEMP_FILE}"
-  mv -f "${RUNTIME_ENV_TEMP_FILE}" "${RUNTIME_ENV_FILE}"
+  rm -f "${RUNTIME_ENV_TEMP_FILE}"
   RUNTIME_ENV_TEMP_FILE=""
+  require_private_regular_file "${RUNTIME_ENV_FILE}"
 }
 
 validate_saved_slot_values() {
