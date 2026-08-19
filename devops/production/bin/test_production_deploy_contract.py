@@ -13,6 +13,14 @@ class ProductionDeployContractTest(unittest.TestCase):
         self.assertIn('docker_cmd network-exists "${DATA_NETWORK}"', script)
         self.assertNotIn("docker_cmd network inspect", script)
 
+    def test_uses_approved_container_diagnostics(self) -> None:
+        script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn("docker_cmd ps --format '{{.Names}}'", script)
+        self.assertIn('compose ps --format "${COMPOSE_PS_FORMAT}"', script)
+        self.assertNotIn("docker_cmd inspect", script)
+        self.assertNotIn("compose ps -q", script)
+
 
 if __name__ == "__main__":
     unittest.main()

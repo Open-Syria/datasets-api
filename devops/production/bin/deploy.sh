@@ -23,6 +23,7 @@ POSTGRES_CONTAINER="infra-postgres"
 REDIS_CONTAINER="opensyria-production-redis"
 EDGE_NETWORK="syr-staging-edge"
 DATA_NETWORK="opensyria-production-data"
+COMPOSE_PS_FORMAT='table {{.Name}}\t{{.Image}}\t{{.State}}\t{{.Health}}'
 PUBLIC_HOST="api.opensyria.org"
 HEALTH_TIMEOUT_SECONDS="${HEALTH_TIMEOUT_SECONDS:-240}"
 DRAIN_SECONDS="${DRAIN_SECONDS:-30}"
@@ -175,21 +176,25 @@ reload_nginx() {
     && docker_cmd exec "${NGINX_CONTAINER}" nginx -s reload
 }
 
-service_container_id() {
-  compose ps -q "$(service_for_slot "$1")"
+compose_status() {
+  compose ps --format "${COMPOSE_PS_FORMAT}"
+}
+
+container_is_running() {
+  docker_cmd ps --format '{{.Names}}' | grep -Fxq "$1"
 }
 
 service_is_healthy() {
   local slot="$1"
-  local container_id health
+  local container_name
 
-  container_id="$(service_container_id "${slot}")"
-  [[ -n "${container_id}" ]] || return 1
-  health="$(
-    docker_cmd inspect "${container_id}" \
-      --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}'
-  )"
-  [[ "${health}" == "healthy" ]]
+  container_name="opensyria-production-api-${slot}"
+  compose_status | awk -v container_name="${container_name}" '
+    NR > 1 && $1 == container_name && $3 == "running" && $4 == "healthy" {
+      healthy += 1
+    }
+    END { exit(healthy == 1 ? 0 : 1) }
+  '
 }
 
 wait_for_service_health() {
@@ -201,7 +206,7 @@ wait_for_service_health() {
   while ! service_is_healthy "${slot}"; do
     now="$(date +%s)"
     if ((now - started_at >= HEALTH_TIMEOUT_SECONDS)); then
-      compose ps "${service}" >&2 || true
+      compose_status >&2 || true
       compose logs --tail=150 "${service}" >&2 || true
       fail "Timed out waiting for ${service} to become healthy"
     fi
@@ -559,9 +564,9 @@ prepare_release() {
     || fail "External Docker network ${EDGE_NETWORK} is missing"
   docker_cmd network-exists "${DATA_NETWORK}" >/dev/null \
     || fail "External Docker network ${DATA_NETWORK} is missing"
-  docker_cmd inspect "${POSTGRES_CONTAINER}" >/dev/null \
+  container_is_running "${POSTGRES_CONTAINER}" \
     || fail "Shared PostgreSQL container is missing"
-  docker_cmd inspect "${REDIS_CONTAINER}" >/dev/null \
+  container_is_running "${REDIS_CONTAINER}" \
     || fail "Dedicated OpenSyria Redis container is missing"
 
   routed_slot="$(current_upstream_slot)"
@@ -723,7 +728,7 @@ show_status() {
     echo "Pending rollout: no"
   fi
   if [[ -f "${COMPOSE_ENV_FILE}" && -f "${RUNTIME_ENV_FILE}" ]]; then
-    compose ps
+    compose_status
   fi
 }
 
