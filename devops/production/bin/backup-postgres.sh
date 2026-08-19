@@ -6,7 +6,6 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SERVER_SERVICES_ROOT="/opt/syr/services/staging"
 DOCKER_WRAPPER="${SERVER_SERVICES_ROOT}/bin/docker"
 BACKUP_DIR="/opt/syr/backups/production/opensyria/postgres"
-POSTGRES_CONTAINER="infra-postgres"
 DATABASE_NAME="opensyria_datasets_production"
 LOCK_FILE="${ROOT_DIR}/.backup.lock"
 TEMP_DUMP=""
@@ -68,12 +67,10 @@ main() {
     && ! -e "${final_recovery}" && ! -L "${final_recovery}" ]] \
     || fail "Backup timestamp collision: ${timestamp}"
 
-  docker_cmd exec "${POSTGRES_CONTAINER}" sh -ceu \
-    'exec pg_dump --format=custom --no-owner --no-acl --exclude-extension=postgis --username="$POSTGRES_USER" --dbname="$1"' \
-    sh "${DATABASE_NAME}" > "${TEMP_DUMP}"
+  docker_cmd dump-opensyria-database > "${TEMP_DUMP}"
   [[ -s "${TEMP_DUMP}" ]] || fail "PostgreSQL produced an empty backup"
 
-  docker_cmd exec -i "${POSTGRES_CONTAINER}" pg_restore --list < "${TEMP_DUMP}" >/dev/null
+  docker_cmd validate-postgres-dump < "${TEMP_DUMP}" >/dev/null
   digest="$(sha256sum "${TEMP_DUMP}" | cut -d ' ' -f 1)"
   [[ "${digest}" =~ ^[0-9a-f]{64}$ ]] || fail "Could not calculate backup checksum"
   printf '%s  %s\n' "${digest}" "$(basename "${final_dump}")" > "${TEMP_CHECKSUM}"
