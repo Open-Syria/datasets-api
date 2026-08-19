@@ -9,6 +9,7 @@ INFISICAL_LOGIN_HELPER="${SERVER_SERVICES_ROOT}/bin/infisical-login"
 COMPOSE_FILE="${ROOT_DIR}/docker-compose.app.yml"
 COMPOSE_ENV_FILE="${ROOT_DIR}/.deploy.env"
 RUNTIME_ENV_FILE="${ROOT_DIR}/env/api.env"
+API_RELEASE_PROBE="fetch('http://127.0.0.1:3000/health/ready').then(async (response)=>{const payload=await response.json();const data=payload.data??{};if(!response.ok||payload.success!==true)throw new Error('readiness failed');if(data.database?.status!=='up'||!data.database?.release)throw new Error('pinned read model is unavailable');if(!(data.database?.recordCount>0))throw new Error('pinned read model is empty');if(typeof data.app?.release!=='string'||!data.app.release)throw new Error('application release is unavailable');process.stdout.write(data.app.release)}).catch((error)=>{console.error(error.message);process.exit(1)})"
 INFISICAL_CONFIG_FILE="${ROOT_DIR}/.infisical.env"
 STATE_DIR="${ROOT_DIR}/state"
 ACTIVE_SLOT_FILE="${STATE_DIR}/active-slot"
@@ -217,29 +218,15 @@ wait_for_service_health() {
 verify_direct_release() {
   local slot="$1"
   local expected_release="$2"
-  local service
+  local service actual_release
 
   service="$(service_for_slot "${slot}")"
-  compose exec -T -e EXPECTED_RELEASE="${expected_release}" "${service}" node - <<'NODE'
-fetch('http://127.0.0.1:3000/health/ready')
-  .then(async (response) => {
-    const payload = await response.json()
-    const data = payload.data ?? {}
-    if (!response.ok || payload.success !== true) throw new Error('readiness failed')
-    if (data.app?.release !== process.env.EXPECTED_RELEASE) {
-      throw new Error('application release mismatch')
-    }
-    if (data.database?.status !== 'up' || !data.database?.release) {
-      throw new Error('pinned read model is unavailable')
-    }
-    if (!(data.database?.recordCount > 0)) throw new Error('pinned read model is empty')
-  })
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error.message)
-    process.exit(1)
-  })
-NODE
+  actual_release="$(compose exec -T "${service}" node -e "${API_RELEASE_PROBE}")" \
+    || return 1
+  if [[ "${actual_release}" != "${expected_release}" ]]; then
+    echo "Expected ${service} release ${expected_release}, got ${actual_release:-missing}." >&2
+    return 1
+  fi
 }
 
 verify_private_route() {
