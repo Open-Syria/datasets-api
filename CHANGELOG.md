@@ -16,6 +16,14 @@
 * update vulnerable runtime dependencies, constrain patched transitives, and audit the complete graph during validation
 * share production image layers, refresh and retry registry pulls, and allow bounded cold ARM pulls to finish
 
+## [0.3.1](https://github.com/Open-Syria/datasets-api/compare/v0.3.0...v0.3.1) (2026-08-19)
+
+
+### Bug Fixes
+
+* **deploy:** sanitize recovery Redis secret ([033dd3b](https://github.com/Open-Syria/datasets-api/commit/033dd3b507056930e48c8e1d27731154c1398707))
+* **deploy:** sanitize recovery Redis secret ([56dd4f1](https://github.com/Open-Syria/datasets-api/commit/56dd4f10e82bb115ad43aedade880588a5a3735a))
+
 ## [0.3.0](https://github.com/Open-Syria/datasets-api/compare/v0.2.1...v0.3.0) (2026-08-19)
 
 
