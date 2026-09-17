@@ -200,6 +200,20 @@ function createPrismaService(onTransactionComplete: () => void) {
 }
 
 describe('GeographyReadModelImportService', () => {
+  it('does not invalidate the public cache when the import transaction fails', async () => {
+    const { prismaService, client } = createPrismaService(() => {});
+    client.$transaction.mockRejectedValueOnce(new Error('transaction expired'));
+    const clearAll = jest.fn();
+    const service = new GeographyReadModelImportService(
+      createArtifactReaderService(),
+      prismaService,
+      { clearAll } as unknown as PublicDataCacheService,
+    );
+
+    await expect(service.importLatestRelease()).rejects.toThrow('transaction expired');
+    expect(clearAll).not.toHaveBeenCalled();
+  });
+
   it('clears the public data cache after a successful import transaction', async () => {
     let transactionComplete = false;
     const artifactReaderService = createArtifactReaderService();

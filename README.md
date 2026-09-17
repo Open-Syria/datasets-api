@@ -306,6 +306,11 @@ pnpm run production:check -- --base-url https://api.opensyria.org
 
 ## Deployment
 
+Geography imports use an atomic, batched transaction with a 60-second execution
+limit (five-second acquisition limit). This permits bounded bulk loading on
+smaller hosts without changing public query timeouts; failed imports leave the
+prior committed release and its caches in place.
+
 Deployment notes live in [docs/deployment.md](docs/deployment.md).
 
 Production runtime values come from Infisical project `opensyria`, environment
@@ -377,4 +382,4 @@ Community contribution is intended primarily for the dataset repositories, where
 
 MIT
 
-`DATABASE_POOL_MAX` bounds each API process and importer to 1–20 PostgreSQL connections (default 4). Connection acquisition times out after five seconds, so pool exhaustion fails promptly instead of accumulating unbounded waits. Production fixes the API pool at four connections.
+`DATABASE_POOL_MAX` bounds each API process and importer to 1â€“20 PostgreSQL connections (default 4). Connection acquisition times out after five seconds, so pool exhaustion fails promptly instead of accumulating unbounded waits. Production fixes the API pool at four connections.
