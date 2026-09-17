@@ -545,7 +545,9 @@ prepare_release() {
 
   sync_runtime_env_from_infisical
   ensure_private_directory "${ROOT_DIR}/data" 700
-  ensure_private_directory "${ROOT_DIR}/data/releases" 700
+  # Preserve the host-provisioned ACL for the image's non-root dataset writer.
+  # The deployment account and container node user need not share a UID.
+  ensure_private_directory "${ROOT_DIR}/data/releases" 770
   docker_cmd network-exists "${EDGE_NETWORK}" >/dev/null \
     || fail "External Docker network ${EDGE_NETWORK} is missing"
   docker_cmd network-exists "${DATA_NETWORK}" >/dev/null \
