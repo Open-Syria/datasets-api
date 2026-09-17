@@ -68,6 +68,12 @@ The API response contract does not need to expose every raw dataset field immedi
 
 ## Serving Strategy
 
+The geography importer replaces one release atomically in 500-record batches.
+Its interactive transaction can wait up to five seconds for acquisition and
+run for up to 60 seconds, allowing imports on CPU-limited hosts. These limits
+apply only to this bulk import, not public API queries. A failure rolls back
+the replacement; public caches are invalidated only after a successful commit.
+
 For local development, endpoints may fall back to verified local artifacts when the database read model is disabled. In production, geography is imported into the read model before the API is marked ready. Runtime queries select the exact geography release pinned by their bundled `dataset-releases.json`; they do not select the newest database row. Older release rows remain available so an older application image can be rolled back deterministically. Universities, transport, and telecom currently serve from verified JSON artifacts until domain-specific read-model importers are added.
 
 Production should run with:
@@ -131,4 +137,4 @@ pnpm run datasets:sync:prod
 DATABASE_ENABLED=true pnpm run read-model:import:geography:prod
 ```
 
-`DATABASE_POOL_MAX` bounds each API process and importer to 1–20 PostgreSQL connections (default 4). Connection acquisition times out after five seconds, so pool exhaustion fails promptly instead of accumulating unbounded waits. Production fixes the API pool at four connections.
+`DATABASE_POOL_MAX` bounds each API process and importer to 1â€“20 PostgreSQL connections (default 4). Connection acquisition times out after five seconds, so pool exhaustion fails promptly instead of accumulating unbounded waits. Production fixes the API pool at four connections.
