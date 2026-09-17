@@ -13,6 +13,7 @@ const envSchema = z.object({
   DATABASE_ENABLED: booleanEnvSchema.optional(),
   DATABASE_REQUIRED: booleanEnvSchema.optional(),
   DATABASE_LOG_QUERIES: booleanEnvSchema.optional(),
+  DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(20).default(4),
 });
 
 function parseEnv() {
@@ -43,6 +44,7 @@ export function getConfig(): DatabaseConfig {
     required,
     url: env.DATABASE_URL ?? null,
     logQueries: env.DATABASE_LOG_QUERIES ?? false,
+    poolMax: env.DATABASE_POOL_MAX,
   };
 }
 

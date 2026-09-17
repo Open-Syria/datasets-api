@@ -136,6 +136,8 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     const client = new PrismaClient({
       adapter: new PrismaPg({
         connectionString: this.databaseConfig.url,
+        max: this.databaseConfig.poolMax,
+        connectionTimeoutMillis: 5_000,
       }),
       log: this.databaseConfig.logQueries ? ['query', 'warn', 'error'] : ['warn', 'error'],
     });
