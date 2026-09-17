@@ -57,6 +57,13 @@ behind beside older Prisma migration history.
 
 ## Restricted production host deployment
 
+Provision `data/releases` with access and default ACLs granting the image's
+non-root `node` user (UID 1000) and the deployment account read/write/traverse
+access. Their host UIDs need not match. The deploy script preserves the ACL mask
+with mode `0770`; keep `data` and runtime secret directories private (`0700`).
+Apply these ACLs after restoring dataset files as well. Only the sync job mounts
+releases writable; the API and importer mount them read-only.
+
 The production GitHub environment selects `DEPLOY_HOST`, `DEPLOY_USER`, the SSH
 key and its pinned known-hosts entry. The host must be provisioned in advance;
 CI only verifies the application directory and cannot create directories with
@@ -70,7 +77,7 @@ ceiling, with Node heap capped at 320 MiB. These limits apply to each blue/green
 slot; allow temporary overlap during a rollout.
 
 The API PostgreSQL pool defaults to four connections per process;
-`DATABASE_POOL_MAX` accepts 1–20 and production Compose pins it to four.
+`DATABASE_POOL_MAX` accepts 1â€“20 and production Compose pins it to four.
 Connection acquisition is bounded to five seconds. Database readiness uses a
 fixed host operation, so its container name need not match the application DNS
 alias. Migration jobs are capped at 1 CPU/512 MiB, sync/import at 1 CPU/768 MiB.
