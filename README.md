@@ -376,3 +376,5 @@ Community contribution is intended primarily for the dataset repositories, where
 ## License
 
 MIT
+
+`DATABASE_POOL_MAX` bounds each API process and importer to 1–20 PostgreSQL connections (default 4). Connection acquisition times out after five seconds, so pool exhaustion fails promptly instead of accumulating unbounded waits. Production fixes the API pool at four connections.

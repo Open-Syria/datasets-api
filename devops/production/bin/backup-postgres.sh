@@ -36,6 +36,12 @@ cleanup() {
 trap cleanup EXIT
 
 main() {
+  # Managed hosts supply an encrypted off-host backup with fixed root authority.
+  # No arguments or credentials are accepted by this hook.
+  if [[ -x /usr/local/sbin/opensyria-production-backup ]]; then
+    sudo -n /usr/local/sbin/opensyria-production-backup
+    return
+  fi
   command -v flock >/dev/null 2>&1 || fail "flock is required"
   command -v sha256sum >/dev/null 2>&1 || fail "sha256sum is required"
   [[ -f "${DOCKER_WRAPPER}" && -x "${DOCKER_WRAPPER}" && ! -L "${DOCKER_WRAPPER}" ]] \

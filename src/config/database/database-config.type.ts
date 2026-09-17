@@ -3,4 +3,5 @@ export type DatabaseConfig = {
   required: boolean;
   url: string | null;
   logQueries: boolean;
+  poolMax: number;
 };

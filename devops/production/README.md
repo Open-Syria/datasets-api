@@ -38,7 +38,7 @@ commit SHA. Do not run server-side builds or write runtime secrets into
 changes wait for concurrent OpenSyria rollouts, and private verification retries
 briefly while old nginx workers drain after a graceful reload.
 
-Every pre-migration backup is validated with `pg_restore --list` and receives
+On unmanaged legacy hosts, each pre-migration backup is validated with `pg_restore --list` and receives
 checksum and recovery sidecars. Destructive recovery is deliberately separate:
 
 ```bash
@@ -54,3 +54,26 @@ explicit confirmation it resets only `opensyria_datasets_production`, restores
 its isolation and PostGIS extension, then restores the archive as the
 application role. This removes post-backup objects instead of leaving them
 behind beside older Prisma migration history.
+
+## Restricted production host deployment
+
+The production GitHub environment selects `DEPLOY_HOST`, `DEPLOY_USER`, the SSH
+key and its pinned known-hosts entry. The host must be provisioned in advance;
+CI only verifies the application directory and cannot create directories with
+unrestricted sudo. The deployment identity must have only the fixed Docker
+operations for this application. Keep automatic deployment paused while moving
+data and use `VERIFY_PUBLIC_DEPLOYMENT=false` for the private cutover checks.
+Set it back to `true` when the public route points to the prepared destination.
+
+The long-running application has a 1 CPU burst ceiling and 512 MiB memory/swap
+ceiling, with Node heap capped at 320 MiB. These limits apply to each blue/green
+slot; allow temporary overlap during a rollout.
+
+The API PostgreSQL pool defaults to four connections per process;
+`DATABASE_POOL_MAX` accepts 1–20 and production Compose pins it to four.
+Connection acquisition is bounded to five seconds. Database readiness uses a
+fixed host operation, so its container name need not match the application DNS
+alias. Migration jobs are capped at 1 CPU/512 MiB, sync/import at 1 CPU/768 MiB.
+On a managed host, the fixed `opensyria-production-backup` sudo hook performs an
+encrypted, verified off-host pre-deployment backup. Its absence retains the
+legacy local dump path, which is not sufficient by itself for disaster recovery.
