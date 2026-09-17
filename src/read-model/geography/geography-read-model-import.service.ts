@@ -151,65 +151,73 @@ export class GeographyReadModelImportService {
     const releaseId = getReleaseId(manifest);
     const client = this.prismaService.getClient();
 
-    await client.$transaction(async (transaction) => {
-      await transaction.datasetRelease.deleteMany({
-        where: {
-          id: releaseId,
-        },
-      });
-
-      await transaction.datasetRelease.create({
-        data: {
-          id: releaseId,
-          datasetId: manifest.dataset.id,
-          slug: manifest.dataset.slug,
-          repository: manifest.dataset.repository,
-          category: manifest.dataset.category,
-          titleEn: manifest.dataset.title.en,
-          titleAr: manifest.dataset.title.ar ?? null,
-          version: manifest.release.version,
-          status: manifest.release.status,
-          publishedAt: toDate(manifest.release.publishedAt),
-          generatedAt: new Date(manifest.generatedAt),
-        },
-      });
-
-      await transaction.datasetSource.createMany({
-        data: manifest.sources.map((source) => ({
-          releaseId,
-          sourceId: source.id,
-          title: source.title,
-          url: source.url ?? null,
-          license: source.license,
-          accessedAt: toDate(source.accessedAt),
-          fields: source.fields ? toJson(source.fields) : undefined,
-        })),
-      });
-
-      for (const batch of chunkItems(governoratesArtifact.data)) {
-        await transaction.geographyGovernorate.createMany({
-          data: batch.map((governorate) => this.mapGovernorate(releaseId, governorate)),
+    await client.$transaction(
+      async (transaction) => {
+        await transaction.datasetRelease.deleteMany({
+          where: {
+            id: releaseId,
+          },
         });
-      }
 
-      for (const batch of chunkItems(districtsArtifact.data)) {
-        await transaction.geographyDistrict.createMany({
-          data: batch.map((district) => this.mapDistrict(releaseId, district)),
+        await transaction.datasetRelease.create({
+          data: {
+            id: releaseId,
+            datasetId: manifest.dataset.id,
+            slug: manifest.dataset.slug,
+            repository: manifest.dataset.repository,
+            category: manifest.dataset.category,
+            titleEn: manifest.dataset.title.en,
+            titleAr: manifest.dataset.title.ar ?? null,
+            version: manifest.release.version,
+            status: manifest.release.status,
+            publishedAt: toDate(manifest.release.publishedAt),
+            generatedAt: new Date(manifest.generatedAt),
+          },
         });
-      }
 
-      for (const batch of chunkItems(subdistrictsArtifact.data)) {
-        await transaction.geographySubdistrict.createMany({
-          data: batch.map((subdistrict) => this.mapSubdistrict(releaseId, subdistrict)),
+        await transaction.datasetSource.createMany({
+          data: manifest.sources.map((source) => ({
+            releaseId,
+            sourceId: source.id,
+            title: source.title,
+            url: source.url ?? null,
+            license: source.license,
+            accessedAt: toDate(source.accessedAt),
+            fields: source.fields ? toJson(source.fields) : undefined,
+          })),
         });
-      }
 
-      for (const batch of chunkItems(localitiesArtifact.data)) {
-        await transaction.geographyLocality.createMany({
-          data: batch.map((locality) => this.mapLocality(releaseId, locality)),
-        });
-      }
-    });
+        for (const batch of chunkItems(governoratesArtifact.data)) {
+          await transaction.geographyGovernorate.createMany({
+            data: batch.map((governorate) => this.mapGovernorate(releaseId, governorate)),
+          });
+        }
+
+        for (const batch of chunkItems(districtsArtifact.data)) {
+          await transaction.geographyDistrict.createMany({
+            data: batch.map((district) => this.mapDistrict(releaseId, district)),
+          });
+        }
+
+        for (const batch of chunkItems(subdistrictsArtifact.data)) {
+          await transaction.geographySubdistrict.createMany({
+            data: batch.map((subdistrict) => this.mapSubdistrict(releaseId, subdistrict)),
+          });
+        }
+
+        for (const batch of chunkItems(localitiesArtifact.data)) {
+          await transaction.geographyLocality.createMany({
+            data: batch.map((locality) => this.mapLocality(releaseId, locality)),
+          });
+        }
+      },
+      {
+        // A bounded bulk import can exceed Prisma's five-second request default
+        // on a CPU-limited host. Keep the release replacement atomic.
+        maxWait: 5_000,
+        timeout: 60_000,
+      },
+    );
 
     await this.publicDataCacheService.clearAll();
 
