@@ -17,10 +17,9 @@ ACTIVE_RELEASE_FILE="${STATE_DIR}/active-release"
 PENDING_FILE="${STATE_DIR}/pending.env"
 PREVIOUS_UPSTREAM_FILE="${STATE_DIR}/previous-upstream.conf"
 DEPLOY_LOCK_FILE="${ROOT_DIR}/.deploy.lock"
-NGINX_DEPLOY_LOCK_FILE="${SERVER_SERVICES_ROOT}/.nginx-deploy.lock"
-NGINX_ACTIVE_INCLUDE="${SERVER_SERVICES_ROOT}/infrastructure/nginx/conf.d/includes/opensyria-production-api-active.conf"
+NGINX_DEPLOY_LOCK_FILE="${SERVER_SERVICES_ROOT}/infrastructure/nginx/conf.d/includes/opensyria/.deploy.lock"
+NGINX_ACTIVE_INCLUDE="${SERVER_SERVICES_ROOT}/infrastructure/nginx/conf.d/includes/opensyria/opensyria-production-api-active.conf"
 NGINX_CONTAINER="infra-nginx"
-POSTGRES_CONTAINER="infra-postgres"
 REDIS_CONTAINER="opensyria-production-redis"
 EDGE_NETWORK="syr-staging-edge"
 DATA_NETWORK="opensyria-production-data"
@@ -551,8 +550,8 @@ prepare_release() {
     || fail "External Docker network ${EDGE_NETWORK} is missing"
   docker_cmd network-exists "${DATA_NETWORK}" >/dev/null \
     || fail "External Docker network ${DATA_NETWORK} is missing"
-  container_is_running "${POSTGRES_CONTAINER}" \
-    || fail "Shared PostgreSQL container is missing"
+  docker_cmd opensyria-database-state >/dev/null \
+    || fail "OpenSyria PostgreSQL database is unavailable"
   container_is_running "${REDIS_CONTAINER}" \
     || fail "Dedicated OpenSyria Redis container is missing"
 

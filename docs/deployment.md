@@ -2,7 +2,7 @@
 
 `datasets-api` is deployed directly to production at `api.opensyria.org`. The
 application bundle is separate from the website bundle, while both use the
-shared host platform on `syr-prod`.
+shared production host selected by the GitHub environment.
 
 ## Architecture
 
@@ -64,7 +64,7 @@ read-only, path-scoped Universal Auth identity stored at:
 /opt/syr/apps/opensyria/production/datasets-api/.infisical.env
 ```
 
-The file must be owned by `mustafa`, mode `0600`, and contain only Infisical
+The file must be owned by the configured deployment account, mode `0600`, and contain only Infisical
 connection/identity settings. `bin/deploy.sh` obtains a short-lived token from
 the loopback Infisical API and exports `/datasets-api` to a mode-`0600` runtime
 env file. It parses `.infisical.env` with an exact key allowlist instead of
@@ -84,8 +84,8 @@ DEPLOY_SSH_KNOWN_HOSTS
 Required GitHub environment variables:
 
 ```text
-DEPLOY_HOST=syr-prod
-DEPLOY_USER=mustafa
+DEPLOY_HOST=<production-tailnet-host>
+DEPLOY_USER=<dedicated-deployment-user>
 DEPLOY_ROOT=/opt/syr/apps/opensyria/production/datasets-api
 ```
 
@@ -165,11 +165,12 @@ Do not grant the application role superuser or extension-creation privileges.
 
 The workflow and `devops/production/bin/deploy.sh` perform these steps:
 
-1. Validate the exact host, user, path, protected Infisical file, networks, and
+1. Validate the configured host/user, fixed path, protected Infisical file, networks, and
    infrastructure containers.
 2. Pull the immutable image digest with short-lived GHCR authentication.
-3. Take a custom-format pre-migration dump in
-   `/opt/syr/backups/production/opensyria/postgres`.
+3. Run the fixed managed-host backup hook and require verified encrypted off-host
+   recovery artifacts before any migration. The legacy unmanaged-host fallback
+   writes a custom-format dump in `/opt/syr/backups/production/opensyria/postgres`.
 4. Run `prisma migrate deploy` from the runtime image.
 5. Sync every exact pin in `dataset-releases.json`; the GitHub token is scoped
    to this job only.
@@ -251,3 +252,26 @@ Tunnel. Nginx supplies production security headers, preserves the client IP
 contract, and marks the API host `noindex`. API documentation and OpenAPI routes
 remain public by design. Do not cache health, API JSON, documentation, or
 OpenAPI responses at Cloudflare; cache immutable website assets separately.
+
+## Restricted production host deployment
+
+The production GitHub environment selects `DEPLOY_HOST`, `DEPLOY_USER`, the SSH
+key and its pinned known-hosts entry. The host must be provisioned in advance;
+CI only verifies the application directory and cannot create directories with
+unrestricted sudo. The deployment identity must have only the fixed Docker
+operations for this application. Keep automatic deployment paused while moving
+data and use `VERIFY_PUBLIC_DEPLOYMENT=false` for the private cutover checks.
+Set it back to `true` when the public route points to the prepared destination.
+
+The long-running application has a 1 CPU burst ceiling and 512 MiB memory/swap
+ceiling, with Node heap capped at 320 MiB. These limits apply to each blue/green
+slot; allow temporary overlap during a rollout.
+
+The API PostgreSQL pool defaults to four connections per process;
+`DATABASE_POOL_MAX` accepts 1–20 and production Compose pins it to four.
+Connection acquisition is bounded to five seconds. Database readiness uses a
+fixed host operation, so its container name need not match the application DNS
+alias. Migration jobs are capped at 1 CPU/512 MiB, sync/import at 1 CPU/768 MiB.
+On a managed host, the fixed `opensyria-production-backup` sudo hook performs an
+encrypted, verified off-host pre-deployment backup. Its absence retains the
+legacy local dump path, which is not sufficient by itself for disaster recovery.

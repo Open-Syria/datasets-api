@@ -207,7 +207,7 @@ jobs:
           echo "runtime-image=${IMAGE}@${DIGEST}" >> "$GITHUB_OUTPUT"
 
   deploy:
-    name: Deploy to syr-prod
+    name: Deploy to configured production host
     needs:
       - deploy-policy
       - build
@@ -242,8 +242,8 @@ jobs:
           DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
           DEPLOY_SSH_KNOWN_HOSTS: ${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}
         run: |
-          test "$DEPLOY_HOST" = "syr-prod"
-          test "$DEPLOY_USER" = "mustafa"
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]]
+          [[ "$DEPLOY_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]
           test "${CONFIGURED_DEPLOY_ROOT:-$DEPLOY_ROOT}" = "$DEPLOY_ROOT"
           [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
           test -n "$DEPLOY_SSH_PRIVATE_KEY"
@@ -256,7 +256,7 @@ jobs:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           audience: ${{ secrets.TS_AUDIENCE }}
           tags: tag:ci
-          ping: syr-prod
+          ping: ${{ vars.DEPLOY_HOST }}
 
       - name: Install SSH credentials
         shell: bash
@@ -282,7 +282,7 @@ jobs:
             -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes \
             "${DEPLOY_USER}@${DEPLOY_HOST}" \
-            'sudo -n /usr/bin/install -d -m 0750 -o mustafa -g mustafa /opt/syr/apps/opensyria /opt/syr/apps/opensyria/production /opt/syr/apps/opensyria/production/website /opt/syr/apps/opensyria/production/datasets-api'
+            'root=/opt/syr/apps/opensyria/production/datasets-api; test -d "$root" && test ! -L "$root" && test -w "$root"'
           ssh -i ~/.ssh/opensyria_deploy \
             -o BatchMode=yes \
             -o IdentitiesOnly=yes \
