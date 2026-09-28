@@ -14,6 +14,16 @@ Use Node 24+ and pnpm 11+. Before handing off changes, run the smallest relevant
 - `pnpm build`
 - `pnpm validate`
 
+## Public Documentation
+
+Public docs may describe application behavior, public URLs, local setup, and
+reusable hosting requirements. Keep live host inventories, private addresses,
+deployment paths, provider resource IDs, access policies, credential sharing,
+relationships with unrelated projects, and backup/recovery records in private
+operator documentation outside public repositories. Use localhost, reserved
+example domains, or placeholders in examples. Documentation freshness rules
+below apply only to information suitable for public release.
+
 ## Documentation Freshness
 
 - Treat this `AGENTS.md` as living agent documentation. When adding, removing, or renaming a repo-local skill under `.agents/skills`, update the `Local Skills` list in this file in the same change.
@@ -21,7 +31,7 @@ Use Node 24+ and pnpm 11+. Before handing off changes, run the smallest relevant
 - When changing dataset release configuration, `dataset-releases.json`, release source parsing, GitHub sync behavior, local release loading, release manifest validation, or artifact layout, update `docs/dataset-loading.md` and `docs/release-manifest.md`.
 - When changing Prisma models, migrations, read-model import/query logic, cache behavior, or CLI refresh commands, update `docs/read-model-architecture.md`, `README.md`, and any affected migration or local read-model instructions.
 - When adding support for a new dataset domain, update `README.md`, `docs/dataset-loading.md`, `dataset-releases.json`, the relevant API modules/controllers/services, read-model docs, tests, and website/data-repo references in the same feature branch.
-- When deployment behavior, Docker Compose files, nginx config, environment variables, GHCR images, migrations, blue/green slot logic, health/readiness checks, or server paths change, update `docs/deployment.md`, `devops/production/README.md`, `.env.example`, and deploy scripts together.
+- When public hosting requirements, Docker build behavior, environment variable contracts, migrations, or health/readiness checks change, update `docs/deployment.md` and `.env.example` as needed. Keep live deployment tooling, operations, and operator procedures in private operational storage.
 - When dataset contribution policy, PR workflow, or public API compatibility expectations change, update `docs/dataset-contribution-policy.md`, `docs/pull-request-workflow.md`, `CONTRIBUTING.md`, and `CHANGELOG.md` when the change is release-visible.
 
 ## Local Skills

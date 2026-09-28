@@ -304,6 +304,46 @@ pnpm run audit:prod
 pnpm run production:check -- --base-url https://api.opensyria.org
 ```
 
+## Deployment
+
+Geography imports use an atomic, batched transaction with a 60-second execution
+limit (five-second acquisition limit). This permits bounded bulk loading on
+smaller hosts without changing public query timeouts; failed imports leave the
+prior committed release and its caches in place.
+
+Deployment notes live in [docs/deployment.md](docs/deployment.md).
+
+Supply runtime values for your own environment through private configuration.
+Deployments that require external dependencies and synced releases can set:
+
+```text
+NODE_ENV=production
+IS_HTTPS=true
+DATABASE_ENABLED=true
+DATABASE_REQUIRED=true
+REDIS_ENABLED=true
+REDIS_REQUIRED=true
+DATASETS_REQUIRE_RELEASES=true
+```
+
+Set `APP_TRUST_PROXY=true` only when the service is behind a trusted reverse proxy or load balancer.
+
+See [docs/deployment.md](docs/deployment.md) for reusable runtime requirements,
+release preparation, and health checks. Operations for the hosted service are
+documented privately outside public repositories.
+
+Build the Docker image:
+
+```bash
+docker build -t opensyria/datasets-api .
+```
+
+Run the built app:
+
+```bash
+docker run --rm -p 3000:3000 --env-file .env opensyria/datasets-api
+```
+
 ## Releases
 
 Repository releases are managed by release-please. They provide version tags,
@@ -341,4 +381,4 @@ Community contribution is intended primarily for the dataset repositories, where
 
 MIT
 
-`DATABASE_POOL_MAX` bounds each API process and importer to 1–20 PostgreSQL connections (default 4). Connection acquisition times out after five seconds, so pool exhaustion fails promptly instead of accumulating unbounded waits. Production fixes the API pool at four connections.
+`DATABASE_POOL_MAX` bounds each API process and importer to 1–20 PostgreSQL connections (default 4). Connection acquisition times out after five seconds, so pool exhaustion fails promptly instead of accumulating unbounded waits. Size the pool for your own deployment.
