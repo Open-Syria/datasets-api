@@ -16,6 +16,15 @@
 * update vulnerable runtime dependencies, constrain patched transitives, and audit the complete graph during validation
 * share production image layers, refresh and retry registry pulls, and allow bounded cold ARM pulls to finish
 
+## [0.3.5](https://github.com/Open-Syria/datasets-api/compare/v0.3.4...v0.3.5) (2026-09-17)
+
+
+### Bug Fixes
+
+* **deploy:** bound production resources and support restricted hosts ([#61](https://github.com/Open-Syria/datasets-api/issues/61)) ([f983773](https://github.com/Open-Syria/datasets-api/commit/f983773279b49713c91dc5763ee402d50b7397f9))
+* **deploy:** preserve dataset access for distinct runtime user ([#63](https://github.com/Open-Syria/datasets-api/issues/63)) ([3a8ab23](https://github.com/Open-Syria/datasets-api/commit/3a8ab23188c83fcf88159c10ef21c48137ce82e6))
+* **import:** bound bulk transactions for smaller hosts ([#64](https://github.com/Open-Syria/datasets-api/issues/64)) ([cf50e4a](https://github.com/Open-Syria/datasets-api/commit/cf50e4aee4102e88e23a7ce70f60fbc09cc9410a))
+
 ## [0.3.4](https://github.com/Open-Syria/datasets-api/compare/v0.3.3...v0.3.4) (2026-08-19)
 
 
